@@ -5,7 +5,8 @@ import {
   useAuthHydrated,
   useAuthStore,
 } from "@/modules/auth";
-import { LogOut, Sparkles } from "lucide-react";
+import { LogOut, Sparkles, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -67,6 +68,22 @@ export default function DashboardPage() {
             ? `${session.user.email} · ${session.user.role}`
             : "Restoring your session."}
         </p>
+        <Link
+          href="/groups"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 26,
+            padding: "12px 18px",
+            borderRadius: 12,
+            color: "#fff",
+            background: "#4f46e5",
+            fontWeight: 700,
+          }}
+        >
+          <Users size={17} /> Find groups
+        </Link>
         <button
           type="button"
           onClick={() => {
@@ -78,7 +95,8 @@ export default function DashboardPage() {
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
-            marginTop: 26,
+            marginTop: 12,
+            marginLeft: 12,
             padding: "12px 18px",
             border: 0,
             borderRadius: 12,
