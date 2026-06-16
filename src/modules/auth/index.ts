@@ -1,3 +1,4 @@
+export { AuthenticatedRoute } from "./components/authenticated-route";
 export { LoginPage } from "./components/login-page";
 export { useAuthHydrated } from "./hooks/use-auth-hydrated";
 export { useAuthStore } from "./stores/auth.store";
