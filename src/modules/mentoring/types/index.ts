@@ -34,6 +34,10 @@ export type MentorMeetingDto = {
   endAt: ISODateTimeString;
   meetLink: string;
   status: MeetingStatus;
+  leaderConfirmedByStudentId: number | null;
+  leaderConfirmedAt: ISODateTimeString | null;
+  mentorConfirmedAt: ISODateTimeString | null;
+  completedAt: ISODateTimeString | null;
   createdAt: ISODateTimeString;
   updatedAt: ISODateTimeString;
 };

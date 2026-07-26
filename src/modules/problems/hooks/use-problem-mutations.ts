@@ -6,6 +6,7 @@ import {
   createProblemDomain,
   proposeGroupProblem,
   reviewProblem,
+  reviewProblemAsInstructor,
   selectGroupProblem,
   updateProblem,
   updateProblemDomain,
@@ -127,6 +128,26 @@ export function useReviewProblem(id: EntityId) {
   return useMutation({
     mutationFn: (payload: ReviewProblemRequest) => reviewProblem(id, payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.detail(Number(id)),
+      });
+    },
+  });
+}
+
+export function useReviewProblemAsInstructor(id: EntityId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ReviewProblemRequest) =>
+      reviewProblemAsInstructor(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.pendingInstructor(),
+      });
       queryClient.invalidateQueries({
         queryKey: queryKeys.problems.all,
       });

@@ -9,3 +9,4 @@ export * from "./admin-problems-page";
 export * from "./admin-problem-form";
 export * from "./review-proposal-modal";
 export * from "./domain-manager";
+export { InstructorProblemsPage } from "./instructor-problems-page";

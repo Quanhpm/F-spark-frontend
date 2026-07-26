@@ -129,3 +129,19 @@ export function importProblemBank(file: File) {
     formData,
   );
 }
+
+export function listInstructorPendingProblems() {
+  return apiGet<ApiResponse<ProblemSummaryDto[]>>(
+    "/api/instructor/problems/pending",
+  );
+}
+
+export function reviewProblemAsInstructor(
+  problemId: EntityId,
+  payload: ReviewProblemRequest,
+) {
+  return apiPatch<ApiResponse<ProblemDetailDto>>(
+    `/api/instructor/problems/${problemId}/review`,
+    payload,
+  );
+}

@@ -14,6 +14,7 @@ import {
 } from "@/shared/components";
 import {
   useBookMeeting,
+  useConfirmMeeting,
   useGroupMeetings,
   useMentorAvailabilityForGroup,
 } from "@/modules/mentoring";
@@ -62,7 +63,27 @@ function groupSlotsByDate(slots: MentorAvailabilitySlotDto[]) {
   );
 }
 
-function MeetingCard({ meeting }: { meeting: MentorMeetingDto }) {
+function getMeetingStatusTone(status: string) {
+  if (status === "COMPLETED") return "success";
+  if (status === "SCHEDULED") return "warning";
+  return "danger";
+}
+
+function MeetingCard({
+  meeting,
+  groupId,
+  isLeader,
+}: {
+  meeting: MentorMeetingDto;
+  groupId: number;
+  isLeader: boolean;
+}) {
+  const confirmMeetingMutation = useConfirmMeeting();
+  const leaderConfirmed = meeting.leaderConfirmedAt !== null;
+  const mentorConfirmed = meeting.mentorConfirmedAt !== null;
+  const canConfirm =
+    meeting.status === "SCHEDULED" && !leaderConfirmed && isLeader;
+
   return (
     <article className="grid gap-2 rounded-xl border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
@@ -74,7 +95,7 @@ function MeetingCard({ meeting }: { meeting: MentorMeetingDto }) {
             {formatTime(meeting.startAt)} - {formatTime(meeting.endAt)}
           </span>
         </div>
-        <Badge tone={meeting.status === "SCHEDULED" ? "success" : "danger"}>
+        <Badge tone={getMeetingStatusTone(meeting.status)}>
           {meeting.status}
         </Badge>
       </div>
@@ -88,6 +109,46 @@ function MeetingCard({ meeting }: { meeting: MentorMeetingDto }) {
           <LinkIcon size={14} />
           Meeting link
         </a>
+      )}
+
+      {/* Confirmation Status */}
+      <div className="mt-2 grid gap-1 border-t border-border/60 pt-2 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-muted">Leader confirm:</span>
+          <span
+            className={
+              leaderConfirmed ? "font-bold text-green-700" : "text-muted-foreground"
+            }
+          >
+            {leaderConfirmed ? "✅ Confirmed" : "⏳ Pending"}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-muted">Mentor confirm:</span>
+          <span
+            className={
+              mentorConfirmed ? "font-bold text-green-700" : "text-muted-foreground"
+            }
+          >
+            {mentorConfirmed ? "✅ Confirmed" : "⏳ Pending"}
+          </span>
+        </div>
+      </div>
+
+      {canConfirm && (
+        <Button
+          onClick={() =>
+            confirmMeetingMutation.mutate({
+              groupId,
+              meetingId: meeting.id,
+            })
+          }
+          disabled={confirmMeetingMutation.isPending}
+          size="sm"
+          className="mt-2 w-full"
+        >
+          {confirmMeetingMutation.isPending ? "Confirming..." : "Confirm Meeting"}
+        </Button>
       )}
     </article>
   );
@@ -152,7 +213,12 @@ export function MeetingBookingSection({
               {meetings.length > 0 ? (
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-3">
                   {meetings.map((meeting) => (
-                    <MeetingCard key={meeting.id} meeting={meeting} />
+                    <MeetingCard
+                      key={meeting.id}
+                      meeting={meeting}
+                      groupId={group.id}
+                      isLeader={canBook}
+                    />
                   ))}
                 </div>
               ) : (

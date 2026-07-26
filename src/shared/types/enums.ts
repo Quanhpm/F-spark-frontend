@@ -1,4 +1,4 @@
-export type UserRole = "ADMIN" | "STUDENT" | "MENTOR";
+export type UserRole = "ADMIN" | "STUDENT" | "MENTOR" | "INSTRUCTOR";
 
 export type UserStatus = "ACTIVE" | "INACTIVE" | "LOCKED";
 
@@ -41,7 +41,7 @@ export type JoinRequestStatus =
 
 export type SlotStatus = "AVAILABLE" | "BOOKED" | "CANCELED";
 
-export type MeetingStatus = "SCHEDULED" | "CANCELED";
+export type MeetingStatus = "SCHEDULED" | "CANCELED" | "COMPLETED";
 
 export type ImportTargetType = "STUDENT" | "MENTOR" | "PROBLEM_BANK";
 

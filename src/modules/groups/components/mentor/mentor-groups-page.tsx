@@ -8,7 +8,7 @@ import {
   useMentorDashboardGroups,
 } from "@/modules/dashboards";
 import type { DashboardGroupProgressDto } from "@/modules/dashboards";
-import { useGroupMeetings } from "@/modules/mentoring";
+import { useGroupMeetings, useConfirmMeeting } from "@/modules/mentoring";
 import {
   Badge,
   Button,
@@ -108,6 +108,7 @@ function ProgressSummary({
 
 function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
   const meetingsQuery = useGroupMeetings(group.id);
+  const confirmMeetingMutation = useConfirmMeeting();
   const meetings = meetingsQuery.data?.data ?? [];
 
   return (
@@ -162,38 +163,94 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
           />
         ) : (
           <div className="grid gap-3">
-            {meetings.map((meeting) => (
-              <div
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"
-                key={meeting.id}
-              >
-                <div className="min-w-0">
-                  <div className="font-bold text-foreground">
-                    {formatDateTime(meeting.startAt)}
+            {meetings.map((meeting) => {
+              const leaderConfirmed = meeting.leaderConfirmedAt !== null;
+              const mentorConfirmed = meeting.mentorConfirmedAt !== null;
+              const canConfirm =
+                meeting.status === "SCHEDULED" && !mentorConfirmed;
+
+              return (
+                <div
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"
+                  key={meeting.id}
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-foreground">
+                      {formatDateTime(meeting.startAt)}
+                    </div>
+                    <p className="mt-1 mb-2 text-[13px] text-muted">
+                      Booked by {meeting.bookedByStudentName}
+                    </p>
+
+                    {/* Confirmation Status */}
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <span>Leader:</span>
+                        <span
+                          className={
+                            leaderConfirmed
+                              ? "font-bold text-green-700"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {leaderConfirmed ? "✅ Confirmed" : "⏳ Pending"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span>Mentor:</span>
+                        <span
+                          className={
+                            mentorConfirmed
+                              ? "font-bold text-green-700"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {mentorConfirmed ? "✅ Confirmed" : "⏳ Pending"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-1 mb-0 text-[13px] text-muted">
-                    Booked by {meeting.bookedByStudentName}
-                  </p>
+
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Badge
+                      tone={
+                        meeting.status === "COMPLETED"
+                          ? "success"
+                          : meeting.status === "SCHEDULED"
+                            ? "warning"
+                            : "danger"
+                      }
+                    >
+                      {meeting.status}
+                    </Badge>
+                    <Button
+                      icon={<CalendarClock size={15} />}
+                      onClick={() => window.open(meeting.meetLink, "_blank")}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Meet
+                    </Button>
+                    {canConfirm && (
+                      <Button
+                        onClick={() =>
+                          confirmMeetingMutation.mutate({
+                            groupId: group.id,
+                            meetingId: meeting.id,
+                          })
+                        }
+                        disabled={confirmMeetingMutation.isPending}
+                        size="sm"
+                      >
+                        {confirmMeetingMutation.isPending
+                          ? "Confirming..."
+                          : "Confirm"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <Badge
-                    tone={
-                      meeting.status === "SCHEDULED" ? "success" : "danger"
-                    }
-                  >
-                    {meeting.status}
-                  </Badge>
-                  <Button
-                    icon={<CalendarClock size={15} />}
-                    onClick={() => window.open(meeting.meetLink, "_blank")}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    Meet
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
