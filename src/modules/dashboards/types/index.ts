@@ -192,3 +192,30 @@ export type InstructorMilestoneDashboardQuery = {
   courseCode: string;
   groupId?: number;
 };
+
+export type AdminDashboardOverviewQuery = {
+  term?: string;
+  courseCode?: string;
+  limit?: number;
+};
+
+export type TopProblemDto = {
+  problemId: number;
+  problemCode: string;
+  problemTitle: string;
+  selectionCount: number;
+};
+
+export type TopDomainDto = {
+  domainId: number;
+  domainCode: string;
+  domainName: string;
+  selectionCount: number;
+};
+
+export type AdminDashboardOverviewDto = {
+  totalActiveStudents: number;
+  totalActiveMentors: number;
+  topProblems: TopProblemDto[];
+  topDomains: TopDomainDto[];
+};

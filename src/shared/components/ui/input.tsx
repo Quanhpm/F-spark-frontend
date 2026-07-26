@@ -25,13 +25,17 @@ export function TextInput({
   return (
     <label className={cn("grid min-w-0 gap-[7px]", fieldClassName)} htmlFor={id}>
       {(label || hint) && (
-        <span className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1">
           {label && (
             <span className="text-[13px] font-medium text-foreground">
               {label}
             </span>
           )}
-          {hint && <span className="text-xs text-muted">{hint}</span>}
+          {hint && (
+            <span className="min-w-0 break-words text-xs text-muted">
+              {hint}
+            </span>
+          )}
         </span>
       )}
       <span
@@ -44,7 +48,7 @@ export function TextInput({
         {icon}
         <input
           className={cn(
-            "min-w-0 flex-1 border-0 bg-transparent font-sans text-sm text-foreground outline-0 placeholder:text-[#a3a3a3]",
+            "min-w-0 flex-1 border-0 bg-transparent font-sans text-base text-foreground outline-0 placeholder:text-[#a3a3a3] min-[761px]:text-sm",
             className,
           )}
           id={id}

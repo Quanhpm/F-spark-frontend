@@ -56,10 +56,10 @@ function RequestCard({
     <article className="grid gap-3 rounded-xl border border-border bg-surface p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="m-0 text-sm font-bold text-foreground">
+          <h3 className="m-0 break-words text-sm font-bold text-foreground">
             {request.studentName} - {request.studentCode}
           </h3>
-          <p className="m-0 text-xs text-muted">
+          <p className="m-0 break-words text-xs text-muted">
             {request.groupName} - {request.courseCode}
           </p>
         </div>
@@ -67,11 +67,11 @@ function RequestCard({
           {request.status}
         </Badge>
       </div>
-      <p className="m-0 text-sm leading-relaxed text-muted">
+      <p className="m-0 break-words text-sm leading-relaxed text-muted">
         {request.message ?? "No message"}
       </p>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-2 max-[480px]:grid">
+        <span className="break-words text-xs text-muted">
           Sent {formatDateTime(request.createdAt)}
         </span>
         {actions}
@@ -80,11 +80,18 @@ function RequestCard({
   );
 }
 
-export function JoinRequestSection({ groupId }: { groupId: number }) {
+export function JoinRequestSection({
+  groupId,
+  isMembershipLocked = false,
+}: {
+  groupId: number;
+  isMembershipLocked?: boolean;
+}) {
   const requestsQuery = useGroupJoinRequests(groupId);
   const approveMutation = useApproveJoinRequest();
   const rejectMutation = useRejectJoinRequest();
   const [error, setError] = useState("");
+  const isMutating = approveMutation.isPending || rejectMutation.isPending;
 
   const requests = requestsQuery.data?.data ?? [];
   const pendingRequests = requests.filter((request) => request.status === "PENDING");
@@ -107,7 +114,11 @@ export function JoinRequestSection({ groupId }: { groupId: number }) {
             <Badge tone="warning">{pendingRequests.length} new</Badge>
           ) : undefined
         }
-        description="Approve or reject students asking to join your group."
+        description={
+          isMembershipLocked
+            ? "Membership is locked. Unlock the group before approving requests."
+            : "Approve or reject students asking to join your group."
+        }
         title="Join Requests"
       />
       <CardContent>
@@ -128,8 +139,9 @@ export function JoinRequestSection({ groupId }: { groupId: number }) {
             {pendingRequests.map((request) => (
               <RequestCard
                 actions={
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
                     <Button
+                      disabled={isMembershipLocked || isMutating}
                       icon={<Check size={16} />}
                       onClick={() =>
                         runAction(() =>
@@ -144,6 +156,7 @@ export function JoinRequestSection({ groupId }: { groupId: number }) {
                       Approve
                     </Button>
                     <Button
+                      disabled={isMutating}
                       icon={<X size={16} />}
                       onClick={() =>
                         runAction(() =>
@@ -217,6 +230,8 @@ export function MyJoinRequestsSection() {
                 actions={
                   request.status === "PENDING" ? (
                     <Button
+                      className="max-[480px]:min-h-11 max-[480px]:w-full"
+                      disabled={cancelMutation.isPending}
                       icon={<X size={16} />}
                       onClick={() => cancelRequest(request)}
                       size="sm"

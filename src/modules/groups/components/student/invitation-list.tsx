@@ -79,12 +79,12 @@ export function InvitationList({
               >
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="grid min-w-0 gap-1">
-                    <h3 className="m-0 text-sm font-bold text-foreground">
+                    <h3 className="m-0 break-words text-sm font-bold text-foreground">
                       {mode === "received"
                         ? invitation.groupName
                         : invitation.studentName}
                     </h3>
-                    <p className="m-0 text-xs text-muted">
+                    <p className="m-0 break-words text-xs text-muted">
                       {invitation.term} - {invitation.courseCode} -{" "}
                       {mode === "received"
                         ? invitation.groupNo
@@ -95,15 +95,15 @@ export function InvitationList({
                     {invitation.status}
                   </Badge>
                 </div>
-                <p className="m-0 text-sm leading-relaxed text-muted">
+                <p className="m-0 break-words text-sm leading-relaxed text-muted">
                   {invitation.message ?? "No message"}
                 </p>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs text-muted">
+                <div className="flex flex-wrap items-center justify-between gap-2 max-[480px]:grid">
+                  <span className="break-words text-xs text-muted">
                     Sent {formatDateTime(invitation.createdAt)}
                   </span>
                   {invitation.status === "PENDING" && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
                       {mode === "received" && onAccept && (
                         <Button
                           icon={<Check size={16} />}

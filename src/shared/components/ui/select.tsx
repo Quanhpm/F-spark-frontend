@@ -33,7 +33,7 @@ export function Select({
       >
         <select
           className={cn(
-            "h-full w-full min-w-0 appearance-none border-0 bg-transparent py-0 pr-10 pl-3.5 font-sans text-sm text-foreground outline-0",
+            "h-full w-full min-w-0 appearance-none border-0 bg-transparent py-0 pr-10 pl-3.5 font-sans text-base text-foreground outline-0 min-[761px]:text-sm",
             className,
           )}
           id={id}

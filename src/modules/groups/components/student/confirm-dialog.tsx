@@ -2,10 +2,9 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { X } from "lucide-react";
 
-import { Button } from "@/shared/components";
-import { ApiError } from "@/shared/lib";
+import { Button, ResponsiveDialog } from "@/shared/components";
+import { ApiError, cn } from "@/shared/lib";
 
 type ConfirmDialogProps = {
   children?: ReactNode;
@@ -50,34 +49,16 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 p-4 backdrop-blur-sm">
-      <div className="w-[min(520px,100%)] overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
-        <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
-          <div className="grid gap-1">
-            <h2 className="m-0 text-lg font-bold text-foreground">{title}</h2>
-            <p className="m-0 text-sm leading-relaxed text-muted">
-              {description}
-            </p>
-          </div>
-          <Button
-            aria-label="Close dialog"
-            icon={<X size={16} />}
-            onClick={onClose}
-            size="sm"
-            variant="ghost"
-          />
-        </header>
-
-        <div className="grid gap-4 px-6 py-5">
-          {children}
-          {error && (
-            <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </p>
-          )}
-        </div>
-
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
+    <ResponsiveDialog
+      bodyClassName={cn(
+        "grid flex-none gap-4",
+        !children && !error && "hidden",
+      )}
+      className="min-[761px]:max-w-[520px] [&>footer]:border-t-0 [&>header]:border-b-0"
+      closeOnBackdrop={false}
+      description={description}
+      footer={
+        <>
           <Button onClick={onClose} variant="secondary">
             Cancel
           </Button>
@@ -88,8 +69,17 @@ export function ConfirmDialog({
           >
             {isSubmitting ? "Working..." : confirmLabel}
           </Button>
-        </footer>
-      </div>
-    </div>
+        </>
+      }
+      onClose={onClose}
+      title={title}
+    >
+      {children}
+      {error && (
+        <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
+    </ResponsiveDialog>
   );
 }

@@ -4,6 +4,10 @@
 > **OpenAPI Version:** 3.1.0
 > **Authentication:** JWT Bearer Token — include `Authorization: Bearer <accessToken>` in all requests (except login/register).
 > **Content-Type:** `application/json` (unless noted otherwise for file uploads: `multipart/form-data`)
+>
+> **Nguon chuan:** `https://api-fspark.kusl.io.vn/v3/api-docs`. Phan API cu ben
+> duoi la snapshot lich su; phan **OpenAPI Update — 2026-07-11** o cuoi file la
+> delta da doi chieu voi Swagger live va duoc uu tien neu co sai khac.
 
 ---
 
@@ -43,7 +47,7 @@ Endpoints returning lists use this pagination structure inside `data`:
 
 | Enum Name | Values |
 |-----------|--------|
-| **UserRole** | `ADMIN`, `STUDENT`, `MENTOR` |
+| **UserRole** | `ADMIN`, `STUDENT`, `MENTOR`, `INSTRUCTOR` |
 | **UserStatus** | `ACTIVE`, `INACTIVE`, `LOCKED` |
 | **GroupStatus** | `ACTIVE`, `INACTIVE` |
 | **Gender** | `MALE`, `FEMALE`, `OTHER` |
@@ -59,6 +63,12 @@ Endpoints returning lists use this pagination structure inside `data`:
 | **ImportFileType** | `CSV`, `XLSX` |
 | **JoinRequestStatus** | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELED` |
 | **ImportBatchStatus** | `COMPLETED`, `FAILED` |
+| **FeedbackTargetType** | `MENTOR`, `INSTRUCTOR` |
+| **FeedbackStatus** | `PENDING`, `SUBMITTED` |
+| **AcademicTermStatus** | `OPEN`, `CLOSED` |
+| **CourseMilestoneStatus** | `ACTIVE`, `CLOSED`, `ARCHIVED`, `INACTIVE` |
+| **MilestoneSubmissionStatus** | `SUBMITTED`, `RESUBMITTED`, `GRADED` |
+| **NotificationType** | `GROUP_INVITATION_CREATED`, `GROUP_INVITATION_ACCEPTED`, `GROUP_INVITATION_DECLINED`, `GROUP_JOIN_REQUEST_CREATED`, `GROUP_JOIN_REQUEST_APPROVED`, `GROUP_JOIN_REQUEST_REJECTED`, `GROUP_MEMBER_REMOVED`, `GROUP_LEADER_TRANSFERRED`, `GROUP_LOCK_UPDATED`, `TASK_ASSIGNED`, `TASK_COMMENT_CREATED`, `TASK_STATUS_CHANGED`, `TIMELINE_ITEM_CREATED`, `TIMELINE_ITEM_UPDATED`, `MILESTONE_SUBMISSION_CREATED`, `MILESTONE_SUBMISSION_GRADED`, `MENTOR_MEETING_BOOKED`, `MENTOR_MEETING_CANCELED`, `TERM_FEEDBACK_AVAILABLE` |
 | **ImportErrorCode** | `MISSING_REQUIRED_FIELD`, `INVALID_FORMAT`, `DUPLICATE_CODE`, `DUPLICATE_EMAIL`, `INVALID_VALUE`, `UNKNOWN_ERROR`, `UNSUPPORTED_COLUMN`, `DUPLICATED_IN_FILE`, `ALREADY_EXISTS`, `INVALID_EMAIL`, `INVALID_GENDER`, `INVALID_EXPERIENCE`, `INVALID_PHONE`, `INVALID_DATE`, `ACCOUNT_CREATION_FAILED`, `SYSTEM_ERROR`, `LEADER_FALLBACK_WARNING`, `GROUP_SKIPPED`, `MENTOR_ASSIGNMENT_WARNING` |
 
 ---
@@ -121,6 +131,25 @@ Endpoints returning lists use this pagination structure inside `data`:
 }
 ```
 
+### InstructorProfileDto
+```json
+{
+  "id": 1,
+  "instructorCode": "INS001",
+  "fullName": "Le Thi C",
+  "email": "c@fpt.edu.vn",
+  "phone": "0901234567",
+  "department": "Software Engineering",
+  "expertise": "Project Management",
+  "status": "ACTIVE"
+}
+```
+
+`CreateInstructorProfileRequest` va `UpdateInstructorProfileRequest` bat buoc
+`instructorCode` (toi da 50 ky tu) va `fullName` (toi da 255 ky tu). `phone`
+toi da 30 ky tu, `department` toi da 150 ky tu; `expertise` khong co gioi han
+do dai trong Swagger hien tai.
+
 ### AdminUserDetailDto
 ```json
 {
@@ -133,7 +162,9 @@ Endpoints returning lists use this pagination structure inside `data`:
   "updatedAt": "2025-01-01T00:00:00Z",
   "lastLoginAt": "2025-06-01T10:00:00Z",
   "studentProfile": { /* StudentProfileDto */ },
-  "mentorProfile": { /* MentorProfileDto — null if not MENTOR */ }
+  "mentorProfile": { /* MentorProfileDto — null if not MENTOR */ },
+  "instructorProfile": { /* InstructorProfileDto — null if not INSTRUCTOR */ },
+  "groupMemberships": [ { /* StudentGroupMembershipDto */ } ]
 }
 ```
 
@@ -148,7 +179,22 @@ Endpoints returning lists use this pagination structure inside `data`:
   "fullName": "Nguyen Van A",
   "code": "SE12345",
   "createdAt": "2025-01-01T00:00:00Z",
-  "lastLoginAt": "2025-06-01T10:00:00Z"
+  "lastLoginAt": "2025-06-01T10:00:00Z",
+  "groupMemberships": [ { /* StudentGroupMembershipDto */ } ]
+}
+```
+
+### StudentGroupMembershipDto
+```json
+{
+  "groupId": 1,
+  "term": "Summer2025",
+  "courseCode": "EXE201",
+  "groupNo": "G01",
+  "name": "F-Spark Team",
+  "projectName": "F-Spark Platform",
+  "role": "LEADER",
+  "joinedAt": "2025-06-01T10:00:00Z"
 }
 ```
 
@@ -169,7 +215,12 @@ Endpoints returning lists use this pagination structure inside `data`:
   "mentorId": 1,
   "mentorCode": "MT001",
   "mentorName": "Tran Van B",
-  "selectedProblem": { /* SelectedProblemSummaryDto | null */ }
+  "instructorId": 2,
+  "instructorCode": "INS001",
+  "instructorName": "Le Thi C",
+  "isLock": false,
+  "selectedProblem": { /* SelectedProblemSummaryDto | null */ },
+  "recruitmentNeeds": [ { /* GroupRecruitmentNeedDto */ } ]
 }
 ```
 
@@ -189,8 +240,24 @@ Endpoints returning lists use this pagination structure inside `data`:
   "targetGrade": 8.0,
   "status": "ACTIVE",
   "mentor": { /* MentorProfileDto | null */ },
+  "instructorId": 2,
+  "instructorCode": "INS001",
+  "instructorName": "Le Thi C",
+  "isLock": false,
   "members": [ { /* GroupMemberDto */ } ],
-  "selectedProblem": { /* SelectedProblemSummaryDto | null */ }
+  "selectedProblem": { /* SelectedProblemSummaryDto | null */ },
+  "recruitmentNeeds": [ { /* GroupRecruitmentNeedDto */ } ]
+}
+```
+
+### GroupRecruitmentNeedDto
+```json
+{
+  "role": "SOFTWARE_DEVELOPER",
+  "category": "TECHNOLOGY",
+  "displayNameVi": "Lap trinh vien phan mem",
+  "displayNameEn": "Software Developer",
+  "quantity": 2
 }
 ```
 
@@ -602,7 +669,7 @@ GET /api/admin/users
 | `page` | int | No | `0` | Page number (0-based) |
 | `size` | int | No | `10` | Page size |
 | `search` | string | No | — | Search by name, email, code |
-| `role` | string | No | — | Filter: `ADMIN`, `STUDENT`, `MENTOR` |
+| `role` | string | No | — | Filter: `ADMIN`, `STUDENT`, `MENTOR`, `INSTRUCTOR` |
 | `status` | string | No | — | Filter: `ACTIVE`, `INACTIVE`, `LOCKED` |
 
 **Response:** `APIResponse<PageResponse<AdminUserSummaryDto>>`
@@ -629,7 +696,7 @@ POST /api/admin/users
 ```json
 {
   "email": "new@example.com",           // required, format: email
-  "role": "STUDENT",                    // required, enum: ADMIN | STUDENT | MENTOR
+  "role": "STUDENT",                    // required, enum: ADMIN | STUDENT | MENTOR | INSTRUCTOR
   "initialPassword": "securePass123",   // required, minLength: 6
   "studentProfile": {                   // required if role=STUDENT
     "studentCode": "SE99999",           // required, maxLength: 50
@@ -651,6 +718,13 @@ POST /api/admin/users
     "expertise": "Cloud Computing",     // optional
     "yearsOfExperience": 8,             // optional, min: 0
     "linkedinUrl": "https://..."        // optional, maxLength: 500
+  },
+  "instructorProfile": {                // required if role=INSTRUCTOR
+    "instructorCode": "INS999",        // required, maxLength: 50
+    "fullName": "Le Thi C",             // required, maxLength: 255
+    "phone": "0901234567",             // optional, maxLength: 30
+    "department": "Software Engineering", // optional, maxLength: 150
+    "expertise": "Project Management"  // optional
   }
 }
 ```
@@ -692,6 +766,13 @@ PATCH /api/admin/users/{id}
     "expertise": "Cloud Computing",     // optional
     "yearsOfExperience": 8,             // optional, min: 0
     "linkedinUrl": "https://..."        // optional, maxLength: 500
+  },
+  "instructorProfile": {                // optional
+    "instructorCode": "INS999",        // required, maxLength: 50
+    "fullName": "Le Thi C",             // required, maxLength: 255
+    "phone": "0901234567",             // optional, maxLength: 30
+    "department": "Software Engineering", // optional, maxLength: 150
+    "expertise": "Project Management"  // optional
   }
 }
 ```
@@ -927,6 +1008,18 @@ GET /api/students/ungrouped
 | `size` | int | No | `20` | Number of records per page |
 
 **Response:** `APIResponse<PageResponse<StudentProfileDto>>`
+
+---
+
+#### 3.12 Get Student by ID
+```
+GET /api/students/{id}
+```
+**Auth Required:** Yes (STUDENT)
+
+**Path Parameters:** `id` (long) — Student profile ID
+
+**Response:** `APIResponse<StudentProfileDto>`
 
 ---
 
@@ -2114,7 +2207,10 @@ GET /api/dashboard/admin/execution-status
 
 ---
 
-## Quick Reference — All Endpoints Summary
+## Legacy Endpoint Summary
+
+Danh sach nay la snapshot truoc batch OpenAPI 2026-07-11. Xem delta o cuoi file
+de lay cac endpoint moi va endpoint thay doi.
 
 | # | Method | Path | Auth | Role | Description |
 |---|--------|------|------|------|-------------|
@@ -2220,3 +2316,148 @@ GET /api/dashboard/admin/execution-status
 | 100 | GET | `/api/groups/{groupId}/task-boards` | Yes | Member/Mentor | Get task boards |
 | 101 | POST | `/api/groups/{groupId}/task-boards` | Yes | Leader/Admin | Create task board |
 | 102 | PATCH | `/api/groups/{groupId}/task-boards/{boardId}` | Yes | Leader/Admin | Update task board |
+
+---
+
+## OpenAPI Update — 2026-07-11
+
+Da doi chieu voi Swagger live luc 12:05 ICT ngay 2026-07-11. Cac endpoint duoi
+day co trong OpenAPI nhung chua co trong snapshot cu. Toan bo deu dung JWT Bearer
+token; response van boc trong `ApiResponse<T>` tru khi Swagger ghi khac.
+
+### Quy uoc cho batch nay
+
+- Dung `/api/instructor/milestones/**` lam endpoint canonical. Nhom
+  `/api/course-milestones/**` la alias cung contract, khong goi trong code moi.
+- `/api/*/milestones/{milestoneId}/outcomes` duoc Swagger danh dau
+  **Deprecated**; khong trien khai UI moi tren cac endpoint nay.
+- `GET /api/admin/terms` list term; thao tac close dung dung
+  `PATCH /api/admin/terms/{term}/close`.
+- `PUT /api/feedback/{id}` cap nhat mot feedback record da duoc backend tao;
+  khong co `POST /api/feedback` trong Swagger hien tai.
+
+**Alias/deprecated paths ghi nhan day du:**
+
+| Path | Trang thai |
+|------|------------|
+| `GET|POST /api/course-milestones` | Alias cua instructor milestones; khong dung cho code moi |
+| `GET|PUT|PATCH|DELETE /api/course-milestones/{id}` | Alias cua instructor milestone detail; khong dung cho code moi |
+| `GET|POST /api/instructor/milestones/{milestoneId}/outcomes` | Deprecated |
+| `GET|POST /api/course-milestones/{milestoneId}/outcomes` | Deprecated |
+
+### 14. Notifications
+
+| Method | Path | Query / payload | Muc dich |
+|--------|------|-----------------|----------|
+| GET | `/api/notifications` | `page?`, `size?`, `unreadOnly?` | Danh sach notification cua user, co phan trang |
+| GET | `/api/notifications/unread-count` | — | So notification chua doc |
+| PATCH | `/api/notifications/{id}/read` | — | Danh dau mot notification da doc |
+| PATCH | `/api/notifications/read-all` | — | Danh dau tat ca da doc |
+
+`NotificationDto` gom `id`, `type`, `title`, `body`, `actionUrl`, `entityType`,
+`entityId`, `payload`, `read`, `readAt`, `createdAt`. Frontend chi duoc dung
+`actionUrl` nhu internal route sau khi kiem tra no bat dau bang `/`; khong render
+`payload` nhu HTML.
+
+### 15. Feedback & Academic Terms
+
+| Method | Path | Query / payload | Muc dich |
+|--------|------|-----------------|----------|
+| GET | `/api/feedback/me` | `term?`, `status?` | Cac feedback cua nguoi dang nhap |
+| GET | `/api/feedback/received` | `term?`, `courseCode?` | Tong hop feedback an danh da nhan |
+| PUT | `/api/feedback/{id}` | `{ rating, comment? }` | Submit hoac cap nhat feedback |
+| GET | `/api/admin/feedback` | `page?`, `size?`, `term?`, `courseCode?`, `targetType?`, `targetId?`, `status?` | Admin xem feedback co danh tinh |
+| GET | `/api/admin/terms` | — | Danh sach ky hoc va tien do feedback |
+| GET | `/api/terms/available` | — | Danh sach ky hoc OPEN cho student tao group |
+| PATCH | `/api/admin/terms/{term}/close` | — | Dong ky hoc |
+
+`rating` bat buoc, trong khoang 1..5; `comment` toi da 2,000 ky tu.
+`FeedbackStatus` la `PENDING | SUBMITTED`, `FeedbackTargetType` la
+`MENTOR | INSTRUCTOR`, va `AcademicTermStatus` la `OPEN | CLOSED`.
+
+`TermFeedbackResponseDto` cua student co term, group, target, rating/comment,
+status va version. `FeedbackReceivedSummaryDto` cua mentor/instructor co
+`totalCount`, `averageRating`, `ratingDistribution` va cac entry an danh.
+`AdminFeedbackResponseDto` moi co student, group va target day du danh tinh.
+`AcademicTermResponseDto` co `code`, `status`, `closedAt`, `closedByEmail`,
+`groupCount`, `totalExpectedFeedbacks`, `totalSubmittedFeedbacks`.
+
+### 16. Group Recruitment, Lock & Instructor Assignment
+
+| Method | Path | Query / payload | Muc dich |
+|--------|------|-----------------|----------|
+| GET | `/api/group-recruitment-roles` | — | Catalog role tuyen thanh vien |
+| PATCH | `/api/groups/{groupId}/lock` | `{ isLock: boolean }` | Khoa/mo khoa membership |
+| PATCH | `/api/groups/{groupId}/mentor/meetings/{meetingId}/cancel` | — | Huy meeting cua group |
+| GET | `/api/groups/instructor/me` | `term?`, `courseCode?` | Cac group duoc gan cho instructor |
+| PATCH | `/api/groups/{groupId}/instructor` | `{ instructorId }` | Gan instructor cho group |
+
+`RecruitmentRoleDto` co `code`, `category`, `displayNameVi`, `displayNameEn`.
+`GroupSummaryDto` da co `instructorId`, `instructorCode`, `instructorName`,
+`isLock` va `recruitmentNeeds`. `AssignInstructorRequest.instructorId` va
+`UpdateGroupLockRequest.isLock` deu bat buoc.
+
+### 17. Admin Dashboard Overview
+
+| Method | Path | Query | Muc dich |
+|--------|------|-------|----------|
+| GET | `/api/dashboard/admin/overview` | `term?`, `courseCode?`, `limit?` (default 5) | Thong ke overview cho Admin |
+
+Response `AdminDashboardOverviewDto` co `totalActiveStudents`,
+`totalActiveMentors`, `topProblems` va `topDomains`.
+
+### 18. Instructor Milestones
+
+| Method | Path | Query / payload | Muc dich |
+|--------|------|-----------------|----------|
+| GET | `/api/instructor/milestones` | `term`*, `courseCode`* | List timeline milestone |
+| POST | `/api/instructor/milestones` | `CreateCourseMilestoneRequest` | Tao milestone |
+| GET | `/api/instructor/milestones/{id}` | — | Xem milestone |
+| PUT/PATCH | `/api/instructor/milestones/{id}` | `UpdateCourseMilestoneRequest` | Cap nhat milestone |
+| DELETE | `/api/instructor/milestones/{id}` | — | Archive milestone |
+| GET | `/api/groups/{groupId}/milestones` | — | Student doc timeline cua group |
+
+`CreateCourseMilestoneRequest` bat buoc `term`, `courseCode`, `title`; co
+`description`, `weight` (0..100), `deadlineAt`, `maxScore` (>0), `position`.
+`UpdateCourseMilestoneRequest` bat buoc `title`, va co the cap nhat cac truong
+tren cung `status`. `CourseMilestoneStatus` la
+`ACTIVE | CLOSED | ARCHIVED | INACTIVE`.
+
+`CourseMilestoneDto` co `id`, term/courseCode, title/description, weight,
+deadline, maxScore, position, status va thong tin instructor.
+
+### 19. Milestone Submissions & Grades
+
+| Method | Path | Query / payload | Muc dich |
+|--------|------|-----------------|----------|
+| POST | `/api/milestone-submissions` | `CreateMilestoneSubmissionRequest` | Nop deliverable |
+| GET/PUT | `/api/milestone-submissions/{submissionId}` | `UpdateMilestoneSubmissionRequest` voi PUT | Xem/cap nhat submission |
+| GET | `/api/milestone-submissions/milestones/{milestoneId}` | — | Submission theo milestone |
+| GET | `/api/milestone-submissions/groups/{groupId}` | — | Submission theo group |
+| GET | `/api/instructor/submissions` | `term?`, `courseCode?`, `milestoneId?`, `groupId?`, `status?`, `late?` | Instructor loc submission |
+| GET/POST | `/api/milestone-submissions/{submissionId}/grades` | `CreateMilestoneGradeRequest` voi POST | Xem/cham diem |
+| PUT | `/api/milestone-submissions/grades/{gradeId}` | `UpdateMilestoneGradeRequest` | Sua diem |
+| GET | `/api/milestone-submissions/groups/{groupId}/grades` | — | Diem cua group |
+| POST | `/api/milestone-submissions/bulk-grade` | Placeholder | Chua lam UI vi Swagger chua co request schema |
+| GET | `/api/student-groups/{groupId}/average-grade` | — | Weighted average hien tai |
+
+`CreateMilestoneSubmissionRequest` bat buoc `milestoneId`, `groupId`, `fileUrl`;
+co `comments`, `version`. `MilestoneSubmissionDto` co `late`, `status`, score,
+maxScore, feedback, submitted/graded timestamps va version.
+`MilestoneSubmissionStatus` la `SUBMITTED | RESUBMITTED | GRADED`.
+
+`CreateMilestoneGradeRequest` bat buoc `score` (co `instructorId?`, `feedback?`);
+update grade cung bat buoc `score`. `AverageGradeDto` co `averageGrade` va
+`average` — UI can chap nhan gia tri khong null nao backend tra ve.
+
+### 20. Self Profile
+
+| Method | Path | Payload | Muc dich |
+|--------|------|---------|----------|
+| GET | `/api/profile/me` | — | Lay account va profile theo role cua user hien tai |
+| PATCH | `/api/profile/me` | `UpdateSelfProfileRequest` | Cap nhat cac profile field an toan theo role |
+| PATCH | `/api/profile/me/password` | `{ currentPassword, newPassword }` | Doi mat khau sau khi xac minh mat khau hien tai |
+
+`SelfProfileResponse` gom account fields, `studentProfile`, `mentorProfile`,
+`instructorProfile` va `groupMemberships`. Email, code, role va status la
+read-only. `newPassword` toi thieu 6 ky tu; `currentPassword` bat buoc.

@@ -1,12 +1,19 @@
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useEffect, useId, useState } from "react";
 import { useProblemDomains } from "../hooks";
 import {
   useCreateProblemDomain,
   useUpdateProblemDomain,
 } from "../hooks/use-problem-mutations";
-import { Button, TextInput, Select, LoadingState, EmptyState } from "@/shared/components";
+import {
+  Button,
+  EmptyState,
+  LoadingState,
+  ResponsiveDialog,
+  Select,
+  TextInput,
+} from "@/shared/components";
 import type { ProblemStatus } from "@/shared/types";
-import { Plus, Search, Edit3, X } from "lucide-react";
+import { Edit3, Plus, Search } from "lucide-react";
 import type { ProblemDomainDto } from "../types";
 
 export function DomainManager() {
@@ -122,12 +129,13 @@ export function DomainManager() {
   };
 
   const isPending = createDomainMutation.isPending || updateDomainMutation.isPending;
+  const formId = useId();
 
   return (
     <div className="space-y-6">
       {/* Search Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border border-border bg-surface p-4 rounded-2xl shadow-sm">
-        <div className="relative min-w-[240px]">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-surface p-4 shadow-sm max-[480px]:grid max-[480px]:p-3">
+        <div className="relative min-w-[240px] max-[480px]:min-w-0">
           <TextInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -137,7 +145,7 @@ export function DomainManager() {
           <Search className="absolute left-3 top-3.5 size-4 text-muted" />
         </div>
 
-        <Button onClick={handleOpenAdd} size="md">
+        <Button className="max-[480px]:w-full" onClick={handleOpenAdd} size="md">
           <Plus className="size-4 mr-1.5" />
           <span>New Domain</span>
         </Button>
@@ -147,7 +155,8 @@ export function DomainManager() {
       {isLoading ? (
         <LoadingState title="Loading domains..." />
       ) : domains.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <>
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface max-[760px]:hidden">
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-border bg-surface-base">
@@ -188,10 +197,11 @@ export function DomainManager() {
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <Button
+                      aria-label={`Edit ${dom.name}`}
                       variant="secondary"
                       size="sm"
                       onClick={() => handleOpenEdit(dom)}
-                      className="size-8 p-0 rounded-lg"
+                      className="size-8 rounded-lg p-0"
                     >
                       <Edit3 className="size-3.5" />
                     </Button>
@@ -201,30 +211,92 @@ export function DomainManager() {
             </tbody>
           </table>
         </div>
+        <div className="hidden min-w-0 gap-3 max-[760px]:grid">
+          {domains.map((dom) => (
+            <article
+              className="grid min-w-0 gap-3 rounded-xl border border-border bg-surface p-4"
+              key={dom.id}
+            >
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                <div className="grid min-w-0 gap-1">
+                  <h3 className="m-0 break-words text-base font-bold text-foreground">
+                    {dom.name}
+                  </h3>
+                  <code className="break-all text-xs font-bold text-muted">
+                    {dom.code}
+                  </code>
+                </div>
+                <span
+                  className={`inline-flex min-h-7 items-center rounded-full border px-2 py-1 text-xs font-bold ${
+                    dom.status === "ACTIVE"
+                      ? "border-green-200 bg-green-50 text-green-700"
+                      : "border-border bg-neutral-50 text-neutral-500"
+                  }`}
+                >
+                  {dom.status}
+                </span>
+              </div>
+              {dom.description && (
+                <p className="m-0 break-words text-sm leading-relaxed text-muted">
+                  {dom.description}
+                </p>
+              )}
+              <div className="grid min-w-0 gap-1 border-t border-border pt-3">
+                <span className="text-[11px] font-bold text-muted uppercase">
+                  Discipline
+                </span>
+                <span className="break-words text-sm text-foreground">
+                  {dom.primaryDiscipline || "—"}
+                </span>
+              </div>
+              <Button
+                aria-label={`Edit ${dom.name}`}
+                className="w-full"
+                onClick={() => handleOpenEdit(dom)}
+                variant="secondary"
+              >
+                <Edit3 className="size-4" />
+                Edit domain
+              </Button>
+            </article>
+          ))}
+        </div>
+        </>
       ) : (
         <EmptyState title="No domains found" description="Try creating a new problem domain above." />
       )}
 
       {/* Domain add/edit modal */}
       {domainModalOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(26,26,26,0.36)] p-6">
-          <div className="grid w-[min(580px,100%)] max-h-[90vh] grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-surface shadow-modal">
-            
-            <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-surface-base">
-              <h3 className="m-0 text-base font-bold text-foreground">
-                {editingDomain ? "Edit Problem Domain" : "Create Problem Domain"}
-              </h3>
+        <ResponsiveDialog
+          bodyClassName="p-0"
+          className="min-[761px]:max-w-[580px]"
+          closeOnBackdrop={false}
+          description="Define domain metadata used to classify official topics and proposals."
+          footer={
+            <>
               <Button
-                variant="secondary"
+                disabled={isPending}
                 onClick={() => setDomainModalOpen(false)}
-                className="size-8 p-0 rounded-lg"
+                variant="secondary"
               >
-                <X className="size-4" />
+                Cancel
               </Button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <Button disabled={isPending} form={formId} type="submit">
+                {isPending ? "Saving..." : "Save Domain"}
+              </Button>
+            </>
+          }
+          mobileMode="fullscreen"
+          onClose={() => setDomainModalOpen(false)}
+          title={editingDomain ? "Edit Problem Domain" : "Create Problem Domain"}
+        >
+            <form
+              className="grid gap-4 p-4 min-[481px]:p-6"
+              id={formId}
+              onSubmit={handleSubmit}
+            >
+              <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
                 <div>
                   <TextInput
                     label="Domain Code *"
@@ -235,7 +307,7 @@ export function DomainManager() {
                     disabled={!!editingDomain} // Code typically read-only on edit
                   />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-2 max-[600px]:col-span-1">
                   <TextInput
                     label="Domain Name *"
                     placeholder="e.g. Artificial Intelligence"
@@ -254,11 +326,11 @@ export function DomainManager() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Overview of research domain..."
-                  className="w-full rounded-xl border border-border bg-surface p-3 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none min-h-[70px]"
+                  className="min-h-[70px] w-full rounded-xl border border-border bg-surface p-3 text-base outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary min-[761px]:text-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
                 <TextInput
                   label="Macro Domain"
                   placeholder="e.g. Computer Science"
@@ -273,7 +345,7 @@ export function DomainManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
                 <TextInput
                   label="Primary Discipline"
                   placeholder="e.g. Software Engineering"
@@ -288,7 +360,7 @@ export function DomainManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     Status
@@ -309,7 +381,7 @@ export function DomainManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
                 <TextInput
                   label="Student Capabilities Needed"
                   placeholder="e.g. Python, TensorFlow"
@@ -338,22 +410,8 @@ export function DomainManager() {
                 onChange={(e) => setNotes(e.target.value)}
               />
 
-              <div className="flex justify-end gap-2.5 pt-4 border-t border-border mt-6">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setDomainModalOpen(false)}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? "Saving..." : "Save Domain"}
-                </Button>
-              </div>
             </form>
-          </div>
-        </div>
+        </ResponsiveDialog>
       )}
     </div>
   );

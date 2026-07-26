@@ -86,14 +86,14 @@ function TaskMiniCard({
     <button
       type="button"
       onClick={() => onTaskClick(Number(task.id))}
-      className="grid min-w-0 gap-3 rounded-xl border border-border/70 bg-surface p-4 text-left shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-secondary/40 hover:shadow-md"
+      className="grid min-h-11 min-w-0 gap-3 rounded-xl border border-border/70 bg-surface p-4 text-left shadow-sm outline-none transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-brand-secondary/40 hover:shadow-md focus-visible:border-brand-secondary focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)]"
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-muted">
             {statusLabels[task.status]}
           </span>
-          <h4 className="m-0 line-clamp-2 text-sm font-bold leading-snug text-foreground">
+          <h4 className="m-0 line-clamp-2 break-words text-sm leading-snug font-bold text-foreground">
             {task.title}
           </h4>
         </div>
@@ -118,7 +118,7 @@ function TaskMiniCard({
         )}
         <span className="inline-flex min-w-0 items-center gap-1.5">
           <UserRound className="size-3.5 shrink-0" />
-          <span className="truncate">{getAssigneeSummary(task)}</span>
+          <span className="min-w-0 break-words">{getAssigneeSummary(task)}</span>
         </span>
       </div>
     </button>
@@ -137,7 +137,7 @@ export function TaskBoardListView({ tasks, onTaskClick }: TaskBoardViewProps) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border/70 bg-surface shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto min-[761px]:block">
         <table className="w-full min-w-[760px] border-collapse text-left">
           <thead>
             <tr className="border-b border-border bg-neutral-50">
@@ -194,6 +194,15 @@ export function TaskBoardListView({ tasks, onTaskClick }: TaskBoardViewProps) {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="grid gap-3 p-3 min-[761px]:hidden">
+        {tasks.map((task) => (
+          <TaskMiniCard
+            key={task.id}
+            task={task}
+            onTaskClick={onTaskClick}
+          />
+        ))}
       </div>
     </div>
   );

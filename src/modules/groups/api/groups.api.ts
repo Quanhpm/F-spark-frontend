@@ -15,8 +15,10 @@ import type {
   GroupSummaryDto,
   InvitationDto,
   InviteStudentRequest,
+  RecruitmentRoleDto,
   TransferLeaderRequest,
   UpdateGroupCriteriaRequest,
+  UpdateGroupLockRequest,
   UpdateGroupRequest,
 } from "../types";
 
@@ -79,6 +81,22 @@ export function getMyGroups() {
 
 export function getMentorGroups() {
   return apiGet<ApiResponse<GroupSummaryDto[]>>("/api/groups/mentor/me");
+}
+
+export function listRecruitmentRoles() {
+  return apiGet<ApiResponse<RecruitmentRoleDto[]>>(
+    "/api/group-recruitment-roles",
+  );
+}
+
+export function updateGroupLock(
+  groupId: number,
+  payload: UpdateGroupLockRequest,
+) {
+  return apiPatch<ApiResponse<GroupDetailDto>>(
+    `/api/groups/${groupId}/lock`,
+    payload,
+  );
 }
 
 export function inviteStudent(

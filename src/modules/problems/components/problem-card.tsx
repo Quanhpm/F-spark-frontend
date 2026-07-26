@@ -19,23 +19,32 @@ export function ProblemCard({
 }: ProblemCardProps) {
   return (
     <div
+      aria-label={`Open problem: ${problem.title}`}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
       className={cn(
-        "group relative flex flex-col gap-3.5 rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md cursor-pointer hover:border-brand-secondary/35",
+        "group relative flex min-h-11 min-w-0 cursor-pointer flex-col gap-3.5 rounded-2xl border border-border bg-surface p-5 shadow-sm outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-secondary/35 hover:shadow-md focus-visible:border-brand-secondary focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)]",
         isSelected && "border-2 border-brand-primary bg-brand-primary/5",
         isProposed && "border border-yellow-300 bg-yellow-50/5",
       )}
     >
       {/* Top badges */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ProblemDifficultyBadge difficulty={problem.difficultyLevel} />
-          <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold text-muted-foreground bg-neutral-100 dark:bg-neutral-200 px-2 py-0.5 rounded">
+          <span className="inline-flex min-w-0 break-all rounded bg-neutral-100 px-2 py-0.5 font-mono text-[11px] font-bold text-muted-foreground dark:bg-neutral-200">
             {problem.code || "PROPOSAL"}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           {isSelected && (
             <span className="inline-flex h-5 items-center justify-center rounded-full bg-brand-primary px-2 text-[10px] font-bold text-white uppercase tracking-wider">
               Selected
@@ -51,37 +60,37 @@ export function ProblemCard({
       </div>
 
       {/* Title */}
-      <h3 className="m-0 text-base font-bold text-foreground leading-snug group-hover:text-brand-primary transition-colors">
+      <h3 className="m-0 break-words text-base leading-snug font-bold text-foreground transition-colors group-hover:text-brand-primary">
         {problem.title}
       </h3>
 
       {/* Domain Info */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex min-w-0 items-start gap-2 text-xs text-muted-foreground">
         <BookOpen className="size-4 shrink-0 text-muted" />
-        <span className="font-semibold text-muted">
+        <span className="min-w-0 break-words font-semibold text-muted">
           {problem.domainName} ({problem.domainCode})
         </span>
       </div>
 
       {/* Theme & Research Area */}
       {(problem.strategicTheme || problem.researchArea) && (
-        <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-3 mt-1.5 text-xs text-muted-foreground">
+        <div className="mt-1.5 grid grid-cols-1 gap-2 border-t border-border/50 pt-3 text-xs text-muted-foreground min-[481px]:grid-cols-2">
           {problem.strategicTheme && (
             <div
-              className="flex items-center gap-1.5 truncate"
+              className="flex min-w-0 items-start gap-1.5"
               title={`Theme: ${problem.strategicTheme}`}
             >
               <Layers className="size-3.5 text-muted-foreground/50 shrink-0" />
-              <span className="truncate">{problem.strategicTheme}</span>
+              <span className="min-w-0 break-words">{problem.strategicTheme}</span>
             </div>
           )}
           {problem.researchArea && (
             <div
-              className="flex items-center gap-1.5 truncate"
+              className="flex min-w-0 items-start gap-1.5"
               title={`Area: ${problem.researchArea}`}
             >
               <Tag className="size-3.5 text-muted-foreground/50 shrink-0" />
-              <span className="truncate">{problem.researchArea}</span>
+              <span className="min-w-0 break-words">{problem.researchArea}</span>
             </div>
           )}
         </div>

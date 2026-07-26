@@ -1,23 +1,37 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useId, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 
-import { Button, Select, TextInput } from "@/shared/components";
+import {
+  Button,
+  ResponsiveDialog,
+  Select,
+  TextInput,
+} from "@/shared/components";
 import { ApiError, cn } from "@/shared/lib";
+import { useAvailableAcademicTerms } from "@/modules/feedback";
 
+import { useRecruitmentRoles } from "../../hooks";
 import type {
   CreateGroupRequest,
   GroupDetailDto,
+  GroupRecruitmentNeedDto,
   UpdateGroupRequest,
 } from "../../types";
+
+type RecruitmentNeedFormItem = {
+  quantity: string;
+  role: GroupRecruitmentNeedDto["role"];
+};
 
 type GroupFormState = {
   courseCode: string;
   ideaDescription: string;
   name: string;
   projectName: string;
+  recruitmentNeeds: RecruitmentNeedFormItem[];
   requiredGpa: string;
   researchDomain: string;
   targetGrade: string;
@@ -43,6 +57,7 @@ const EMPTY_GROUP_FORM: GroupFormState = {
   ideaDescription: "",
   name: "",
   projectName: "",
+  recruitmentNeeds: [],
   requiredGpa: "",
   researchDomain: "",
   targetGrade: "",
@@ -84,6 +99,10 @@ function createFormFromGroup(group: GroupDetailDto): GroupFormState {
     ideaDescription: group.ideaDescription ?? "",
     name: group.name,
     projectName: group.projectName ?? "",
+    recruitmentNeeds: group.recruitmentNeeds.map((need) => ({
+      quantity: String(need.quantity),
+      role: need.role,
+    })),
     requiredGpa: group.requiredGpa?.toString() ?? "",
     researchDomain: group.researchDomain ?? "",
     targetGrade: group.targetGrade?.toString() ?? "",
@@ -116,6 +135,20 @@ function validateGroupForm(form: GroupFormState, mode: "create" | "edit") {
     return "Target grade must be between 0 and 10.";
   }
 
+  const selectedRoles = new Set<GroupRecruitmentNeedDto["role"]>();
+  for (const need of form.recruitmentNeeds) {
+    if (!need.role) return "Select a role for every recruitment need.";
+    if (selectedRoles.has(need.role)) {
+      return "Each recruitment role can only be selected once.";
+    }
+    selectedRoles.add(need.role);
+
+    const quantity = Number(need.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return "Recruitment quantity must be a whole number greater than 0.";
+    }
+  }
+
   return "";
 }
 
@@ -131,11 +164,133 @@ function createGroupPayload(form: GroupFormState): CreateGroupRequest {
   };
 }
 
+function RecruitmentNeedsEditor({
+  needs,
+  onChange,
+}: {
+  needs: RecruitmentNeedFormItem[];
+  onChange: (needs: RecruitmentNeedFormItem[]) => void;
+}) {
+  const rolesQuery = useRecruitmentRoles();
+  const roles = rolesQuery.data?.data ?? [];
+  const selectedRoles = new Set(needs.map((need) => need.role));
+  const firstAvailableRole = roles.find((role) => !selectedRoles.has(role.code));
+
+  return (
+    <section className="col-span-full grid gap-3 border-t border-border pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 max-[480px]:grid">
+        <div className="grid min-w-0 gap-1">
+          <h3 className="m-0 text-sm font-bold text-foreground">
+            Recruitment needs
+          </h3>
+          <p className="m-0 text-xs text-muted">
+            Choose the roles and number of students this group is recruiting.
+          </p>
+        </div>
+        <Button
+          className="max-[480px]:w-full"
+          disabled={!firstAvailableRole || rolesQuery.isLoading}
+          icon={<Plus size={16} />}
+          onClick={() =>
+            firstAvailableRole &&
+            onChange([
+              ...needs,
+              { quantity: "1", role: firstAvailableRole.code },
+            ])
+          }
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          Add role
+        </Button>
+      </div>
+
+      {rolesQuery.isLoading ? (
+        <p className="m-0 text-sm text-muted">Loading role catalog...</p>
+      ) : rolesQuery.isError ? (
+        <p className="m-0 text-sm text-red-700">
+          {getErrorMessage(rolesQuery.error)}
+        </p>
+      ) : needs.length === 0 ? (
+        <p className="m-0 rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted">
+          This group is not recruiting any roles.
+        </p>
+      ) : (
+        <div className="grid gap-3">
+          {needs.map((need, index) => (
+            <div
+              className="grid grid-cols-[minmax(0,1fr)_120px_44px] items-end gap-3 max-[560px]:grid-cols-[minmax(0,1fr)_44px]"
+              key={`${need.role}-${index}`}
+            >
+              <Select
+                label="Role"
+                onChange={(event) => {
+                  const nextNeeds = [...needs];
+                  nextNeeds[index] = {
+                    ...need,
+                    role: event.target.value as GroupRecruitmentNeedDto["role"],
+                  };
+                  onChange(nextNeeds);
+                }}
+                value={need.role}
+              >
+                {roles.map((role) => (
+                  <option
+                    disabled={
+                      role.code !== need.role && selectedRoles.has(role.code)
+                    }
+                    key={role.code}
+                    value={role.code}
+                  >
+                    {role.displayNameVi || role.displayNameEn}
+                  </option>
+                ))}
+              </Select>
+              <TextInput
+                fieldClassName="max-[560px]:col-start-1"
+                label="Quantity"
+                min={1}
+                onChange={(event) => {
+                  const nextNeeds = [...needs];
+                  nextNeeds[index] = { ...need, quantity: event.target.value };
+                  onChange(nextNeeds);
+                }}
+                step={1}
+                type="number"
+                value={need.quantity}
+              />
+              <Button
+                aria-label={`Remove ${need.role}`}
+                className="size-11 min-h-0 min-w-0 p-0"
+                icon={<Trash2 size={16} />}
+                onClick={() =>
+                  onChange(
+                    needs.filter((_, itemIndex) => itemIndex !== index),
+                  )
+                }
+                size="sm"
+                title="Remove role"
+                type="button"
+                variant="ghost"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function updateGroupPayload(form: GroupFormState): UpdateGroupRequest {
   return {
     ideaDescription: optional(form.ideaDescription),
     name: form.name.trim(),
     projectName: optional(form.projectName),
+    recruitmentNeeds: form.recruitmentNeeds.map((need) => ({
+      quantity: Number(need.quantity),
+      role: need.role,
+    })),
     requiredGpa: optionalNumber(form.requiredGpa),
     researchDomain: optional(form.researchDomain),
     targetGrade: optionalNumber(form.targetGrade),
@@ -144,6 +299,9 @@ function updateGroupPayload(form: GroupFormState): UpdateGroupRequest {
 
 export function GroupFormModal(props: GroupFormModalProps) {
   const { mode, onClose } = props;
+  const formId = useId();
+  const availableTermsQuery = useAvailableAcademicTerms(mode === "create");
+  const availableTerms = availableTermsQuery.data?.data ?? [];
   const [form, setForm] = useState<GroupFormState>(() =>
     mode === "edit" ? createFormFromGroup(props.group) : EMPTY_GROUP_FORM,
   );
@@ -198,28 +356,29 @@ export function GroupFormModal(props: GroupFormModalProps) {
       : "Update group details, project information, and criteria.";
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 p-4 backdrop-blur-sm">
+    <ResponsiveDialog
+      className="min-[761px]:max-w-[760px]"
+      closeLabel="Close group form"
+      description={description}
+      footer={
+        <>
+          <Button onClick={onClose} variant="secondary">
+            Cancel
+          </Button>
+          <Button disabled={isSubmitting} form={formId} type="submit">
+            {isSubmitting ? "Saving..." : "Save group"}
+          </Button>
+        </>
+      }
+      mobileMode="fullscreen"
+      onClose={onClose}
+      title={title}
+    >
       <form
-        className="w-[min(760px,100%)] overflow-hidden rounded-2xl border border-border bg-surface shadow-card"
+        className="grid min-w-0 gap-4"
+        id={formId}
         onSubmit={handleSubmit}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
-          <div className="grid gap-1">
-            <h2 className="m-0 text-lg font-bold text-foreground">{title}</h2>
-            <p className="m-0 text-sm leading-relaxed text-muted">
-              {description}
-            </p>
-          </div>
-          <Button
-            aria-label="Close group form"
-            icon={<X size={16} />}
-            onClick={onClose}
-            size="sm"
-            variant="ghost"
-          />
-        </header>
-
-        <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-6 py-5">
           {error && (
             <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
@@ -227,13 +386,42 @@ export function GroupFormModal(props: GroupFormModalProps) {
           )}
 
           <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1">
-            <TextInput
-              disabled={mode === "edit"}
+            <Select
+              disabled={
+                mode === "edit" ||
+                availableTermsQuery.isLoading ||
+                availableTermsQuery.isError ||
+                availableTerms.length === 0
+              }
               label="Term"
               onChange={(event) => updateField("term", event.target.value)}
-              placeholder="Summer2026"
+              required={mode === "create"}
               value={form.term}
-            />
+            >
+              {mode === "create" ? (
+                <option value="">
+                  {availableTermsQuery.isLoading
+                    ? "Loading terms..."
+                    : availableTermsQuery.isError
+                      ? "Unable to load terms"
+                      : availableTerms.length === 0
+                        ? "No terms available"
+                        : "Select term"}
+                </option>
+              ) : (
+                <option value={form.term}>{form.term}</option>
+              )}
+              {availableTerms.map((term) => (
+                <option key={term.id} value={term.code}>
+                  {term.code}
+                </option>
+              ))}
+            </Select>
+            {mode === "create" && availableTermsQuery.isError && (
+              <p className="-mt-2 m-0 text-xs text-red-700">
+                {getErrorMessage(availableTermsQuery.error)}
+              </p>
+            )}
             <Select
               disabled={mode === "edit"}
               label="Course code"
@@ -304,7 +492,7 @@ export function GroupFormModal(props: GroupFormModalProps) {
               </span>
               <textarea
                 className={cn(
-                  "min-h-28 resize-y rounded-xl border border-border bg-surface px-3.5 py-3 font-sans text-sm text-foreground outline-0 transition-[border-color,box-shadow] duration-[160ms]",
+                  "min-h-28 min-w-0 resize-y rounded-xl border border-border bg-surface px-3.5 py-3 font-sans text-base text-foreground outline-0 transition-[border-color,box-shadow] duration-[160ms] min-[761px]:text-sm",
                   "focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)]",
                 )}
                 onChange={(event) =>
@@ -314,18 +502,16 @@ export function GroupFormModal(props: GroupFormModalProps) {
                 value={form.ideaDescription}
               />
             </label>
+            {mode === "edit" && (
+              <RecruitmentNeedsEditor
+                needs={form.recruitmentNeeds}
+                onChange={(recruitmentNeeds) =>
+                  updateField("recruitmentNeeds", recruitmentNeeds)
+                }
+              />
+            )}
           </div>
-        </div>
-
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">
-          <Button onClick={onClose} variant="secondary">
-            Cancel
-          </Button>
-          <Button disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Saving..." : "Save group"}
-          </Button>
-        </footer>
       </form>
-    </div>
+    </ResponsiveDialog>
   );
 }

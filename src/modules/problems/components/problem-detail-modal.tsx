@@ -6,10 +6,14 @@ import {
   ExternalLink,
   FileText,
   Users,
-  X,
 } from "lucide-react";
 
-import { Button, LoadingState, Select } from "@/shared/components";
+import {
+  Button,
+  LoadingState,
+  ResponsiveDialog,
+  Select,
+} from "@/shared/components";
 import type { EntityId, ProblemStatus } from "@/shared/types";
 
 import { useProblem, useEvaluationCriteria } from "../hooks";
@@ -59,7 +63,7 @@ function DetailSection({
   const isDanger = tone === "danger";
 
   return (
-    <section className="grid gap-2.5">
+    <section className="grid min-w-0 gap-2.5">
       <h3
         className={
           isDanger
@@ -73,8 +77,8 @@ function DetailSection({
       <div
         className={
           isDanger
-            ? "rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm leading-relaxed text-red-800"
-            : "rounded-xl border border-border bg-surface px-4 py-3.5 text-sm leading-relaxed text-foreground shadow-card"
+            ? "min-w-0 break-words rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm leading-relaxed text-red-800"
+            : "min-w-0 break-words rounded-xl border border-border bg-surface px-4 py-3.5 text-sm leading-relaxed text-foreground shadow-card"
         }
       >
         {children}
@@ -85,11 +89,11 @@ function DetailSection({
 
 function MetadataItem({ label, value }: MetadataItemProps) {
   return (
-    <div className="rounded-lg border border-border bg-background px-3.5 py-3">
+    <div className="min-w-0 rounded-lg border border-border bg-background px-3.5 py-3">
       <span className="block text-[10px] font-bold tracking-[0.05em] text-muted uppercase">
         {label}
       </span>
-      <span className="mt-1 block text-sm leading-snug font-semibold text-foreground">
+      <span className="mt-1 block min-w-0 break-words text-sm leading-snug font-semibold text-foreground">
         {value}
       </span>
     </div>
@@ -143,75 +147,137 @@ export function ProblemDetailModal({
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(26,26,26,0.36)] p-6">
-        <div className="w-[min(680px,100%)] rounded-2xl border border-border bg-surface p-8 shadow-modal">
-          <LoadingState title="Loading problem details..." />
-        </div>
-      </div>
+      <ResponsiveDialog
+        className="min-[761px]:max-w-[680px]"
+        closeOnBackdrop={false}
+        onClose={onClose}
+        title="Loading problem details"
+      >
+        <LoadingState title="Loading problem details..." />
+      </ResponsiveDialog>
     );
   }
 
   if (!problem) {
     return (
-      <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(26,26,26,0.36)] p-6">
-        <div className="w-[min(480px,100%)] rounded-2xl border border-border bg-surface p-6 text-center shadow-modal">
-          <h3 className="mb-2 text-lg font-bold text-red-600">
-            Error loading problem
-          </h3>
-          <p className="text-sm text-muted">
-            Problem details could not be retrieved.
-          </p>
-          <Button className="mt-4" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      </div>
+      <ResponsiveDialog
+        className="min-[761px]:max-w-[480px]"
+        closeOnBackdrop={false}
+        footer={<Button onClick={onClose}>Close</Button>}
+        onClose={onClose}
+        title="Error loading problem"
+      >
+        <p className="m-0 break-words text-sm text-muted">
+          Problem details could not be retrieved.
+        </p>
+      </ResponsiveDialog>
     );
   }
 
   return (
-    <>
-      <button
-        aria-label="Close problem details"
-        className="fixed inset-0 z-40 cursor-default border-0 bg-[rgba(26,26,26,0.36)]"
-        onClick={onClose}
-        type="button"
-      />
+    <ResponsiveDialog
+      bodyClassName="bg-background/60 px-4 py-5 min-[641px]:px-6"
+      className="min-[761px]:max-w-[980px]"
+      closeLabel="Close problem details"
+      description={
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <ProblemDifficultyBadge difficulty={problem.difficultyLevel} />
+          <span className="break-all rounded-lg border border-border bg-background px-2.5 py-1 font-mono text-xs font-bold text-muted">
+            {problem.code || "PROPOSAL"}
+          </span>
+          <ProblemStatusBadge status={problem.status} size="sm" />
+        </div>
+      }
+      footer={
+        <>
+          <div className="break-words text-xs text-muted">
+            Created: {formatDate(problem.createdAt)}
+          </div>
+          <div className="flex min-w-0 flex-wrap justify-end gap-2 max-[760px]:grid max-[760px]:grid-cols-1 max-[760px]:[&>button]:w-full">
+            {!isAdmin &&
+              problem.status === "ACTIVE" &&
+              isGroupLeader &&
+              currentGroupId &&
+              (isSelected ? (
+                <Button
+                  disabled={clearProblemMutation.isPending}
+                  onClick={handleClear}
+                  variant="danger"
+                >
+                  Clear Selected Problem
+                </Button>
+              ) : (
+                <Button
+                  disabled={selectProblemMutation.isPending}
+                  onClick={handleSelect}
+                >
+                  Select for Group
+                </Button>
+              ))}
 
-      <div className="pointer-events-none fixed inset-0 z-50 grid place-items-center p-4 max-[640px]:p-2">
-        <section
-          aria-label="Problem details"
-          className="pointer-events-auto flex max-h-[calc(100svh-32px)] w-[min(980px,100%)] min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-modal max-[640px]:max-h-[calc(100svh-16px)]"
-          role="dialog"
-        >
-          <header className="border-b border-border bg-surface px-6 py-5 max-[640px]:px-4">
-            <div className="flex min-w-0 items-start justify-between gap-4">
-              <div className="grid min-w-0 gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <ProblemDifficultyBadge
-                    difficulty={problem.difficultyLevel}
-                  />
-                  <span className="rounded-lg border border-border bg-background px-2.5 py-1 font-mono text-xs font-bold text-muted">
-                    {problem.code || "PROPOSAL"}
+            {isAdmin && (
+              <>
+                <div className="grid min-w-0 gap-1 rounded-xl border border-border bg-background px-3 py-2 min-[481px]:flex min-[481px]:items-center min-[481px]:gap-2">
+                  <span className="text-xs font-bold tracking-[0.05em] text-muted uppercase">
+                    Status
                   </span>
-                  <ProblemStatusBadge status={problem.status} size="sm" />
+                  <Select
+                    className="pr-8 pl-2 text-xs"
+                    disabled={updateStatusMutation.isPending}
+                    onChange={(event) => {
+                      const newStatus = event.target.value as ProblemStatus;
+                      if (
+                        window.confirm(
+                          `Are you sure you want to change the status to ${newStatus}?`,
+                        )
+                      ) {
+                        updateStatusMutation.mutate(
+                          { status: newStatus },
+                          {
+                            onError: (err) => {
+                              alert(`Failed to update status: ${err.message}`);
+                            },
+                            onSuccess: () => {
+                              alert("Status updated successfully!");
+                            },
+                          },
+                        );
+                      }
+                    }}
+                    shellClassName="h-9 rounded-lg bg-surface"
+                    value={problem.status}
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="PENDING_REVIEW">Pending Review</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="REJECTED">Rejected</option>
+                    <option value="ARCHIVED">Archived</option>
+                  </Select>
                 </div>
-                <h2 className="m-0 text-[clamp(22px,2.6vw,30px)] leading-tight font-bold text-foreground">
-                  {problem.title}
-                </h2>
-              </div>
-              <Button
-                aria-label="Close"
-                className="size-9 shrink-0 rounded-lg p-0"
-                onClick={onClose}
-                variant="secondary"
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
-          </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-background/60 px-6 py-5 max-[640px]:px-4">
+                {onEditClick && (
+                  <Button onClick={onEditClick} variant="secondary">
+                    Edit Problem
+                  </Button>
+                )}
+                {problem.status === "PENDING_REVIEW" && onReviewClick && (
+                  <Button onClick={onReviewClick}>Review Proposal</Button>
+                )}
+              </>
+            )}
+
+            <Button onClick={onClose} variant="secondary">
+              Close
+            </Button>
+          </div>
+        </>
+      }
+      footerClassName="items-stretch max-[760px]:flex-col min-[761px]:items-center min-[761px]:justify-between"
+      mobileMode="fullscreen"
+      onClose={onClose}
+      title={problem.title}
+    >
             <div className="grid min-w-0 grid-cols-[minmax(0,1.45fr)_minmax(260px,0.75fr)] gap-5 max-[860px]:grid-cols-1">
               <div className="grid min-w-0 content-start gap-5">
                 <DetailSection
@@ -265,7 +331,7 @@ export function ProblemDetailModal({
                           className="rounded-xl border border-border bg-surface p-4 shadow-card"
                           key={crit.id}
                         >
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0">
                               <h4 className="m-0 text-sm font-bold text-foreground">
                                 {crit.category} - {crit.code}
@@ -328,7 +394,7 @@ export function ProblemDetailModal({
                     )}
                     {problem.driveFolderLink && (
                       <a
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-3 text-sm font-bold text-brand-primary transition-colors duration-[160ms] hover:bg-background"
+                        className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 break-words rounded-xl border border-border bg-surface px-3.5 py-3 text-center text-sm font-bold text-brand-primary transition-colors duration-[160ms] hover:bg-background"
                         href={problem.driveFolderLink}
                         rel="noopener noreferrer"
                         target="_blank"
@@ -365,87 +431,6 @@ export function ProblemDetailModal({
                   )}
               </aside>
             </div>
-          </div>
-
-          <footer className="flex items-center justify-between gap-4 border-t border-border bg-surface px-6 py-4 max-[760px]:grid max-[760px]:px-4">
-            <div className="text-xs text-muted">
-              Created: {formatDate(problem.createdAt)}
-            </div>
-
-            <div className="flex flex-wrap justify-end gap-2 max-[760px]:justify-start">
-              {!isAdmin &&
-                problem.status === "ACTIVE" &&
-                isGroupLeader &&
-                currentGroupId &&
-                (isSelected ? (
-                  <Button onClick={handleClear} variant="danger">
-                    Clear Selected Problem
-                  </Button>
-                ) : (
-                  <Button onClick={handleSelect}>Select for Group</Button>
-                ))}
-
-              {isAdmin && (
-                <>
-                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
-                    <span className="text-xs font-bold tracking-[0.05em] text-muted uppercase">
-                      Status
-                    </span>
-                    <Select
-                      className="pr-8 pl-2 text-xs"
-                      disabled={updateStatusMutation.isPending}
-                      onChange={(event) => {
-                        const newStatus = event.target.value as ProblemStatus;
-                        if (
-                          window.confirm(
-                            `Are you sure you want to change the status to ${newStatus}?`,
-                          )
-                        ) {
-                          updateStatusMutation.mutate(
-                            { status: newStatus },
-                            {
-                              onError: (err) => {
-                                alert(
-                                  `Failed to update status: ${err.message}`,
-                                );
-                              },
-                              onSuccess: () => {
-                                alert("Status updated successfully!");
-                              },
-                            },
-                          );
-                        }
-                      }}
-                      shellClassName="h-9 rounded-lg bg-surface"
-                      value={problem.status}
-                    >
-                      <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
-                      <option value="PENDING_REVIEW">Pending Review</option>
-                      <option value="APPROVED">Approved</option>
-                      <option value="REJECTED">Rejected</option>
-                      <option value="ARCHIVED">Archived</option>
-                    </Select>
-                  </div>
-
-                  {onEditClick && (
-                    <Button onClick={onEditClick} variant="secondary">
-                      Edit Problem
-                    </Button>
-                  )}
-                  {problem.status === "PENDING_REVIEW" && onReviewClick && (
-                    <Button onClick={onReviewClick}>Review Proposal</Button>
-                  )}
-                </>
-              )}
-
-              <Button onClick={onClose} variant="secondary">
-                Close
-              </Button>
-            </div>
-          </footer>
-        </section>
-      </div>
-    </>
+    </ResponsiveDialog>
   );
 }

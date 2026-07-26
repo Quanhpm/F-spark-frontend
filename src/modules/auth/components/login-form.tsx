@@ -7,7 +7,6 @@ import {
   EyeOff,
   LockKeyhole,
   Mail,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,11 +34,12 @@ type FormErrors = {
 function getDefaultWorkspacePath(role: AuthUser["role"]) {
   if (role === "ADMIN") return "/admin/users";
   if (role === "MENTOR") return "/mentor/groups";
+  if (role === "INSTRUCTOR") return "/instructor/milestones";
   return "/student/dashboard";
 }
 
 const inputShellClassName =
-  "flex h-[52px] items-center gap-3 rounded-xl border border-border bg-surface px-4 text-muted transition-[border-color,box-shadow] duration-[160ms] ease-in-out focus-within:border-brand-secondary focus-within:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] max-[600px]:h-[50px]";
+  "flex h-[52px] min-w-0 items-center gap-3 rounded-xl border border-border bg-surface px-4 text-muted transition-[border-color,box-shadow] duration-[160ms] ease-in-out focus-within:border-brand-secondary focus-within:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] max-[600px]:h-[50px] max-[380px]:gap-2.5 max-[380px]:px-3.5 [&>svg]:shrink-0";
 
 export function LoginForm() {
   const router = useRouter();
@@ -118,19 +118,20 @@ export function LoginForm() {
     loginMutation.isPending || googleLoginMutation.isPending;
 
   return (
-    <section className="relative z-[2] grid min-h-svh min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr_auto] bg-surface px-[34px] pt-[32px] pb-[22px] max-[1180px]:px-11 max-[600px]:w-screen max-[600px]:max-w-screen max-[600px]:overflow-hidden max-[600px]:px-[22px] max-[600px]:pt-7 max-[600px]:pb-6">
+    <section className="relative z-[2] grid min-h-svh min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr_auto] bg-surface px-[34px] pt-[32px] pb-[22px] max-[1180px]:px-11 max-[600px]:min-h-dvh max-[600px]:px-0 max-[600px]:pt-[max(1.25rem,env(safe-area-inset-top))] max-[600px]:pr-[max(1rem,env(safe-area-inset-right))] max-[600px]:pb-[max(1.25rem,env(safe-area-inset-bottom))] max-[600px]:pl-[max(1rem,env(safe-area-inset-left))]">
       <header className="flex w-full min-w-0 items-center justify-between">
         <BrandLogo />
         <Link
-          className="inline-flex items-center gap-[5px] text-[13px] font-medium text-muted transition-colors duration-[160ms] ease-in-out hover:text-brand-primary max-[600px]:text-[0px] max-[600px]:[&>svg]:size-5"
+          aria-label="Back"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-[5px] rounded-xl text-[13px] font-medium text-muted transition-colors duration-[160ms] ease-in-out hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary max-[600px]:text-[0px] max-[600px]:[&>svg]:size-5"
           href="/"
         >
           <ArrowLeft size={15} /> Back
         </Link>
       </header>
 
-      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)] place-items-center pt-[34px] pb-7 max-[600px]:py-[34px]">
-        <div className="w-full max-w-[440px] min-w-0 text-center max-[600px]:w-[calc(100vw-44px)] max-[600px]:max-w-[calc(100vw-44px)]">
+      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)] place-items-center pt-[34px] pb-7 max-[600px]:py-8 max-[380px]:py-6">
+        <div className="w-full max-w-[440px] min-w-0 text-center">
           <h1 className="m-0 font-sans text-[clamp(30px,3.2vw,36px)] leading-[1.2] font-bold tracking-normal text-foreground max-[600px]:text-[30px]">
             Welcome back!
           </h1>
@@ -138,7 +139,11 @@ export function LoginForm() {
             Enter your email and password to continue.
           </p>
 
-          <form className="grid gap-[18px] text-left" onSubmit={handleSubmit} noValidate>
+          <form
+            className="grid gap-[18px] text-left max-[380px]:gap-3.5"
+            noValidate
+            onSubmit={handleSubmit}
+          >
             <div className="grid gap-1.5">
               <label className="sr-only" htmlFor="email">
                 Email
@@ -148,7 +153,7 @@ export function LoginForm() {
               >
                 <Mail size={20} />
                 <input
-                  className="min-w-0 flex-1 border-0 bg-transparent text-sm text-foreground outline-0 placeholder:text-[#a3a3a3]"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-base text-foreground outline-0 placeholder:text-[#a3a3a3] min-[601px]:text-sm"
                   id="email"
                   type="email"
                   autoComplete="email"
@@ -179,7 +184,7 @@ export function LoginForm() {
               >
                 <LockKeyhole size={20} />
                 <input
-                  className="min-w-0 flex-1 border-0 bg-transparent text-sm text-foreground outline-0 placeholder:text-[#a3a3a3]"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-base text-foreground outline-0 placeholder:text-[#a3a3a3] min-[601px]:text-sm"
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
@@ -191,7 +196,7 @@ export function LoginForm() {
                   }}
                 />
                 <button
-                  className="grid place-items-center border-0 bg-transparent p-1 text-muted"
+                  className="grid size-11 shrink-0 place-items-center rounded-lg border-0 bg-transparent p-0 text-muted transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
                   type="button"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() => setShowPassword((current) => !current)}
@@ -206,8 +211,8 @@ export function LoginForm() {
               )}
             </div>
 
-            <div className="my-1 mb-0.5 flex items-center justify-between text-[13px] text-muted">
-              <label className="inline-flex cursor-pointer items-center gap-[9px]">
+            <div className="my-1 mb-0.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[13px] text-muted max-[380px]:grid max-[380px]:grid-cols-1">
+              <label className="inline-flex min-h-11 cursor-pointer items-center gap-[9px]">
                 <input
                   className="m-0 size-4 cursor-pointer accent-brand-primary"
                   type="checkbox"
@@ -217,7 +222,7 @@ export function LoginForm() {
                 <span>Remember me</span>
               </label>
               <button
-                className="cursor-pointer border-0 bg-transparent p-0 text-[13px] font-medium text-foreground transition-colors duration-150 ease-in-out hover:text-brand-primary"
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border-0 bg-transparent p-0 text-[13px] font-medium text-foreground transition-colors duration-150 ease-in-out hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary max-[380px]:justify-self-start"
                 type="button"
                 onClick={() =>
                   setFormMessage("Contact an administrator to reset your password.")
@@ -237,7 +242,7 @@ export function LoginForm() {
             )}
 
             <button
-              className="mt-1 flex h-[52px] items-center justify-center gap-2.5 rounded-xl border-0 bg-brand-primary text-sm font-medium text-white transition-[background,transform] duration-[160ms] ease-in-out hover:bg-brand-primary-hover disabled:opacity-60 [&:active:not(:disabled)]:scale-[0.98]"
+              className="mt-1 flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-xl border-0 bg-brand-primary px-4 py-3 text-sm font-medium text-white transition-[background,transform] duration-[160ms] ease-in-out hover:bg-brand-primary-hover disabled:opacity-60 [&:active:not(:disabled)]:scale-[0.98]"
               type="submit"
               disabled={isAuthenticating}
             >
@@ -275,14 +280,20 @@ export function LoginForm() {
         </div>
       </div>
 
-      <footer className="flex w-full min-w-0 items-center justify-between text-xs text-muted max-[600px]:grid max-[600px]:justify-items-center max-[600px]:gap-[9px] max-[600px]:text-center">
+      <footer className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3 text-xs text-muted max-[600px]:grid max-[600px]:justify-items-center max-[600px]:gap-[9px] max-[600px]:text-center">
         <span>&copy; 2026 F-Spark. All rights reserved.</span>
         <div className="flex gap-3 max-[600px]:flex-wrap max-[600px]:justify-center">
-          <a className="hover:text-brand-primary" href="#privacy">
+          <a
+            className="inline-flex min-h-11 items-center rounded-lg hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary min-[601px]:min-h-0"
+            href="#privacy"
+          >
             Privacy Policy
           </a>
           <span>&bull;</span>
-          <a className="hover:text-brand-primary" href="#terms">
+          <a
+            className="inline-flex min-h-11 items-center rounded-lg hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary min-[601px]:min-h-0"
+            href="#terms"
+          >
             Terms of Use
           </a>
         </div>

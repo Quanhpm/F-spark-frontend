@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/shared/lib";
 
-import { bookMeeting, getGroupMeetings, confirmMeeting } from "../api";
+import { bookMeeting, cancelMeeting, getGroupMeetings, confirmMeeting } from "../api";
 import type { BookMeetingRequest } from "../types";
 
 export function useGroupMeetings(groupId: number | null | undefined) {
@@ -63,6 +63,29 @@ export function useConfirmMeeting() {
         queryKey: queryKeys.mentoring.meetings(variables.groupId),
       });
       // Also invalidate dashboard mentor meetings
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.mentorMeetings(),
+      });
+    },
+  });
+}
+
+export function useCancelMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
+      cancelMeeting(groupId, meetingId),
+    onSuccess: (_response, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.meetings(variables.groupId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.groupAvailability(variables.groupId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.availability(),
+      });
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.mentorMeetings(),
       });

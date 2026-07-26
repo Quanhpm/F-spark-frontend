@@ -30,6 +30,9 @@ export function StudentTasksPage() {
   const [listGroupId, setListGroupId] = useState<string>("");
   const [listDueBefore, setListDueBefore] = useState<string>("");
   const [listPage, setListPage] = useState(0);
+  const hasListFilters = Boolean(
+    listGroupId || listStatus || listPriority || listOverdue || listDueBefore,
+  );
 
   // Group selection for Kanban board
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
@@ -113,12 +116,18 @@ export function StudentTasksPage() {
         />
 
         {/* Tab triggers */}
-        <div className="flex items-center gap-1 bg-surface-base border border-border p-1 rounded-xl w-fit">
+        <div
+          aria-label="Task views"
+          className="flex w-fit min-w-0 max-w-full snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-surface-base p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[480px]:w-full"
+          role="tablist"
+        >
           <button
+            aria-selected={activeTab === "list"}
+            role="tab"
             type="button"
             onClick={() => setActiveTab("list")}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all rounded-lg",
+              "flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all",
               activeTab === "list"
                 ? "bg-surface shadow-sm text-brand-primary"
                 : "text-muted hover:bg-surface/50"
@@ -128,10 +137,12 @@ export function StudentTasksPage() {
             My Task List
           </button>
           <button
+            aria-selected={activeTab === "board"}
+            role="tab"
             type="button"
             onClick={() => setActiveTab("board")}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all rounded-lg",
+              "flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-all",
               activeTab === "board"
                 ? "bg-surface shadow-sm text-brand-primary"
                 : "text-muted hover:bg-surface/50"
@@ -153,7 +164,7 @@ export function StudentTasksPage() {
           
           <CardContent className="space-y-6">
             {/* Filters Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-5 items-end gap-3 rounded-2xl border border-border p-4 bg-surface-base">
+            <div className="grid grid-cols-1 items-end gap-3 rounded-2xl border border-border bg-surface-base p-4 min-[640px]:grid-cols-2 min-[1100px]:grid-cols-5">
               <div>
                 <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Group Project
@@ -224,11 +235,11 @@ export function StudentTasksPage() {
                     setListDueBefore(e.target.value);
                     setListPage(0);
                   }}
-                  className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs font-bold text-foreground focus:border-brand-primary focus:outline-none"
+                  className="flex min-h-11 w-full rounded-xl border border-border bg-surface px-3 py-2 text-base font-bold text-foreground focus:border-brand-primary focus:outline-none min-[761px]:text-xs"
                 />
               </div>
 
-              <div className="flex h-10 items-center justify-between gap-3 border border-border px-3 rounded-xl bg-surface">
+              <label className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3">
                 <span className="text-xs font-bold text-muted uppercase tracking-wider">Overdue Only</span>
                 <input
                   type="checkbox"
@@ -239,7 +250,24 @@ export function StudentTasksPage() {
                   }}
                   className="size-4.5 accent-brand-primary rounded"
                 />
-              </div>
+              </label>
+
+              {hasListFilters && (
+                <Button
+                  className="min-[640px]:col-span-2 min-[1100px]:col-span-5 min-[1100px]:justify-self-end"
+                  onClick={() => {
+                    setListGroupId("");
+                    setListStatus("");
+                    setListPriority("");
+                    setListDueBefore("");
+                    setListOverdue(false);
+                    setListPage(0);
+                  }}
+                  variant="ghost"
+                >
+                  Clear filters
+                </Button>
+              )}
             </div>
 
             {/* List Body */}
@@ -247,7 +275,7 @@ export function StudentTasksPage() {
               <LoadingState title="Loading your tasks..." />
             ) : myTasks?.content && myTasks.content.length > 0 ? (
               <div className="space-y-4">
-                <div className="w-full overflow-x-auto rounded-xl border border-border">
+                <div className="hidden w-full overflow-x-auto rounded-xl border border-border min-[761px]:block">
                   <table className="w-full border-collapse text-left">
                     <thead>
                       <tr className="border-b border-border bg-surface-base">
@@ -305,13 +333,50 @@ export function StudentTasksPage() {
                   </table>
                 </div>
 
+                <div className="grid gap-3 min-[761px]:hidden">
+                  {myTasks.content.map((task) => (
+                    <button
+                      aria-label={`Open task: ${task.title}`}
+                      className="grid min-h-11 min-w-0 gap-3 rounded-xl border border-border bg-surface p-4 text-left outline-none transition-[border-color,box-shadow] focus-visible:border-brand-secondary focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)]"
+                      key={task.id}
+                      onClick={() => handleRowClick(Number(task.id), null)}
+                      type="button"
+                    >
+                      <span className="flex min-w-0 items-start justify-between gap-3">
+                        <span className="min-w-0 break-words text-sm leading-snug font-bold text-foreground">
+                          {task.title}
+                        </span>
+                        <ChevronRight className="size-5 shrink-0 text-muted" />
+                      </span>
+                      {task.description && (
+                        <span className="line-clamp-2 break-words text-xs leading-relaxed text-muted">
+                          {task.description}
+                        </span>
+                      )}
+                      <span className="flex flex-wrap items-center gap-2">
+                        <TaskStatusBadge status={task.status} />
+                        <TaskPriorityBadge priority={task.priority} />
+                      </span>
+                      <span
+                        className={cn(
+                          "break-words text-xs font-semibold text-muted",
+                          task.overdue && "font-bold text-red-600",
+                        )}
+                      >
+                        Due {formatShortDate(task.dueAt)}
+                        {task.overdue ? " · Overdue" : ""}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
                 {/* Pagination */}
                 {myTasks.totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-border pt-4">
-                    <span className="text-xs text-muted">
+                  <div className="flex items-center justify-between gap-3 border-t border-border pt-4 max-[480px]:grid">
+                    <span className="break-words text-xs text-muted">
                       Showing page {myTasks.page + 1} of {myTasks.totalPages} ({myTasks.totalElements} tasks)
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 max-[480px]:grid max-[480px]:grid-cols-2 max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:min-w-0">
                       <Button
                         size="sm"
                         variant="secondary"
@@ -345,12 +410,12 @@ export function StudentTasksPage() {
         <div className="space-y-6 min-w-0 w-full overflow-hidden">
           {/* Group Project Selector */}
           {myGroups.length > 1 && (
-            <div className="flex items-center gap-3 w-fit border border-border p-3.5 rounded-2xl bg-surface shadow-sm">
-              <span className="text-sm font-bold text-muted whitespace-nowrap">Select Group Project:</span>
+            <div className="grid w-fit max-w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm min-[641px]:grid-cols-[auto_minmax(280px,1fr)] max-[640px]:w-full">
+              <span className="break-words text-sm font-bold text-muted">Select Group Project:</span>
               <Select
                 value={selectedGroupId}
                 onChange={(e) => setSelectedGroupId(e.target.value)}
-                className="min-w-[280px]"
+                className="min-w-0 max-[640px]:w-full"
               >
                 {myGroups.map((g) => (
                   <option key={g.id} value={String(g.id)}>
@@ -363,7 +428,10 @@ export function StudentTasksPage() {
 
           {/* Render Board */}
           {selectedGroupId ? (
-            <KanbanBoard groupId={Number(selectedGroupId)} />
+            <KanbanBoard
+              groupId={Number(selectedGroupId)}
+              key={selectedGroupId}
+            />
           ) : isGroupsLoading ? (
             <LoadingState title="Loading your group info..." />
           ) : (

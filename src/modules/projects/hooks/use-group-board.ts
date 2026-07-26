@@ -4,7 +4,11 @@ import { getGroupBoard, getTaskBoardDetail } from "../api";
 import type { BoardFilters } from "../types";
 import type { EntityId } from "@/shared/types";
 
-export function useGroupBoard(groupId: EntityId, filters?: BoardFilters) {
+export function useGroupBoard(
+  groupId: EntityId,
+  filters?: BoardFilters,
+  enabled = true,
+) {
   return useQuery({
     queryKey: queryKeys.tasks.board(groupId, filters),
     queryFn: () => {
@@ -13,6 +17,6 @@ export function useGroupBoard(groupId: EntityId, filters?: BoardFilters) {
       }
       return getGroupBoard(groupId, filters);
     },
-    enabled: !!groupId,
+    enabled: !!groupId && enabled,
   });
 }

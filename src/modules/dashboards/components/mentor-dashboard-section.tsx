@@ -59,10 +59,10 @@ function MeetingCard({ meeting }: { meeting: DashboardMeetingDto }) {
     <article className="grid gap-2 rounded-xl border border-border bg-surface p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="m-0 text-sm leading-snug font-bold text-foreground">
+          <h3 className="m-0 break-words text-sm leading-snug font-bold text-foreground">
             {meeting.groupName}
           </h3>
-          <p className="m-0 text-xs text-muted">
+          <p className="m-0 break-words text-xs text-muted">
             {meeting.groupNo} - {meeting.mentorName}
           </p>
         </div>
@@ -70,12 +70,12 @@ function MeetingCard({ meeting }: { meeting: DashboardMeetingDto }) {
           {meeting.status}
         </Badge>
       </div>
-      <span className="text-sm text-muted">
+      <span className="break-words text-sm text-muted">
         {formatDateTime(meeting.startAt)} - {formatDateTime(meeting.endAt)}
       </span>
       {meeting.meetLink && (
         <a
-          className="text-sm font-medium text-brand-primary hover:text-brand-primary-hover"
+          className="inline-flex min-h-11 items-center break-words text-sm font-medium text-brand-primary hover:text-brand-primary-hover"
           href={meeting.meetLink}
           rel="noreferrer"
           target="_blank"
@@ -112,104 +112,114 @@ export function MentorDashboardSection() {
 
   const groups = groupsQuery.data?.data ?? [];
   const meetings = meetingsQuery.data?.data ?? [];
-  const isLoading = groupsQuery.isLoading || meetingsQuery.isLoading;
-  const error = groupsQuery.error ?? meetingsQuery.error;
   const summary = getMentorDashboardSummary(groups);
 
   return (
-    <Card>
-      <CardHeader
-        description="A quick pulse on assigned groups and upcoming meetings."
-        title="Mentor Dashboard"
-      />
-      <CardContent>
-        {isLoading ? (
-          <LoadingState className="min-h-48" title="Loading mentor dashboard" />
-        ) : error ? (
-          <EmptyState
-            className="min-h-48 border-red-200 bg-red-50"
-            description={getErrorMessage(error)}
-            icon={<CalendarClock size={22} />}
-            title="Dashboard unavailable"
-          />
-        ) : (
-          <div className="grid gap-5">
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(150px,100%),1fr))] gap-3">
-              <MentorStat
-                label="Groups"
-                value={summary.totalGroups}
-              />
-              <MentorStat
-                label="Tasks"
-                value={summary.totalTasks}
-              />
-              <MentorStat
-                label="Completed"
-                value={summary.completedTasks}
-              />
-              <MentorStat
-                label="Overdue"
-                value={summary.overdueTasks}
-              />
-              <MentorStat
-                label="Progress"
-                value={`${clampPercent(summary.progressPercent)}%`}
-              />
-            </div>
-
-            <div className="grid gap-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <CalendarClock size={17} />
-                Upcoming meetings
-              </div>
-              {meetings.length > 0 ? (
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3">
-                  {meetings.map((meeting) => (
-                    <MeetingCard key={meeting.id} meeting={meeting} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  className="min-h-40"
-                  icon={<Users size={22} />}
-                  title="No upcoming meetings"
+    <>
+      <Card>
+        <CardHeader
+          description="A quick pulse on assigned groups and task progress."
+          title="Mentor Dashboard"
+        />
+        <CardContent>
+          {groupsQuery.isLoading ? (
+            <LoadingState
+              className="min-h-48"
+              title="Loading mentor dashboard"
+            />
+          ) : groupsQuery.error ? (
+            <EmptyState
+              className="min-h-48 border-red-200 bg-red-50"
+              description={getErrorMessage(groupsQuery.error)}
+              icon={<Users size={22} />}
+              title="Dashboard unavailable"
+            />
+          ) : (
+            <div className="grid gap-5">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(150px,100%),1fr))] gap-3">
+                <MentorStat label="Groups" value={summary.totalGroups} />
+                <MentorStat label="Tasks" value={summary.totalTasks} />
+                <MentorStat
+                  label="Completed"
+                  value={summary.completedTasks}
                 />
-              )}
-            </div>
+                <MentorStat label="Overdue" value={summary.overdueTasks} />
+                <MentorStat
+                  label="Progress"
+                  value={`${clampPercent(summary.progressPercent)}%`}
+                />
+              </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(220px,100%),1fr))] gap-3">
-              {groups.slice(0, 4).map((group) => (
-                <div
-                  className="grid gap-2 rounded-xl border border-border bg-surface p-4"
-                  key={group.groupId}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="grid min-w-0 gap-1">
-                      <strong className="text-sm text-foreground">
-                        {group.groupName}
-                      </strong>
-                      <span className="text-xs text-muted">
-                        {group.completedTasks}/{group.totalTasks} tasks done
-                      </span>
+              <div className="grid grid-cols-3 gap-3 max-[960px]:grid-cols-2 max-[760px]:grid-cols-1">
+                {groups.slice(0, 4).map((group) => (
+                  <div
+                    className="grid gap-2 rounded-xl border border-border bg-surface p-4"
+                    key={group.groupId}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="grid min-w-0 gap-1">
+                        <strong className="break-words text-sm text-foreground">
+                          {group.groupName}
+                        </strong>
+                        <span className="break-words text-xs text-muted">
+                          {group.completedTasks}/{group.totalTasks} tasks done
+                        </span>
+                      </div>
+                      <ClipboardList
+                        className="text-brand-primary"
+                        size={18}
+                      />
                     </div>
-                    <ClipboardList className="text-brand-primary" size={18} />
+                    <div className="h-2 overflow-hidden rounded-full bg-background">
+                      <div
+                        className="h-full rounded-full bg-brand-primary"
+                        style={{
+                          width: `${clampPercent(group.progressPercent)}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted">
+                      <CheckCircle2 size={14} />
+                      {clampPercent(group.progressPercent)}% complete
+                    </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-background">
-                    <div
-                      className="h-full rounded-full bg-brand-primary"
-                      style={{ width: `${clampPercent(group.progressPercent)}%` }}
-                    />
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-xs text-muted">
-                    <CheckCircle2 size={14} />
-                    {clampPercent(group.progressPercent)}% complete
-                  </span>
-                </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader
+          description="Review the next scheduled sessions across your assigned groups."
+          title="Upcoming meetings"
+        />
+        <CardContent>
+          {meetingsQuery.isLoading ? (
+            <LoadingState className="min-h-40" title="Loading meetings" />
+          ) : meetingsQuery.error ? (
+            <EmptyState
+              className="min-h-40 border-red-200 bg-red-50"
+              description={getErrorMessage(meetingsQuery.error)}
+              icon={<CalendarClock size={22} />}
+              title="Meetings unavailable"
+            />
+          ) : meetings.length > 0 ? (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3">
+              {meetings.map((meeting) => (
+                <MeetingCard key={meeting.id} meeting={meeting} />
               ))}
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <EmptyState
+              className="min-h-40"
+              icon={<Users size={22} />}
+              title="No upcoming meetings"
+            />
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

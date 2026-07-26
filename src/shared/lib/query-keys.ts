@@ -5,6 +5,10 @@ export const queryKeys = {
     all: ["auth"] as const,
     me: ["auth", "me"] as const,
   },
+  profile: {
+    all: ["profile"] as const,
+    me: () => [...queryKeys.profile.all, "me"] as const,
+  },
   users: {
     all: ["admin-users"] as const,
     lists: () => [...queryKeys.users.all, "list"] as const,
@@ -34,9 +38,14 @@ export const queryKeys = {
       [...queryKeys.groups.all, groupId, "join-requests"] as const,
     myJoinRequests: () =>
       [...queryKeys.groups.all, "join-requests", "me"] as const,
+    instructorMe: (filters?: QueryFilters) =>
+      [...queryKeys.groups.all, "instructor", "me", filters ?? {}] as const,
+    recruitmentRoles: () =>
+      [...queryKeys.groups.all, "recruitment-roles"] as const,
   },
   students: {
     all: ["students"] as const,
+    detail: (id: number) => [...queryKeys.students.all, "detail", id] as const,
     ungrouped: (filters?: QueryFilters) =>
       [...queryKeys.students.all, "ungrouped", filters ?? {}] as const,
   },
@@ -101,6 +110,52 @@ export const queryKeys = {
       groups: () => [...queryKeys.dashboard.admin.all, "groups"] as const,
       executionStatus: () =>
         [...queryKeys.dashboard.admin.all, "execution-status"] as const,
+      overview: (filters?: QueryFilters) =>
+        [...queryKeys.dashboard.admin.all, "overview", filters ?? {}] as const,
     },
+  },
+  notifications: {
+    all: ["notifications"] as const,
+    lists: () => [...queryKeys.notifications.all, "list"] as const,
+    list: (filters?: QueryFilters) =>
+      [...queryKeys.notifications.lists(), filters ?? {}] as const,
+    unreadCount: () =>
+      [...queryKeys.notifications.all, "unread-count"] as const,
+  },
+  feedback: {
+    all: ["feedback"] as const,
+    me: (filters?: QueryFilters) =>
+      [...queryKeys.feedback.all, "me", filters ?? {}] as const,
+    received: (filters?: QueryFilters) =>
+      [...queryKeys.feedback.all, "received", filters ?? {}] as const,
+    admin: (filters?: QueryFilters) =>
+      [...queryKeys.feedback.all, "admin", filters ?? {}] as const,
+  },
+  terms: {
+    all: ["terms"] as const,
+    list: () => [...queryKeys.terms.all, "list"] as const,
+    available: () => [...queryKeys.terms.all, "available"] as const,
+  },
+  milestones: {
+    all: ["milestones"] as const,
+    lists: () => [...queryKeys.milestones.all, "list"] as const,
+    list: (filters?: QueryFilters) =>
+      [...queryKeys.milestones.lists(), filters ?? {}] as const,
+    detail: (milestoneId: number) =>
+      [...queryKeys.milestones.all, "detail", milestoneId] as const,
+    group: (groupId: number) =>
+      [...queryKeys.milestones.all, "groups", groupId] as const,
+    submissions: (milestoneId: number) =>
+      [...queryKeys.milestones.all, "submissions", "milestones", milestoneId] as const,
+    submissionsByGroup: (groupId: number) =>
+      [...queryKeys.milestones.all, "submissions", "groups", groupId] as const,
+    instructorSubmissions: (filters?: QueryFilters) =>
+      [...queryKeys.milestones.all, "instructor-submissions", filters ?? {}] as const,
+    grades: (groupId: number) =>
+      [...queryKeys.milestones.all, "grades", "groups", groupId] as const,
+    gradeForSubmission: (submissionId: number) =>
+      [...queryKeys.milestones.all, "grades", "submissions", submissionId] as const,
+    averageGrade: (groupId: number) =>
+      [...queryKeys.milestones.all, "average-grade", groupId] as const,
   },
 } as const;

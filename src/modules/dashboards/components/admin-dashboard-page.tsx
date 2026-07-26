@@ -23,6 +23,7 @@ import {
 import { ApiError, cn } from "@/shared/lib";
 
 import { useAdminDashboard } from "../hooks";
+import { AdminOverviewSection } from "./admin-overview-section";
 import type {
   AdminDashboardExecutionStatusDto,
   AdminDashboardGroupProgressDto,
@@ -46,7 +47,7 @@ const pageClassName = "grid min-w-0 gap-6";
 const overviewGridClassName =
   "grid grid-cols-4 gap-4 max-[1280px]:grid-cols-2 max-[720px]:grid-cols-[minmax(0,1fr)]";
 const overviewCardClassName =
-  "grid min-w-0 gap-4 rounded-xl border border-border bg-surface p-5 shadow-card";
+  "grid min-w-0 gap-4 rounded-xl border border-border bg-surface p-5 shadow-card max-[480px]:p-4";
 const overviewIconClassName =
   "grid size-11 place-items-center rounded-xl bg-surface-warm text-brand-primary";
 const overviewValueClassName =
@@ -54,7 +55,21 @@ const overviewValueClassName =
 const overviewDescriptionClassName = "text-[13px] leading-normal text-muted";
 const twoColumnClassName =
   "grid grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] gap-6 max-[1180px]:grid-cols-[minmax(0,1fr)]";
-const tableWrapClassName = "w-full overflow-x-auto";
+const tableWrapClassName = "w-full overflow-x-auto max-[760px]:hidden";
+const mobileListClassName = "hidden min-w-0 gap-3 max-[760px]:grid";
+const mobileCardClassName =
+  "grid min-w-0 gap-3 rounded-xl border border-border bg-background p-4";
+const mobileCardHeaderClassName =
+  "flex min-w-0 flex-wrap items-start justify-between gap-2";
+const mobileCardTitleClassName =
+  "min-w-0 flex-1 break-words text-sm font-bold text-foreground";
+const mobileMetadataClassName =
+  "grid min-w-0 grid-cols-2 gap-3 max-[480px]:grid-cols-1";
+const mobileMetadataItemClassName = "grid min-w-0 gap-1";
+const mobileMetadataLabelClassName =
+  "text-[11px] font-bold tracking-[0.04em] text-muted uppercase";
+const mobileMetadataValueClassName =
+  "min-w-0 break-words text-sm text-foreground";
 const tableClassName =
   "w-full min-w-[760px] border-collapse [&_tbody_tr:last-child_td]:border-b-0";
 const compactTableClassName =
@@ -189,7 +204,7 @@ function StatusBadge({ status }: { status: string | null | undefined }) {
 
 function ProgressValue({ value }: { value: number | null | undefined }) {
   return (
-    <div className="grid min-w-[132px] gap-1.5">
+    <div className="grid min-w-0 gap-1.5 min-[761px]:min-w-[132px]">
       <div className="flex items-center justify-between gap-2 text-xs font-medium text-muted">
         <span>Progress</span>
         <span>{formatPercent(value)}</span>
@@ -258,8 +273,9 @@ function TimelineTable({ items }: { items: AdminDashboardMeetingDto[] }) {
   }
 
   return (
-    <div className={tableWrapClassName}>
-      <table className={tableClassName}>
+    <>
+      <div className={tableWrapClassName}>
+        <table className={tableClassName}>
         <thead>
           <tr>
             <th className={tableHeadCellClassName}>When</th>
@@ -323,8 +339,69 @@ function TimelineTable({ items }: { items: AdminDashboardMeetingDto[] }) {
             );
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+
+      <div className={mobileListClassName}>
+        {items.map((item, index) => {
+          const record = item as DashboardRecord;
+          const startAt = getString(record, ["startAt", "startedAt"], "");
+          const endAt = getString(record, ["endAt", "finishedAt"], "");
+          const meetLink = getString(record, ["meetLink", "meetingLink"], "");
+          const status = getString(record, ["status"], "");
+
+          return (
+            <article
+              className={mobileCardClassName}
+              key={`${item.id ?? item.meetingId ?? item.slotId ?? index}`}
+            >
+              <div className={mobileCardHeaderClassName}>
+                <h3 className={mobileCardTitleClassName}>
+                  {getString(record, ["groupName", "name"], "Unnamed group")}
+                </h3>
+                <StatusBadge status={status} />
+              </div>
+              <div className={mobileMetadataClassName}>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Starts</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {formatDateTime(startAt)}
+                  </span>
+                </div>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Ends</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {formatDateTime(endAt)}
+                  </span>
+                </div>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Group</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {getString(record, ["groupNo", "courseCode"], "-")}
+                  </span>
+                </div>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Mentor</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {getString(record, ["mentorName", "fullName"], "-")}
+                  </span>
+                </div>
+              </div>
+              {meetLink && (
+                <a
+                  className={cn(linkClassName, "min-h-11 justify-self-start")}
+                  href={meetLink}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Open meeting <ExternalLink size={14} />
+                </a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -339,9 +416,12 @@ function ProjectsTable({ items }: { items: AdminDashboardProjectDto[] }) {
     );
   }
 
+  const visibleItems = items.slice(0, 8);
+
   return (
-    <div className={tableWrapClassName}>
-      <table className={compactTableClassName}>
+    <>
+      <div className={tableWrapClassName}>
+        <table className={compactTableClassName}>
         <thead>
           <tr>
             <th className={tableHeadCellClassName}>Project</th>
@@ -351,7 +431,7 @@ function ProjectsTable({ items }: { items: AdminDashboardProjectDto[] }) {
           </tr>
         </thead>
         <tbody>
-          {items.slice(0, 8).map((item, index) => {
+          {visibleItems.map((item, index) => {
             const record = item as DashboardRecord;
             const progress = getNumber(record, [
               "progressPercent",
@@ -396,8 +476,60 @@ function ProjectsTable({ items }: { items: AdminDashboardProjectDto[] }) {
             );
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+
+      <div className={mobileListClassName}>
+        {visibleItems.map((item, index) => {
+          const record = item as DashboardRecord;
+          const progress = getNumber(record, [
+            "progressPercent",
+            "completionPercent",
+            "progress",
+          ]);
+          const status = getString(record, ["status"], "");
+
+          return (
+            <article
+              className={mobileCardClassName}
+              key={`${item.id ?? item.projectId ?? index}`}
+            >
+              <div className={mobileCardHeaderClassName}>
+                <h3 className={mobileCardTitleClassName}>
+                  {getString(
+                    record,
+                    ["projectName", "title", "name"],
+                    "Untitled project",
+                  )}
+                </h3>
+                <StatusBadge status={status} />
+              </div>
+              <div className={mobileMetadataClassName}>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Group</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {getString(record, ["groupName", "groupNo"], "-")}
+                  </span>
+                </div>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Tasks</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {formatNumber(
+                      getNumber(record, ["completedTaskCount", "doneTasks"]),
+                    )}{" "}
+                    /{" "}
+                    {formatNumber(
+                      getNumber(record, ["totalTaskCount", "totalTasks"]),
+                    )}
+                  </span>
+                </div>
+              </div>
+              <ProgressValue value={progress} />
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -412,9 +544,12 @@ function MentorsTable({ items }: { items: AdminDashboardMentorDto[] }) {
     );
   }
 
+  const visibleItems = items.slice(0, 8);
+
   return (
-    <div className={tableWrapClassName}>
-      <table className={compactTableClassName}>
+    <>
+      <div className={tableWrapClassName}>
+        <table className={compactTableClassName}>
         <thead>
           <tr>
             <th className={tableHeadCellClassName}>Mentor</th>
@@ -424,7 +559,7 @@ function MentorsTable({ items }: { items: AdminDashboardMentorDto[] }) {
           </tr>
         </thead>
         <tbody>
-          {items.slice(0, 8).map((item, index) => {
+          {visibleItems.map((item, index) => {
             const record = item as DashboardRecord;
             const status = getString(record, ["status"], "");
 
@@ -461,8 +596,58 @@ function MentorsTable({ items }: { items: AdminDashboardMentorDto[] }) {
             );
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+
+      <div className={mobileListClassName}>
+        {visibleItems.map((item, index) => {
+          const record = item as DashboardRecord;
+          const status = getString(record, ["status"], "");
+
+          return (
+            <article
+              className={mobileCardClassName}
+              key={`${item.id ?? item.mentorId ?? index}`}
+            >
+              <div className={mobileCardHeaderClassName}>
+                <h3 className={mobileCardTitleClassName}>
+                  {getString(
+                    record,
+                    ["mentorName", "fullName", "name"],
+                    "Unnamed mentor",
+                  )}
+                </h3>
+                <StatusBadge status={status} />
+              </div>
+              <p className="m-0 break-all text-[13px] text-muted">
+                {getString(record, ["mentorCode", "email"], "-")}
+              </p>
+              <div className={mobileMetadataClassName}>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Groups</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {formatNumber(
+                      getNumber(record, ["assignedGroupCount", "groupCount"]),
+                    )}
+                  </span>
+                </div>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Meetings</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {formatNumber(
+                      getNumber(record, [
+                        "scheduledMeetingCount",
+                        "meetingCount",
+                      ]),
+                    )}
+                  </span>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -477,9 +662,12 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
     );
   }
 
+  const visibleItems = items.slice(0, 8);
+
   return (
-    <div className={tableWrapClassName}>
-      <table className={compactTableClassName}>
+    <>
+      <div className={tableWrapClassName}>
+        <table className={compactTableClassName}>
         <thead>
           <tr>
             <th className={tableHeadCellClassName}>Group</th>
@@ -489,7 +677,7 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
           </tr>
         </thead>
         <tbody>
-          {items.slice(0, 8).map((item, index) => {
+          {visibleItems.map((item, index) => {
             const record = item as DashboardRecord;
             const progress = getNumber(record, [
               "progressPercent",
@@ -527,8 +715,58 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
             );
           })}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+
+      <div className={mobileListClassName}>
+        {visibleItems.map((item, index) => {
+          const record = item as DashboardRecord;
+          const progress = getNumber(record, [
+            "progressPercent",
+            "completionPercent",
+            "progress",
+          ]);
+          const status = getString(record, ["status"], "");
+
+          return (
+            <article
+              className={mobileCardClassName}
+              key={`${item.id ?? item.groupId ?? index}`}
+            >
+              <div className={mobileCardHeaderClassName}>
+                <h3 className={mobileCardTitleClassName}>
+                  {getString(
+                    record,
+                    ["groupName", "name", "groupNo"],
+                    "Unnamed group",
+                  )}
+                </h3>
+                <StatusBadge status={status} />
+              </div>
+              <div className={mobileMetadataClassName}>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Project</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {getString(
+                      record,
+                      ["projectName", "courseCode", "term"],
+                      "-",
+                    )}
+                  </span>
+                </div>
+                <div className={mobileMetadataItemClassName}>
+                  <span className={mobileMetadataLabelClassName}>Mentor</span>
+                  <span className={mobileMetadataValueClassName}>
+                    {getString(record, ["mentorName"], "-")}
+                  </span>
+                </div>
+              </div>
+              <ProgressValue value={progress} />
+            </article>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -640,6 +878,8 @@ export function AdminDashboardPage() {
         title="Dashboard"
       />
 
+      <AdminOverviewSection />
+
       {isInitialLoading ? (
         <LoadingState
           description="Loading projects, mentors, groups, execution status, and timeline data."
@@ -728,7 +968,7 @@ export function AdminDashboardPage() {
                         <span className="text-xs font-bold text-muted uppercase">
                           {label}
                         </span>
-                        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold text-foreground">
+                        <span className="min-w-0 break-words text-sm font-bold text-foreground">
                           {typeof value === "number"
                             ? formatNumber(value)
                             : typeof value === "string" && value.trim()

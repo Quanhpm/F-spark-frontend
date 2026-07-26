@@ -15,6 +15,7 @@ import type { GroupDetailDto, GroupMemberDto } from "../../types";
 
 type MemberListProps = {
   group: GroupDetailDto;
+  isMembershipLocked: boolean;
   isLeader: boolean;
   onRemoveMember: (member: GroupMemberDto) => void;
   onTransferLeadership: (member: GroupMemberDto) => void;
@@ -22,6 +23,7 @@ type MemberListProps = {
 
 export function MemberList({
   group,
+  isMembershipLocked,
   isLeader,
   onRemoveMember,
   onTransferLeadership,
@@ -29,7 +31,11 @@ export function MemberList({
   return (
     <Card>
       <CardHeader
-        description="Current members and leader actions."
+        description={
+          isMembershipLocked
+            ? "Membership is locked. Unlock the group before removing members."
+            : "Current members and leader actions."
+        }
         title="Members"
       />
       <CardContent>
@@ -51,7 +57,7 @@ export function MemberList({
                 >
                   <div className="grid min-w-0 gap-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <strong className="text-sm text-foreground">
+                      <strong className="break-words text-sm text-foreground">
                         {member.fullName}
                       </strong>
                       <Badge
@@ -62,13 +68,13 @@ export function MemberList({
                         {member.role}
                       </Badge>
                     </div>
-                    <span className="text-xs text-muted">
+                    <span className="break-all text-xs text-muted">
                       {member.studentCode} - {member.email}
                     </span>
                   </div>
 
                   {isLeader && !isMemberLeader && (
-                    <div className="flex flex-wrap justify-end gap-2">
+                    <div className="flex flex-wrap justify-end gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
                       <Button
                         icon={<ArrowRightLeft size={16} />}
                         onClick={() => onTransferLeadership(member)}
@@ -78,6 +84,7 @@ export function MemberList({
                         Make leader
                       </Button>
                       <Button
+                        disabled={isMembershipLocked}
                         icon={<Trash2 size={16} />}
                         onClick={() => onRemoveMember(member)}
                         size="sm"

@@ -49,6 +49,43 @@ export type ImportFileType = "CSV" | "XLSX";
 
 export type ImportBatchStatus = "COMPLETED" | "FAILED";
 
+// OpenAPI additions verified on 2026-07-11. These values are shared API
+// contracts; feature DTOs remain in their respective modules.
+export type FeedbackTargetType = "MENTOR" | "INSTRUCTOR";
+
+export type FeedbackStatus = "PENDING" | "SUBMITTED";
+
+export type AcademicTermStatus = "OPEN" | "CLOSED";
+
+export type CourseMilestoneStatus =
+  | "ACTIVE"
+  | "CLOSED"
+  | "ARCHIVED"
+  | "INACTIVE";
+
+export type MilestoneSubmissionStatus = "SUBMITTED" | "RESUBMITTED" | "GRADED";
+
+export type NotificationType =
+  | "GROUP_INVITATION_CREATED"
+  | "GROUP_INVITATION_ACCEPTED"
+  | "GROUP_INVITATION_DECLINED"
+  | "GROUP_JOIN_REQUEST_CREATED"
+  | "GROUP_JOIN_REQUEST_APPROVED"
+  | "GROUP_JOIN_REQUEST_REJECTED"
+  | "GROUP_MEMBER_REMOVED"
+  | "GROUP_LEADER_TRANSFERRED"
+  | "GROUP_LOCK_UPDATED"
+  | "TASK_ASSIGNED"
+  | "TASK_COMMENT_CREATED"
+  | "TASK_STATUS_CHANGED"
+  | "TIMELINE_ITEM_CREATED"
+  | "TIMELINE_ITEM_UPDATED"
+  | "MILESTONE_SUBMISSION_CREATED"
+  | "MILESTONE_SUBMISSION_GRADED"
+  | "MENTOR_MEETING_BOOKED"
+  | "MENTOR_MEETING_CANCELED"
+  | "TERM_FEEDBACK_AVAILABLE";
+
 export type ImportErrorCode =
   | "MISSING_REQUIRED_FIELD"
   | "INVALID_FORMAT"

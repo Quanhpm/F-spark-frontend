@@ -13,7 +13,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const baseClassName =
-  "inline-flex min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-transparent font-sans font-medium leading-none transition-[background,border-color,color,box-shadow,transform] duration-[160ms] ease-in-out focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] disabled:cursor-not-allowed disabled:opacity-[0.58] [&:active:not(:disabled)]:scale-[0.98]";
+  "inline-flex min-h-11 min-w-11 max-w-full items-center justify-center gap-2 whitespace-normal rounded-xl border border-transparent font-sans font-medium leading-tight text-center transition-[background,border-color,color,box-shadow,transform] duration-[160ms] ease-in-out focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] disabled:cursor-not-allowed disabled:opacity-[0.58] min-[761px]:min-h-0 min-[761px]:min-w-0 min-[761px]:whitespace-nowrap min-[761px]:leading-none [&:active:not(:disabled)]:scale-[0.98] [&>svg]:shrink-0";
 
 const variantClassNames: Record<ButtonVariant, string> = {
   danger:
@@ -27,9 +27,9 @@ const variantClassNames: Record<ButtonVariant, string> = {
 };
 
 const sizeClassNames: Record<ButtonSize, string> = {
-  lg: "h-[50px] px-5 text-sm",
-  md: "h-[42px] px-4 text-sm",
-  sm: "h-9 px-3 text-[13px]",
+  lg: "min-h-[50px] px-5 py-3 text-sm min-[761px]:h-[50px] min-[761px]:py-0",
+  md: "px-4 py-2.5 text-sm min-[761px]:h-[42px] min-[761px]:py-0",
+  sm: "px-3 py-2 text-[13px] min-[761px]:h-9 min-[761px]:py-0",
 };
 
 export function Button({

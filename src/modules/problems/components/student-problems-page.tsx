@@ -76,7 +76,11 @@ export function StudentProblemsPage() {
         />
 
         {activeGroupId && isGroupLeader && (
-          <Button onClick={() => setIsProposing(true)} size="md">
+          <Button
+            className="max-[480px]:w-full"
+            onClick={() => setIsProposing(true)}
+            size="md"
+          >
             <Plus className="size-4 mr-1.5" />
             <span>Propose Custom Topic</span>
           </Button>
@@ -97,7 +101,7 @@ export function StudentProblemsPage() {
           
           {activeGroup.selectedProblem && (
             <CardContent className="pt-0">
-              <div className="flex justify-end gap-2.5">
+              <div className="flex justify-end gap-2.5 max-[480px]:grid max-[480px]:[&>button]:w-full">
                 <Button
                   size="sm"
                   variant="secondary"
@@ -156,11 +160,11 @@ export function StudentProblemsPage() {
 
           {/* Pagination */}
           {problems.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-border pt-4">
-              <span className="text-xs text-muted font-medium">
+            <div className="flex items-center justify-between gap-3 border-t border-border pt-4 max-[480px]:grid">
+              <span className="break-words text-xs font-medium text-muted">
                 Page {problems.page + 1} of {problems.totalPages} ({problems.totalElements} topics)
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 max-[480px]:grid max-[480px]:grid-cols-2 max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:min-w-0">
                 <Button
                   size="sm"
                   variant="secondary"

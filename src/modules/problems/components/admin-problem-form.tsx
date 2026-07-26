@@ -1,10 +1,14 @@
-import { FormEvent, useState, useEffect } from "react";
-import { Button, TextInput, Select } from "@/shared/components";
+import { FormEvent, useEffect, useId, useState } from "react";
+import {
+  Button,
+  ResponsiveDialog,
+  Select,
+  TextInput,
+} from "@/shared/components";
 import type { ProblemDifficulty, ProblemStatus, EntityId } from "@/shared/types";
 import type { ProblemDetailDto } from "../types";
 import { useCreateOfficialProblem, useUpdateProblem } from "../hooks/use-problem-mutations";
 import { useProblemDomains } from "../hooks";
-import { X } from "lucide-react";
 
 type AdminProblemFormProps = {
   problemId?: EntityId | null;
@@ -97,33 +101,43 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const formId = useId();
+  const dialogTitle = isEdit
+    ? `Edit Official Topic: ${code || ""}`
+    : "Create Official Thesis Topic";
 
   return (
-    <>
-      <div className="fixed inset-0 z-45 bg-[rgba(26,26,26,0.36)]" onClick={onClose} />
-      
-      <div className="fixed inset-0 z-50 grid place-items-center p-6 pointer-events-none">
-        <div className="grid w-[min(640px,100%)] max-h-[90vh] grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-surface shadow-modal pointer-events-auto">
-          
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-surface-base">
-            <h3 className="m-0 text-lg font-bold text-foreground">
-              {isEdit ? `Edit Official Topic: ${code || ""}` : "Create Official Thesis Topic"}
-            </h3>
-            <Button
-              variant="secondary"
-              onClick={onClose}
-              className="size-8 p-0 rounded-lg"
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
-
-          {/* Form content */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+    <ResponsiveDialog
+      bodyClassName="p-0"
+      className="min-[761px]:max-w-[640px]"
+      closeOnBackdrop={false}
+      description="Manage the official problem scope, classification, and supporting resources."
+      footer={
+        <>
+          <Button
+            disabled={isPending}
+            onClick={onClose}
+            variant="secondary"
+          >
+            Cancel
+          </Button>
+          <Button disabled={isPending} form={formId} type="submit">
+            {isPending ? "Saving..." : "Save Topic"}
+          </Button>
+        </>
+      }
+      mobileMode="fullscreen"
+      onClose={onClose}
+      title={dialogTitle}
+    >
+      <form
+        className="grid gap-4 p-4 min-[481px]:p-6"
+        id={formId}
+        onSubmit={handleSubmit}
+      >
             
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2">
+            <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
+              <div className="col-span-2 max-[600px]:col-span-1">
                 <TextInput
                   label="Topic Title *"
                   placeholder="Thesis topic title..."
@@ -142,7 +156,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
               <div>
                 <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Select Domain *
@@ -199,7 +213,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
                 onChange={(e) => setStatement(e.target.value)}
                 placeholder="Thesis details and constraints..."
                 required
-                className="w-full rounded-xl border border-border bg-surface p-3 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none min-h-[100px]"
+                className="min-h-[100px] w-full rounded-xl border border-border bg-surface p-3 text-base outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary min-[761px]:text-sm"
               />
             </div>
 
@@ -211,11 +225,11 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
                 value={expectedOutput}
                 onChange={(e) => setExpectedOutput(e.target.value)}
                 placeholder="Software, metrics, papers..."
-                className="w-full rounded-xl border border-border bg-surface p-3 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none min-h-[70px]"
+                className="min-h-[70px] w-full rounded-xl border border-border bg-surface p-3 text-base outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary min-[761px]:text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
               <TextInput
                 label="Owner Laboratory"
                 placeholder="e.g. AI Innovation Lab"
@@ -237,23 +251,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
               onChange={(e) => setDriveFolderLink(e.target.value)}
             />
 
-            {/* Footer Buttons */}
-            <div className="flex justify-end gap-2.5 pt-4 border-t border-border mt-6">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={isPending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Saving..." : "Save Topic"}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </>
+      </form>
+    </ResponsiveDialog>
   );
 }

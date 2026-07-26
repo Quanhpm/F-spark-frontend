@@ -3,12 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
 
 import {
+  getAdminDashboardOverview,
   getAdminDashboardExecutionStatus,
   getAdminDashboardGroups,
   getAdminDashboardMentors,
   getAdminDashboardProjects,
   getAdminDashboardTimeline,
 } from "../api";
+import type { AdminDashboardOverviewQuery } from "../types";
+
+export function useAdminDashboardOverview(
+  query: AdminDashboardOverviewQuery = {},
+) {
+  return useQuery({
+    queryFn: () => getAdminDashboardOverview(query),
+    queryKey: queryKeys.dashboard.admin.overview(query),
+  });
+}
 
 export function useAdminDashboardTimeline() {
   return useQuery({

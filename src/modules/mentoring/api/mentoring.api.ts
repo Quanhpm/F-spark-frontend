@@ -68,3 +68,10 @@ export function confirmMeeting(groupId: number, meetingId: number) {
     {},
   );
 }
+
+export function cancelMeeting(groupId: number, meetingId: number) {
+  return apiPatch<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/cancel`,
+    {},
+  );
+}

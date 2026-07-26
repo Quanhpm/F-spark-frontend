@@ -103,14 +103,14 @@ export function AdminProblemsPage() {
 
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 flex-col gap-4 min-[761px]:flex-row min-[761px]:items-center min-[761px]:justify-between">
         <PageHeader
           title="Problem Bank Administration"
           description="Manage graduation thesis topics, review student proposals, and edit problem domains."
         />
 
         {activeTab === "problems" && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 max-[480px]:grid max-[480px]:grid-cols-1 max-[480px]:[&>button]:w-full">
             <input
               type="file"
               id="problem-bank-import-input"
@@ -138,7 +138,7 @@ export function AdminProblemsPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1.5 border-b border-border pb-1">
+      <div className="grid min-w-0 grid-cols-2 gap-1.5 border-b border-border pb-1 min-[761px]:flex">
         <button
           type="button"
           onClick={() => {
@@ -146,7 +146,7 @@ export function AdminProblemsPage() {
             setPage(0);
           }}
           className={cn(
-            "flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 -mb-[2px] transition-all",
+            "flex min-h-11 min-w-0 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-center text-sm font-bold transition-all min-[761px]:-mb-[2px] max-[480px]:px-2",
             activeTab === "problems"
               ? "border-brand-primary text-brand-primary font-extrabold"
               : "border-transparent text-muted hover:text-foreground"
@@ -159,7 +159,7 @@ export function AdminProblemsPage() {
           type="button"
           onClick={() => setActiveTab("domains")}
           className={cn(
-            "flex items-center gap-2 px-4 py-2.5 text-sm font-bold border-b-2 -mb-[2px] transition-all",
+            "flex min-h-11 min-w-0 items-center justify-center gap-2 border-b-2 px-4 py-2.5 text-center text-sm font-bold transition-all min-[761px]:-mb-[2px] max-[480px]:px-2",
             activeTab === "domains"
               ? "border-brand-primary text-brand-primary font-extrabold"
               : "border-transparent text-muted hover:text-foreground"
@@ -203,7 +203,7 @@ export function AdminProblemsPage() {
             <LoadingState title="Loading topics..." />
           ) : problems?.content && problems.content.length > 0 ? (
             <div className="space-y-4">
-              <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
+              <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm max-[760px]:hidden">
                 <table className="w-full border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border bg-surface-base">
@@ -253,6 +253,7 @@ export function AdminProblemsPage() {
                             {/* Review proposal */}
                             {prob.status === "PENDING_REVIEW" && (
                               <Button
+                                aria-label={`Edit ${prob.title}`}
                                 size="sm"
                                 onClick={() => handleOpenReview(prob.id, prob.title)}
                                 className="h-8 text-xs px-2.5 rounded-lg"
@@ -280,13 +281,89 @@ export function AdminProblemsPage() {
                 </table>
               </div>
 
+              <div className="hidden min-w-0 gap-3 max-[760px]:grid">
+                {problems.content.map((prob) => (
+                  <article
+                    className="grid min-w-0 gap-4 rounded-xl border border-border bg-surface p-4 shadow-sm"
+                    key={prob.id}
+                  >
+                    <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+                      <div className="grid min-w-0 gap-1">
+                        <h3 className="m-0 break-words text-base font-bold text-foreground">
+                          {prob.title}
+                        </h3>
+                        <code className="break-all text-xs font-bold text-muted">
+                          {prob.code || "PROPOSAL"}
+                        </code>
+                      </div>
+                      <ProblemStatusBadge status={prob.status} />
+                    </div>
+
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <ProblemDifficultyBadge
+                        difficulty={prob.difficultyLevel}
+                      />
+                      <span
+                        className={cn(
+                          "text-xs font-bold tracking-wider uppercase",
+                          prob.sourceType === "OFFICIAL"
+                            ? "text-blue-600"
+                            : "text-amber-600",
+                        )}
+                      >
+                        {prob.sourceType === "OFFICIAL"
+                          ? "Official"
+                          : "Proposal"}
+                      </span>
+                    </div>
+
+                    <div className="grid min-w-0 gap-1 border-t border-border pt-3">
+                      <span className="text-[11px] font-bold text-muted uppercase">
+                        Domain
+                      </span>
+                      <span className="break-all text-sm text-foreground">
+                        {prob.domainCode || "-"}
+                      </span>
+                    </div>
+
+                    <div className="grid min-w-0 gap-2 border-t border-border pt-3 max-[480px]:grid-cols-1 min-[481px]:grid-cols-3 [&>button]:w-full">
+                      <Button
+                        onClick={() => setSelectedProblemId(prob.id)}
+                        variant="secondary"
+                      >
+                        View details
+                      </Button>
+                      {prob.status === "PENDING_REVIEW" && (
+                        <Button
+                          onClick={() =>
+                            handleOpenReview(prob.id, prob.title)
+                          }
+                        >
+                          Review
+                        </Button>
+                      )}
+                      {prob.sourceType === "OFFICIAL" && (
+                        <Button
+                          aria-label={`Edit ${prob.title}`}
+                          onClick={() => handleOpenEdit(prob.id)}
+                          variant="secondary"
+                        >
+                          <Edit3 className="size-4" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
               {/* Pagination */}
               {problems.totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-border pt-4">
+                <div className="flex min-w-0 items-center justify-between gap-4 border-t border-border pt-4 max-[680px]:flex-col max-[680px]:items-stretch">
                   <span className="text-xs text-muted">
                     Page {problems.page + 1} of {problems.totalPages} ({problems.totalElements} topics)
                   </span>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 max-[480px]:grid max-[480px]:grid-cols-2 max-[480px]:[&>button]:w-full">
                     <Button
                       size="sm"
                       disabled={problems.page === 0}

@@ -12,7 +12,7 @@ type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 const baseClassName =
-  "inline-flex min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-transparent font-sans text-xs font-medium leading-none";
+  "inline-flex min-w-0 max-w-full items-center justify-center gap-1.5 whitespace-normal rounded-full border border-transparent font-sans text-xs font-medium leading-tight text-center break-words min-[761px]:whitespace-nowrap min-[761px]:leading-none [&>svg]:shrink-0";
 
 const toneClassNames: Record<BadgeTone, string> = {
   brand: "bg-brand-primary text-white",
@@ -23,8 +23,8 @@ const toneClassNames: Record<BadgeTone, string> = {
 };
 
 const sizeClassNames: Record<BadgeSize, string> = {
-  md: "h-7 px-[11px]",
-  sm: "h-6 px-[9px]",
+  md: "min-h-7 px-[11px] py-1.5 min-[761px]:h-7 min-[761px]:py-0",
+  sm: "min-h-6 px-[9px] py-1 min-[761px]:h-6 min-[761px]:py-0",
 };
 
 export function Badge({

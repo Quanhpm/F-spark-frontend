@@ -138,10 +138,10 @@ function GroupProgressCard({ group }: { group: DashboardGroupProgressDto }) {
     <article className="grid gap-3 rounded-xl border border-border bg-surface p-4 shadow-card">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="m-0 text-base leading-snug font-bold text-foreground">
+          <h3 className="m-0 break-words text-base leading-snug font-bold text-foreground">
             {group.groupName}
           </h3>
-          <p className="m-0 text-sm text-muted">
+          <p className="m-0 break-words text-sm text-muted">
             {group.term} - {group.courseCode} - {group.groupNo}
           </p>
         </div>
@@ -149,12 +149,12 @@ function GroupProgressCard({ group }: { group: DashboardGroupProgressDto }) {
           {group.status}
         </Badge>
       </div>
-      <p className="m-0 text-sm leading-relaxed text-muted">
+      <p className="m-0 break-words text-sm leading-relaxed text-muted">
         {group.projectName ?? "No project selected yet"}
       </p>
       <div className="grid gap-2">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="text-muted">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="min-w-0 break-words text-muted">
             Tasks: {group.completedTasks}/{group.totalTasks} done
           </span>
           <strong className="text-foreground">
@@ -163,9 +163,11 @@ function GroupProgressCard({ group }: { group: DashboardGroupProgressDto }) {
         </div>
         <ProgressBar value={group.progressPercent} />
       </div>
-      <div className="grid gap-1 text-sm text-muted">
-        <span>Mentor: {group.mentorName ?? "Unassigned"}</span>
-        <span>Next due: {formatDate(group.nextDueAt)}</span>
+      <div className="grid min-w-0 gap-1 text-sm text-muted">
+        <span className="break-words">
+          Mentor: {group.mentorName ?? "Unassigned"}
+        </span>
+        <span className="break-words">Next due: {formatDate(group.nextDueAt)}</span>
       </div>
     </article>
   );
@@ -181,10 +183,12 @@ function CheckpointCard({ checkpoint }: { checkpoint: DashboardCheckpointDto }) 
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="m-0 text-sm leading-snug font-bold text-foreground">
+          <h3 className="m-0 break-words text-sm leading-snug font-bold text-foreground">
             {checkpoint.title}
           </h3>
-          <p className="m-0 text-xs text-muted">{checkpoint.groupName}</p>
+          <p className="m-0 break-words text-xs text-muted">
+            {checkpoint.groupName}
+          </p>
         </div>
         <Badge tone={getPriorityTone(checkpoint.priority)} size="sm">
           {checkpoint.priority}
@@ -209,10 +213,10 @@ function ProjectCard({ project }: { project: DashboardProjectDto }) {
     <article className="grid gap-3 rounded-xl border border-border bg-surface p-4">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="m-0 text-base leading-snug font-bold text-foreground">
+          <h3 className="m-0 break-words text-base leading-snug font-bold text-foreground">
             {project.projectName ?? "Untitled project"}
           </h3>
-          <p className="m-0 text-sm text-muted">
+          <p className="m-0 break-words text-sm text-muted">
             {project.groupName} - {project.courseCode}
           </p>
         </div>
@@ -220,7 +224,7 @@ function ProjectCard({ project }: { project: DashboardProjectDto }) {
           {project.groupStatus}
         </Badge>
       </div>
-      <p className="m-0 text-sm leading-relaxed text-muted">
+      <p className="m-0 break-words text-sm leading-relaxed text-muted">
         {project.ideaDescription ?? "No idea description yet."}
       </p>
       <div className="grid gap-2">
@@ -230,7 +234,9 @@ function ProjectCard({ project }: { project: DashboardProjectDto }) {
         <ProgressBar value={project.progressPercent} />
       </div>
       {project.researchDomain && (
-        <span className="text-sm text-muted">Domain: {project.researchDomain}</span>
+        <span className="break-words text-sm text-muted">
+          Domain: {project.researchDomain}
+        </span>
       )}
     </article>
   );

@@ -34,7 +34,7 @@ export function ProblemFilters({
   const domains = domainsResponse?.data || [];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 items-end gap-3.5 rounded-2xl border border-border p-4 bg-surface shadow-sm">
+    <div className="grid min-w-0 grid-cols-1 items-end gap-3.5 rounded-2xl border border-border bg-surface p-4 shadow-sm min-[640px]:grid-cols-2 min-[1000px]:grid-cols-4">
       {/* Search Title */}
       <div>
         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">

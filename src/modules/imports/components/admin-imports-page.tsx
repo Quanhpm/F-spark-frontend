@@ -94,7 +94,7 @@ const lookupGridClassName =
   "grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]";
 const sectionClassName = "grid min-w-0 gap-4";
 const sectionHeaderClassName =
-  "flex min-w-0 items-center justify-between gap-3 max-[640px]:grid";
+  "flex min-w-0 items-center justify-between gap-3 max-[640px]:grid max-[640px]:[&>button]:w-full";
 const sectionTitleClassName =
   "m-0 text-[15px] leading-snug font-bold text-foreground";
 const sectionDescriptionClassName = "m-0 text-[13px] leading-normal text-muted";
@@ -105,7 +105,11 @@ const metricCardClassName =
 const metricLabelClassName = "text-xs font-bold text-muted uppercase";
 const metricValueClassName =
   "min-w-0 text-2xl leading-tight font-bold text-foreground";
-const tableWrapClassName = "w-full overflow-x-auto rounded-xl border border-border";
+const tableWrapClassName =
+  "w-full overflow-x-auto rounded-xl border border-border max-[760px]:hidden";
+const mobileListClassName = "hidden min-w-0 gap-3 max-[760px]:grid";
+const mobileCardClassName =
+  "grid min-w-0 gap-3 rounded-xl border border-border bg-background p-4";
 const tableClassName =
   "w-full min-w-[720px] border-collapse bg-surface [&_tbody_tr:last-child_td]:border-b-0";
 const tableHeadCellClassName =
@@ -122,7 +126,7 @@ const statusPanelClassName =
 const errorPanelClassName =
   "rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-normal text-red-700";
 const fileInputClassName =
-  "block w-full min-w-0 cursor-pointer rounded-xl border border-border bg-surface px-3.5 py-[13px] text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface-warm file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-brand-primary focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] focus:outline-0";
+  "block w-full min-w-0 cursor-pointer rounded-xl border border-border bg-surface px-3.5 py-[13px] text-base text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-surface-warm file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-brand-primary focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] focus:outline-0 min-[761px]:text-sm";
 const helperTextClassName = "text-xs leading-normal text-muted";
 
 function getErrorMessage(error: unknown) {
@@ -279,8 +283,9 @@ function CreatedAccountsTable({
   }
 
   return (
-    <div className={tableWrapClassName}>
-      <table className={tableClassName}>
+    <>
+      <div className={tableWrapClassName}>
+        <table className={tableClassName}>
         <thead>
           <tr>
             <th className={tableHeadCellClassName}>Email</th>
@@ -299,8 +304,44 @@ function CreatedAccountsTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+      <div className={mobileListClassName}>
+        {accounts.map((account) => (
+          <article
+            className={mobileCardClassName}
+            key={`${account.email}-${account.code}`}
+          >
+            <div className="grid min-w-0 gap-1">
+              <span className="text-[11px] font-bold text-muted uppercase">
+                Email
+              </span>
+              <strong className="break-all text-sm text-foreground">
+                {account.email}
+              </strong>
+            </div>
+            <div className="grid min-w-0 grid-cols-2 gap-3 max-[480px]:grid-cols-1">
+              <div className="grid min-w-0 gap-1">
+                <span className="text-[11px] font-bold text-muted uppercase">
+                  Code
+                </span>
+                <span className="break-all text-sm text-foreground">
+                  {account.code}
+                </span>
+              </div>
+              <div className="grid min-w-0 gap-1">
+                <span className="text-[11px] font-bold text-muted uppercase">
+                  Temporary password
+                </span>
+                <code className="break-all text-[13px] text-foreground">
+                  {account.temporaryPassword || "-"}
+                </code>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -336,6 +377,28 @@ function TempPasswordsTable({
           </tbody>
         </table>
       </div>
+      <div className={mobileListClassName}>
+        {entries.map(([email, password]) => (
+          <article className={mobileCardClassName} key={email}>
+            <div className="grid min-w-0 gap-1">
+              <span className="text-[11px] font-bold text-muted uppercase">
+                Email
+              </span>
+              <strong className="break-all text-sm text-foreground">
+                {email}
+              </strong>
+            </div>
+            <div className="grid min-w-0 gap-1">
+              <span className="text-[11px] font-bold text-muted uppercase">
+                Temporary password
+              </span>
+              <code className="break-all text-[13px] text-foreground">
+                {password}
+              </code>
+            </div>
+          </article>
+        ))}
+      </div>
     </DetailSection>
   );
 }
@@ -357,8 +420,9 @@ function ImportErrorsTable({
   }
 
   return (
-    <div className={tableWrapClassName}>
-      <table className={tableClassName}>
+    <>
+      <div className={tableWrapClassName}>
+        <table className={tableClassName}>
         <thead>
           <tr>
             <th className={tableHeadCellClassName}>Row</th>
@@ -381,8 +445,35 @@ function ImportErrorsTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+      <div className={mobileListClassName}>
+        {errors.map((error, index) => (
+          <article
+            className={mobileCardClassName}
+            key={`${error.rowNumber}-${error.fieldName ?? "row"}-${error.errorCode}-${index}`}
+          >
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+              <strong className="text-sm text-foreground">
+                Row {error.rowNumber}
+              </strong>
+              <Badge tone="danger">{error.errorCode}</Badge>
+            </div>
+            <div className="grid min-w-0 gap-1">
+              <span className="text-[11px] font-bold text-muted uppercase">
+                Field
+              </span>
+              <span className="break-all text-sm text-foreground">
+                {error.fieldName ?? "-"}
+              </span>
+            </div>
+            <p className="m-0 break-words text-sm leading-relaxed text-red-700">
+              {error.errorMessage}
+            </p>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -530,7 +621,7 @@ function BatchStatusPanel({
       <dl className="grid grid-cols-2 gap-3 text-sm max-[680px]:grid-cols-[minmax(0,1fr)]">
         <div className="grid gap-1 rounded-xl border border-border bg-surface p-3">
           <dt className="text-xs font-bold text-muted uppercase">File</dt>
-          <dd className="m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-foreground">
+          <dd className="m-0 min-w-0 break-all font-medium text-foreground">
             {batch.fileName}
           </dd>
         </div>
@@ -680,7 +771,7 @@ export function AdminImportsPage() {
     <div className={pageClassName}>
       <PageHeader
         actions={
-          <>
+          <div className="flex min-w-0 flex-wrap gap-2 max-[480px]:grid max-[480px]:w-full max-[480px]:grid-cols-1 max-[480px]:[&>button]:w-full">
             <Button
               disabled={isDownloading}
               icon={<Download size={16} />}
@@ -697,7 +788,7 @@ export function AdminImportsPage() {
             >
               Mentor template
             </Button>
-          </>
+          </div>
         }
         description="Upload roster and problem-bank spreadsheets, then review created accounts, row errors, and batch status."
         eyebrow="Admin"
@@ -731,11 +822,11 @@ export function AdminImportsPage() {
                 </Select>
 
                 <label className="grid min-w-0 gap-[7px]">
-                  <span className="flex items-center justify-between gap-3">
+                  <span className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-[13px] font-medium text-foreground">
                       File
                     </span>
-                    <span className={helperTextClassName}>
+                    <span className={cn(helperTextClassName, "break-words")}>
                       {selectedTarget?.description}
                     </span>
                   </span>
@@ -752,6 +843,7 @@ export function AdminImportsPage() {
                 </label>
 
                 <Button
+                  className="max-[480px]:w-full"
                   disabled={isUploading}
                   icon={<Upload size={16} />}
                   type="submit"
@@ -765,7 +857,7 @@ export function AdminImportsPage() {
               {selectedFile && (
                 <p className="mt-3 mb-0 text-sm text-muted">
                   Selected file:{" "}
-                  <span className="font-medium text-foreground">
+                  <span className="break-all font-medium text-foreground">
                     {selectedFile.name}
                   </span>
                 </p>

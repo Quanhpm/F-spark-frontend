@@ -1,12 +1,15 @@
-import { FormEvent, useState } from "react";
-import { cn } from "@/shared/lib";
+import type { FormEvent, ReactNode } from "react";
+import { useState } from "react";
+import { cn, getMinimumDateTimeLocal } from "@/shared/lib";
 import {
   Button,
+  DateTimeInput,
   LoadingState,
   TextInput,
   Select,
 } from "@/shared/components";
 import type { TaskPriority, EntityId } from "@/shared/types";
+import { useDialogAccessibility } from "@/shared/hooks";
 import {
   useTask,
   useTaskComments,
@@ -188,6 +191,40 @@ type TaskDetailPanelProps = {
   onClose: () => void;
 };
 
+function TaskDrawerShell({
+  children,
+  label,
+  onClose,
+}: {
+  children: ReactNode;
+  label: string;
+  onClose: () => void;
+}) {
+  const drawerRef = useDialogAccessibility<HTMLElement>(onClose);
+
+  return (
+    <>
+      <button
+        aria-label="Close task details"
+        className="fixed inset-0 z-35 cursor-default border-0 bg-[rgba(26,26,26,0.36)] transition-opacity duration-200"
+        onClick={onClose}
+        tabIndex={-1}
+        type="button"
+      />
+      <section
+        aria-label={label}
+        aria-modal="true"
+        className="fixed inset-0 z-40 flex min-w-0 flex-col bg-surface pt-[env(safe-area-inset-top)] shadow-2xl animate-in duration-250 slide-in-from-right min-[761px]:inset-y-0 min-[761px]:right-0 min-[761px]:left-auto min-[761px]:w-[520px] min-[761px]:border-l min-[761px]:border-border min-[761px]:pt-0"
+        ref={drawerRef}
+        role="dialog"
+        tabIndex={-1}
+      >
+        {children}
+      </section>
+    </>
+  );
+}
+
 export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<"comments" | "activities">("comments");
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
@@ -222,6 +259,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
   const [editTitle, setEditTitle] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [isEditingTitleDesc, setIsEditingTitleDesc] = useState(false);
+  const [dateError, setDateError] = useState("");
 
   const handleStartEdit = () => {
     if (task) {
@@ -257,13 +295,21 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
   const handleDateChange = (val: string) => {
     if (!task) return;
     if (!val) {
+      setDateError("");
       updateTaskMutation.mutate({
         clearDueAt: true,
         version: task.version,
       });
     } else {
+      const dueAt = new Date(val).getTime();
+      if (!Number.isFinite(dueAt) || dueAt <= Date.now()) {
+        setDateError("Due date must be in the future.");
+        return;
+      }
+
+      setDateError("");
       updateTaskMutation.mutate({
-        dueAt: new Date(val).toISOString(),
+        dueAt: new Date(dueAt).toISOString(),
         version: task.version,
       });
     }
@@ -348,34 +394,32 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
 
   if (isTaskLoading) {
     return (
-      <div className="fixed inset-y-0 right-0 z-40 w-[520px] max-w-full border-l border-border bg-surface p-6 shadow-2xl">
-        <LoadingState title="Loading task details..." />
-      </div>
+      <TaskDrawerShell label="Loading task details" onClose={onClose}>
+        <div className="flex min-h-0 flex-1 items-center justify-center p-4 min-[481px]:p-6">
+          <LoadingState title="Loading task details..." />
+        </div>
+      </TaskDrawerShell>
     );
   }
 
   if (taskError || !task) {
     return (
-      <div className="fixed inset-y-0 right-0 z-40 w-[520px] max-w-full border-l border-border bg-surface p-6 shadow-2xl flex flex-col items-center justify-center">
-        <div className="text-red-500 font-bold mb-4">Error loading task details.</div>
-        <Button onClick={onClose}>Close panel</Button>
-      </div>
+      <TaskDrawerShell label="Task detail error" onClose={onClose}>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-4 min-[481px]:p-6">
+          <div className="mb-4 text-center font-bold text-red-500">
+            Error loading task details.
+          </div>
+          <Button onClick={onClose}>Close panel</Button>
+        </div>
+      </TaskDrawerShell>
     );
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-35 bg-[rgba(26,26,26,0.36)] transition-opacity duration-200"
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div className="fixed inset-y-0 right-0 z-40 flex w-[520px] max-w-full flex-col border-l border-border bg-surface shadow-2xl animate-in slide-in-from-right duration-250">
+    <TaskDrawerShell label={`Task details: ${task.title}`} onClose={onClose}>
         {/* Drawer Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4.5">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 min-[481px]:px-6 min-[481px]:py-4.5 max-[480px]:grid">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="inline-flex size-5 items-center justify-center rounded bg-brand-primary/10 text-[10px] font-bold text-brand-primary">
               ID
             </span>
@@ -383,20 +427,22 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
             <span className="text-xs text-muted-foreground/40 font-mono">v{task.version}</span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 max-[480px]:justify-between">
             <Button
+              disabled={archiveTaskMutation.isPending}
               variant="secondary"
               onClick={handleArchive}
-              className="h-8 border-red-200 text-red-600 hover:bg-red-50 px-2 rounded-lg"
+              className="min-h-11 rounded-lg border-red-200 px-3 text-red-600 hover:bg-red-50 min-[761px]:h-8 min-[761px]:min-h-0 min-[761px]:px-2"
               title="Archive task"
             >
               <Archive className="size-4 mr-1" />
               <span className="text-xs font-semibold">Archive</span>
             </Button>
             <Button
+              aria-label="Close task details"
               variant="secondary"
               onClick={onClose}
-              className="size-8 p-0 rounded-lg"
+              className="size-11 rounded-lg p-0 min-[761px]:size-8"
             >
               <X className="size-4" />
             </Button>
@@ -404,17 +450,17 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
         </div>
 
         {/* Drawer Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] min-[481px]:p-6">
           {/* Title & Description Section */}
           {!isEditingTitleDesc ? (
             <div
               className="group rounded-xl border border-transparent p-2.5 -m-2.5 hover:bg-neutral-50/50 hover:border-border cursor-pointer transition-all"
               onClick={handleStartEdit}
             >
-              <h2 className="m-0 text-xl font-bold text-foreground group-hover:text-brand-primary">
+              <h2 className="m-0 break-words text-xl font-bold text-foreground group-hover:text-brand-primary">
                 {task.title}
               </h2>
-              <div className="mt-2 text-sm text-muted leading-relaxed whitespace-pre-wrap">
+              <div className="mt-2 break-words text-sm leading-relaxed whitespace-pre-wrap text-muted">
                 {task.description || (
                   <span className="text-muted-foreground/50 italic">No description provided. Click to add.</span>
                 )}
@@ -434,13 +480,13 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                   Description
                 </label>
                 <textarea
-                  className="w-full rounded-xl border border-border bg-surface p-3 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none min-h-[90px]"
+                  className="min-h-[90px] w-full min-w-0 rounded-xl border border-border bg-surface p-3 text-base outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary min-[761px]:text-sm"
                   value={editDesc}
                   onChange={(e) => setEditDesc(e.target.value)}
                   placeholder="Describe details of this task..."
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 max-[480px]:grid max-[480px]:[&>button]:w-full">
                 <Button type="submit" size="sm">
                   Save Changes
                 </Button>
@@ -457,7 +503,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
           )}
 
           {/* Metadata Grid */}
-          <div className="grid grid-cols-2 gap-4 rounded-2xl border border-border p-4 bg-surface-base">
+          <div className="grid grid-cols-2 gap-4 rounded-2xl border border-border bg-surface-base p-4 max-[480px]:grid-cols-1">
             <div>
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Priority
@@ -477,12 +523,14 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Due Date
               </label>
-              <input
-                type="datetime-local"
+              <DateTimeInput
+                min={getMinimumDateTimeLocal()}
                 value={toLocalDatetime(task.dueAt)}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
               />
+              {dateError && (
+                <p className="mt-1 text-xs text-red-600">{dateError}</p>
+              )}
             </div>
           </div>
 
@@ -504,7 +552,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                       type="button"
                       onClick={() => handleAssigneeToggle(member.studentId)}
                       className={cn(
-                        "inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-all",
+                        "inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border px-3 text-xs font-medium transition-all min-[761px]:h-8 min-[761px]:min-h-0",
                         isAssigned
                           ? "border-brand-primary bg-brand-primary/5 text-brand-primary"
                           : "border-border bg-surface text-muted hover:border-brand-secondary/40"
@@ -516,7 +564,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                           isAssigned ? "bg-brand-primary" : "bg-neutral-300"
                         )}
                       />
-                      <span>{member.fullName}</span>
+                      <span className="min-w-0 break-words">{member.fullName}</span>
                     </button>
                   );
                 })}
@@ -528,7 +576,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
 
           {/* Checklist Section */}
           <div>
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground m-0">
                 <CheckSquare className="size-4" />
                 <span>Checklist</span>
@@ -554,7 +602,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                     key={item.id}
                     className="group/item flex items-center justify-between gap-3 rounded-xl border border-border/40 hover:border-border bg-surface p-3 transition-all"
                   >
-                    <label className="flex flex-1 items-center gap-3 cursor-pointer">
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
                       <input
                         type="checkbox"
                         checked={item.completed}
@@ -563,7 +611,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                       />
                       <span
                         className={cn(
-                          "text-sm font-medium transition-all leading-normal",
+                          "min-w-0 break-words text-sm leading-normal font-medium transition-all",
                           item.completed
                             ? "text-muted-foreground/60 line-through"
                             : "text-foreground"
@@ -573,9 +621,10 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                       </span>
                     </label>
                     <button
+                      aria-label={`Delete checklist item: ${item.title}`}
                       type="button"
                       onClick={() => handleChecklistDelete(item.id)}
-                      className="size-7 flex items-center justify-center text-muted-foreground/50 hover:text-red-600 rounded-lg hover:bg-red-50 p-0 border border-transparent transition-all opacity-0 group-hover/item:opacity-100"
+                      className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-transparent p-0 text-muted-foreground/50 opacity-100 transition-all hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 min-[761px]:size-7 min-[761px]:opacity-0 min-[761px]:group-hover/item:opacity-100"
                     >
                       <Trash2 className="size-3.5" />
                     </button>
@@ -589,14 +638,20 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
             </div>
 
             {/* Add Checklist Item Form */}
-            <form onSubmit={handleAddChecklist} className="flex gap-2">
+            <form onSubmit={handleAddChecklist} className="flex gap-2 max-[480px]:grid">
               <TextInput
                 value={newChecklistTitle}
                 onChange={(e) => setNewChecklistTitle(e.target.value)}
                 placeholder="Add item..."
                 className="flex-1"
               />
-              <Button type="submit" size="md">
+              <Button
+                aria-label="Add checklist item"
+                className="max-[480px]:w-full"
+                disabled={addChecklistItemMutation.isPending}
+                type="submit"
+                size="md"
+              >
                 <Plus className="size-4" />
               </Button>
             </form>
@@ -604,12 +659,12 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
 
           {/* Tabs for Comments & Activities */}
           <div className="border-t border-border pt-6">
-            <div className="flex gap-1.5 border-b border-border pb-3">
+            <div className="flex max-w-full snap-x items-center gap-1.5 overflow-x-auto border-b border-border pb-3">
               <button
                 type="button"
                 onClick={() => setActiveTab("comments")}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all rounded-lg border",
+                  "flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold tracking-wider uppercase transition-all",
                   activeTab === "comments"
                     ? "border-brand-primary bg-brand-primary/5 text-brand-primary"
                     : "border-transparent text-muted hover:bg-neutral-50"
@@ -622,7 +677,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                 type="button"
                 onClick={() => setActiveTab("activities")}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all rounded-lg border",
+                  "flex min-h-11 shrink-0 snap-start items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold tracking-wider uppercase transition-all",
                   activeTab === "activities"
                     ? "border-brand-primary bg-brand-primary/5 text-brand-primary"
                     : "border-transparent text-muted hover:bg-neutral-50"
@@ -643,11 +698,15 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                       value={newCommentContent}
                       onChange={(e) => setNewCommentContent(e.target.value)}
                       placeholder="Write a comment..."
-                      className="w-full bg-transparent border-0 resize-none text-sm outline-none min-h-[50px] leading-relaxed"
+                      className="min-h-[50px] w-full min-w-0 resize-none border-0 bg-transparent text-base leading-relaxed outline-none min-[761px]:text-sm"
                       required
                     />
-                    <div className="flex justify-end pt-2 border-t border-border/40">
-                      <Button type="submit" size="sm">
+                    <div className="flex justify-end border-t border-border/40 pt-2 max-[480px]:grid max-[480px]:[&>button]:w-full">
+                      <Button
+                        disabled={addTaskCommentMutation.isPending}
+                        type="submit"
+                        size="sm"
+                      >
                         Send Comment
                       </Button>
                     </div>
@@ -661,16 +720,18 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                           key={comment.id}
                           className="flex flex-col gap-1.5 border border-border/55 p-3 rounded-2xl bg-surface"
                         >
-                          <div className="flex items-center justify-between text-xs text-muted">
-                            <span className="font-bold text-foreground">
+                          <div className="flex items-center justify-between gap-2 text-xs text-muted max-[480px]:grid">
+                            <span className="break-words font-bold text-foreground">
                               {comment.authorFullName}
                             </span>
-                            <div className="flex items-center gap-2">
-                              <span>{formatFullDate(comment.createdAt)}</span>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="break-words">
+                                {formatFullDate(comment.createdAt)}
+                              </span>
                               <button
                                 type="button"
                                 onClick={() => deleteTaskCommentMutation.mutate(comment.id)}
-                                className="text-red-500 hover:underline hover:text-red-700"
+                                className="min-h-11 rounded-lg px-2 text-red-500 hover:text-red-700 hover:underline"
                                 title="Delete comment"
                               >
                                 Delete
@@ -690,7 +751,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
 
                     {/* Pagination */}
                     {comments && comments.totalPages > 1 && (
-                      <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center justify-between gap-2 pt-2 max-[480px]:grid max-[480px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] max-[480px]:[&>button]:min-w-0">
                         <Button
                           size="sm"
                           variant="secondary"
@@ -731,7 +792,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                                 {grouped[groupKey].map((act) => {
                                   const { icon, bg } = getActivityIcon(act.activityType);
                                   return (
-                                    <div key={act.id} className="relative text-xs">
+                                    <div key={act.id} className="relative min-w-0 text-xs">
                                       {/* Icon marker */}
                                       <div className={cn(
                                         "absolute -left-[27.5px] top-0.5 flex size-[18px] items-center justify-center rounded-full border bg-surface shadow-sm",
@@ -739,8 +800,8 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                                       )}>
                                         {icon}
                                       </div>
-                                      <div className="flex items-center gap-1.5 text-muted-foreground/60 mb-0.5">
-                                        <span className="font-bold text-muted">{act.actor.fullName}</span>
+                                      <div className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1.5 text-muted-foreground/60">
+                                        <span className="break-words font-bold text-muted">{act.actor.fullName}</span>
                                         <span>•</span>
                                         <span>
                                           {new Intl.DateTimeFormat("en", {
@@ -748,7 +809,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                                           }).format(new Date(act.createdAt))}
                                         </span>
                                       </div>
-                                      <div className="text-muted leading-relaxed font-semibold">
+                                      <div className="break-words leading-relaxed font-semibold text-muted">
                                         {renderActivityDetails(act)}
                                       </div>
                                     </div>
@@ -768,7 +829,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
 
                   {/* Pagination */}
                   {activities && activities.totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <div className="flex items-center justify-between gap-2 border-t border-border/50 pt-2 max-[480px]:grid max-[480px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] max-[480px]:[&>button]:min-w-0">
                       <Button
                         size="sm"
                         variant="secondary"
@@ -795,7 +856,6 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
             </div>
           </div>
         </div>
-      </div>
-    </>
+    </TaskDrawerShell>
   );
 }
