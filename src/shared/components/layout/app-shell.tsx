@@ -77,6 +77,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/mentor/profile", icon: UserRound, label: "Profile" },
   ],
   INSTRUCTOR: [
+    { href: "/instructor/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     {
       href: "/instructor/groups",
       icon: Users,
@@ -92,12 +93,9 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
       icon: ClipboardList,
       label: "Submissions",
     },
-    { href: "/instructor/profile", icon: UserRound, label: "Profile" },
-  ],
-  INSTRUCTOR: [
-    { href: "/instructor/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/instructor/problems", icon: BookOpen, label: "Problems" },
     { href: "/instructor/grading", icon: ClipboardList, label: "Grading" },
+    { href: "/instructor/profile", icon: UserRound, label: "Profile" },
   ],
 };
 
