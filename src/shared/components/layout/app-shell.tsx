@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Award,
   Bell,
   BookOpen,
   CalendarClock,
@@ -61,6 +62,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/student/groups", icon: Users, label: "Groups" },
     { href: "/student/tasks", icon: ClipboardList, label: "Tasks" },
     { href: "/student/submissions", icon: Upload, label: "Submissions" },
+    { href: "/student/grades", icon: Award, label: "Grades" },
     { href: "/student/problems", icon: BookOpen, label: "Problems" },
     { href: "/student/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/student/notifications", icon: Bell, label: "Notifications" },

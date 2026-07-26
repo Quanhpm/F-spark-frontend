@@ -152,7 +152,7 @@ export function StudentGradesPage() {
                         )}
 
                         {/* Leader Contribution Edit Button */}
-                        {isGroupLeader && col.graded && !col.contributionsComplete && (
+                        {isGroupLeader && !col.contributionsComplete && (
                           <button
                             onClick={() => {
                               setEditingMilestoneId(col.milestoneId);
