@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  MonitorUp,
   UserRound,
   Upload,
   Users,
@@ -54,6 +55,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/admin/terms", icon: CalendarClock, label: "Terms" },
     { href: "/admin/groups", icon: Users, label: "Groups" },
+    { href: "/admin/tv-display", icon: MonitorUp, label: "TV Display" },
     { href: "/admin/profile", icon: UserRound, label: "Profile" },
   ],
   STUDENT: [
