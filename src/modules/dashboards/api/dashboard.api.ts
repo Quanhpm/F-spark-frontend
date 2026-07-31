@@ -13,7 +13,10 @@ import type {
   DashboardMeetingDto,
   DashboardProjectDto,
   DashboardStudentProgressDto,
+  DashboardMilestoneStatusDto,
+  InstructorMilestoneDashboardQuery,
 } from "../types";
+
 
 export function getStudentDashboardGroups() {
   return apiGet<ApiResponse<DashboardGroupProgressDto[]>>(
@@ -81,5 +84,21 @@ export function getAdminDashboardOverview(
   return apiGet<ApiResponse<AdminDashboardOverviewDto>>(
     "/api/dashboard/admin/overview",
     { query },
+  );
+}
+
+export function getInstructorMilestoneDashboard(
+  query: InstructorMilestoneDashboardQuery,
+) {
+  return apiGet<ApiResponse<DashboardMilestoneStatusDto[]>>(
+    "/api/dashboard/instructor/milestones",
+    { query },
+  );
+}
+
+export function getStudentMilestoneDashboard(groupId: number) {
+  return apiGet<ApiResponse<DashboardMilestoneStatusDto[]>>(
+    "/api/dashboard/student/milestones",
+    { query: { groupId } },
   );
 }

@@ -171,6 +171,28 @@ export type AdminDashboardExecutionStatusDto = DashboardRecord & {
   status?: string | null;
 };
 
+export type DashboardMilestoneStatusDto = {
+  milestoneId: number;
+  milestoneTitle: string;
+  groupId: number;
+  groupName: string;
+  groupNo: string;
+  deadlineAt: ISODateTimeString | null;
+  submitted: boolean;
+  submittedAt: ISODateTimeString | null;
+  late: boolean;
+  submissionStatus: "SUBMITTED" | "RESUBMITTED" | "GRADED" | null;
+  graded: boolean;
+  contributionsComplete: boolean;
+  gradeComplete: boolean;
+};
+
+export type InstructorMilestoneDashboardQuery = {
+  term: string;
+  courseCode: string;
+  groupId?: number;
+};
+
 export type AdminDashboardOverviewQuery = {
   term?: string;
   courseCode?: string;

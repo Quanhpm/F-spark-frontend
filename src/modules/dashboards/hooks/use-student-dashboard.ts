@@ -6,6 +6,7 @@ import {
   getStudentDashboardGroups,
   getStudentDashboardProgress,
   getStudentDashboardProjects,
+  getStudentMilestoneDashboard,
 } from "../api";
 
 export function useStudentDashboardGroups() {
@@ -26,5 +27,13 @@ export function useStudentDashboardProgress() {
   return useQuery({
     queryFn: getStudentDashboardProgress,
     queryKey: queryKeys.dashboard.studentProgress(),
+  });
+}
+
+export function useStudentMilestoneDashboard(groupId: number | null | undefined) {
+  return useQuery({
+    enabled: typeof groupId === "number",
+    queryFn: () => getStudentMilestoneDashboard(groupId!),
+    queryKey: typeof groupId === "number" ? queryKeys.dashboard.studentMilestones(groupId) : ["dashboard", "student", "milestones", "empty"],
   });
 }

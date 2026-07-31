@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -25,6 +25,7 @@ import { ApiError, cn } from "@/shared/lib";
 import {
   useStudentDashboardProgress,
   useStudentDashboardProjects,
+  useStudentMilestoneDashboard,
 } from "../hooks";
 import type {
   DashboardCheckpointDto,
@@ -250,6 +251,18 @@ export function StudentDashboardPage() {
   const isLoading = progressQuery.isLoading || projectsQuery.isLoading;
   const error = progressQuery.error ?? projectsQuery.error;
 
+  const activeGroup = useMemo(() => {
+    if (!progress || progress.groups.length === 0) return null;
+    return (
+      progress.groups.find((g) => g.status === "ACTIVE") ?? progress.groups[0]
+    );
+  }, [progress]);
+
+  const activeGroupId = activeGroup?.groupId;
+  const { data: milestonesResponse, isLoading: isMilestonesLoading } =
+    useStudentMilestoneDashboard(activeGroupId);
+  const milestones = milestonesResponse?.data ?? [];
+
   if (isLoading) {
     return (
       <LoadingState
@@ -311,6 +324,81 @@ export function StudentDashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {activeGroupId && (
+        <Card>
+          <CardHeader
+            description="Status of your course milestones, submissions and grading."
+            title="Course Milestones Status"
+          />
+          <CardContent>
+            {isMilestonesLoading ? (
+              <LoadingState title="Loading milestones..." />
+            ) : milestones.length > 0 ? (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-4">
+                {milestones.map((m) => (
+                  <article
+                    className="grid gap-3 rounded-xl border border-border bg-surface p-4 shadow-card"
+                    key={m.milestoneId}
+                  >
+                    <div className="flex min-w-0 items-start justify-between gap-3">
+                      <h3 className="m-0 text-sm leading-snug font-bold text-foreground truncate">
+                        {m.milestoneTitle}
+                      </h3>
+                      {m.late && <Badge tone="danger">LATE</Badge>}
+                    </div>
+
+                    <div className="grid gap-1.5 text-xs text-muted">
+                      <div className="flex items-center justify-between">
+                        <span>Deadline:</span>
+                        <span className="font-medium text-foreground">
+                          {formatDate(m.deadlineAt)}
+                        </span>
+                      </div>
+                      {m.submittedAt && (
+                        <div className="flex items-center justify-between">
+                          <span>Submitted:</span>
+                          <span className="font-medium text-foreground">
+                            {formatDate(m.submittedAt)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 border-t border-border/60 pt-2.5">
+                      {m.submitted ? (
+                        <Badge tone="brand" size="sm">
+                          {m.submissionStatus || "SUBMITTED"}
+                        </Badge>
+                      ) : (
+                        <Badge tone="neutral" size="sm">
+                          Not Submitted
+                        </Badge>
+                      )}
+
+                      {m.graded ? (
+                        <Badge tone="success" size="sm">
+                          Graded
+                        </Badge>
+                      ) : (
+                        <Badge tone="warning" size="sm">
+                          Ungraded
+                        </Badge>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                className="min-h-32"
+                title="No milestones"
+                description="No milestones set up for this course timeline yet."
+              />
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(300px,0.9fr)] gap-6 max-[980px]:grid-cols-1">
         <Card>

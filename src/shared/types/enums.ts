@@ -41,7 +41,7 @@ export type JoinRequestStatus =
 
 export type SlotStatus = "AVAILABLE" | "BOOKED" | "CANCELED";
 
-export type MeetingStatus = "SCHEDULED" | "CANCELED";
+export type MeetingStatus = "SCHEDULED" | "CANCELED" | "COMPLETED";
 
 export type ImportTargetType = "STUDENT" | "MENTOR" | "PROBLEM_BANK";
 

@@ -66,6 +66,8 @@ export const queryKeys = {
     domains: (filters?: QueryFilters) =>
       [...queryKeys.problems.all, "domains", filters ?? {}] as const,
     criteria: () => [...queryKeys.problems.all, "criteria"] as const,
+    pendingInstructor: () =>
+      [...queryKeys.problems.all, "instructor", "pending"] as const,
   },
   tasks: {
     all: ["tasks"] as const,
@@ -79,6 +81,13 @@ export const queryKeys = {
     mine: (filters?: QueryFilters) =>
       [...queryKeys.tasks.all, "me", filters ?? {}] as const,
   },
+  grading: {
+    all: ["grading"] as const,
+    groupGradeMatrix: (groupId: number) =>
+      [...queryKeys.grading.all, "groups", groupId, "matrix"] as const,
+    milestoneContributions: (groupId: number, milestoneId: number) =>
+      [...queryKeys.grading.all, "groups", groupId, "milestones", milestoneId, "contributions"] as const,
+  },
   dashboard: {
     all: ["dashboard"] as const,
     studentGroups: () => [...queryKeys.dashboard.all, "student", "groups"] as const,
@@ -89,6 +98,10 @@ export const queryKeys = {
     mentorGroups: () => [...queryKeys.dashboard.all, "mentor", "groups"] as const,
     mentorMeetings: () =>
       [...queryKeys.dashboard.all, "mentor", "meetings"] as const,
+    instructorMilestones: (term: string, courseCode: string, groupId?: number) =>
+      [...queryKeys.dashboard.all, "instructor", "milestones", { term, courseCode, groupId }] as const,
+    studentMilestones: (groupId: number) =>
+      [...queryKeys.dashboard.all, "student", "milestones", groupId] as const,
     admin: {
       all: ["dashboard", "admin"] as const,
       timeline: () => [...queryKeys.dashboard.admin.all, "timeline"] as const,
