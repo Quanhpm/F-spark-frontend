@@ -1,5 +1,6 @@
 "use client";
 
+import { animate, useReducedMotion } from "motion/react";
 import type {
   CSSProperties,
   KeyboardEvent,
@@ -18,15 +19,25 @@ import {
 type CarouselItem = { id: string };
 
 type VerticalCarouselProps<T extends CarouselItem> = {
+  advanceSignal?: number;
+  cancelAnimationSignal?: number;
   emptyState: ReactNode;
+  hasMoreItems?: boolean;
+  ignoreCancelAnimation?: boolean;
   items: T[];
   label: string;
+  onActiveIndexChange?: (activeIndex: number) => void;
+  onApproachingEnd?: (activeIndex: number) => void;
+  onManualInteraction?: () => void;
   onSelect: (item: T) => void;
+  paused?: boolean;
   renderItem: (
     item: T,
     active: boolean,
     selectItem: () => void,
   ) => ReactNode;
+  resetKey?: string;
+  transitionDurationMs?: number;
 };
 
 const FIVE_SLOT_OFFSETS = [-2, -1, 0, 1, 2] as const;
@@ -55,21 +66,41 @@ function getItemStyle(distance: number): CSSProperties {
 }
 
 export function VerticalCarousel<T extends CarouselItem>({
+  advanceSignal,
+  cancelAnimationSignal,
   emptyState,
+  hasMoreItems = false,
+  ignoreCancelAnimation = false,
   items,
   label,
+  onActiveIndexChange,
+  onApproachingEnd,
+  onManualInteraction,
   onSelect,
+  paused = false,
   renderItem,
+  resetKey = "",
+  transitionDurationMs = 600,
 }: VerticalCarouselProps<T>) {
   const [anchorIndex, setAnchorIndex] = useState(0);
   const anchorIndexRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+  const autoAnimationRef = useRef<{ stop: () => void } | null>(null);
+  const hasMoreItemsRef = useRef(hasMoreItems);
+  const itemCountRef = useRef(items.length);
   const positionRef = useRef(0);
+  const previousAdvanceSignalRef = useRef(advanceSignal);
+  const previousCancelAnimationSignalRef = useRef(cancelAnimationSignal);
+  const previousItemsRef = useRef(items);
+  const previousResetKeyRef = useRef(resetKey);
   const slotRefs = useRef<Array<HTMLDivElement | null>>([]);
   const touchStartPositionRef = useRef(0);
   const touchStartYRef = useRef<number | null>(null);
   const velocityRef = useRef(0);
+  const shouldReduceMotion = useReducedMotion();
   const slotOffsets = getSlotOffsets(items.length);
+  const activeIndex = modulo(anchorIndex, items.length);
+  const canAutoAdvance = items.length > 1;
 
   const setSlotsWillChange = useCallback((value: string) => {
     slotRefs.current.forEach((slot) => {
@@ -93,6 +124,8 @@ export function VerticalCarousel<T extends CarouselItem>({
   );
 
   const stopMomentum = useCallback(() => {
+    autoAnimationRef.current?.stop();
+    autoAnimationRef.current = null;
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -101,18 +134,81 @@ export function VerticalCarousel<T extends CarouselItem>({
     setSlotsWillChange("");
   }, [setSlotsWillChange]);
 
-  function updatePosition(nextPosition: number) {
-    positionRef.current = nextPosition;
-    const nextAnchor = Math.round(nextPosition);
+  const updatePosition = useCallback(
+    (nextPosition: number) => {
+      positionRef.current = nextPosition;
+      const nextAnchor = Math.round(nextPosition);
 
-    if (nextAnchor !== anchorIndexRef.current) {
-      anchorIndexRef.current = nextAnchor;
-      setAnchorIndex(nextAnchor);
-      return;
-    }
+      if (nextAnchor !== anchorIndexRef.current) {
+        anchorIndexRef.current = nextAnchor;
+        setAnchorIndex(nextAnchor);
+        return;
+      }
 
-    applySlotStyles(nextPosition, anchorIndexRef.current);
-  }
+      applySlotStyles(nextPosition, anchorIndexRef.current);
+    },
+    [applySlotStyles],
+  );
+
+  const setActivePosition = useCallback(
+    (nextIndex: number) => {
+      stopMomentum();
+      positionRef.current = nextIndex;
+      anchorIndexRef.current = nextIndex;
+      setAnchorIndex(nextIndex);
+      applySlotStyles(nextIndex, nextIndex);
+    },
+    [applySlotStyles, stopMomentum],
+  );
+
+  const animateToPosition = useCallback(
+    (nextIndex: number, durationMs: number) => {
+      if (shouldReduceMotion) {
+        setActivePosition(nextIndex);
+        return;
+      }
+
+      stopMomentum();
+      const startPosition = positionRef.current;
+      setSlotsWillChange("transform, opacity");
+
+      autoAnimationRef.current = animate(startPosition, nextIndex, {
+        duration: durationMs / 1_000,
+        ease: [0.22, 1, 0.36, 1],
+        onComplete: () => {
+          autoAnimationRef.current = null;
+          positionRef.current = nextIndex;
+          anchorIndexRef.current = nextIndex;
+          setAnchorIndex(nextIndex);
+          applySlotStyles(nextIndex, nextIndex);
+          setSlotsWillChange("");
+        },
+        onUpdate: updatePosition,
+        type: "tween",
+      });
+    },
+    [
+      applySlotStyles,
+      setActivePosition,
+      setSlotsWillChange,
+      shouldReduceMotion,
+      stopMomentum,
+      updatePosition,
+    ],
+  );
+
+  const advanceAutomatically = useCallback(() => {
+    const itemCount = itemCountRef.current;
+    if (itemCount <= 1) return;
+
+    const currentIndex = modulo(anchorIndexRef.current, itemCount);
+    if (hasMoreItemsRef.current && currentIndex === itemCount - 1) return;
+
+    animateToPosition(
+      anchorIndexRef.current + 1,
+      transitionDurationMs,
+    );
+  }, [animateToPosition, transitionDurationMs]);
 
   function startMomentum() {
     if (animationFrameRef.current !== null || items.length <= 1) return;
@@ -145,25 +241,99 @@ export function VerticalCarousel<T extends CarouselItem>({
   }
 
   useLayoutEffect(() => {
+    hasMoreItemsRef.current = hasMoreItems;
+    itemCountRef.current = items.length;
+  }, [hasMoreItems, items.length]);
+
+  useLayoutEffect(() => {
+    const previousItems = previousItemsRef.current;
+    const activeItem =
+      previousItems[
+        modulo(anchorIndexRef.current, previousItems.length)
+      ];
+    const resetRequested = previousResetKeyRef.current !== resetKey;
+    const isAppendOrSame =
+      !resetRequested &&
+      items.length >= previousItems.length &&
+      previousItems.every((item, index) => items[index]?.id === item.id);
+    const preservedIndex =
+      isAppendOrSame && activeItem
+        ? items.findIndex((item) => item.id === activeItem.id)
+        : -1;
+    const nextIndex = preservedIndex >= 0 ? preservedIndex : 0;
+    const canAppendWithoutRepositioning =
+      preservedIndex === anchorIndexRef.current &&
+      anchorIndexRef.current >= 0 &&
+      anchorIndexRef.current < previousItems.length;
+
+    previousItemsRef.current = items;
+    previousResetKeyRef.current = resetKey;
+    if (canAppendWithoutRepositioning) return;
+
+    stopMomentum();
+    positionRef.current = nextIndex;
+    anchorIndexRef.current = nextIndex;
+    setAnchorIndex(nextIndex);
+  }, [items, resetKey, stopMomentum]);
+
+  useLayoutEffect(() => {
     applySlotStyles(positionRef.current, anchorIndex);
   }, [anchorIndex, applySlotStyles]);
 
   useEffect(() => {
-    stopMomentum();
-    positionRef.current = 0;
-    anchorIndexRef.current = 0;
-    const resetTimer = window.setTimeout(() => setAnchorIndex(0), 0);
+    return () => stopMomentum();
+  }, [stopMomentum]);
 
-    return () => {
-      window.clearTimeout(resetTimer);
-      stopMomentum();
-    };
-  }, [items, stopMomentum]);
+  useEffect(() => {
+    if (!paused) return;
+
+    const currentAnchor = anchorIndexRef.current;
+    stopMomentum();
+    positionRef.current = currentAnchor;
+    applySlotStyles(currentAnchor, currentAnchor);
+  }, [applySlotStyles, paused, stopMomentum]);
+
+  useEffect(() => {
+    if (items.length === 0 || !onApproachingEnd) return;
+    onApproachingEnd(activeIndex);
+  }, [activeIndex, items.length, onApproachingEnd]);
+
+  useEffect(() => {
+    if (items.length === 0 || !onActiveIndexChange) return;
+    onActiveIndexChange(activeIndex);
+  }, [activeIndex, items.length, onActiveIndexChange]);
+
+  useEffect(() => {
+    if (previousAdvanceSignalRef.current === advanceSignal) return;
+    previousAdvanceSignalRef.current = advanceSignal;
+    if (paused || !canAutoAdvance) return;
+    advanceAutomatically();
+  }, [advanceAutomatically, advanceSignal, canAutoAdvance, paused]);
+
+  useEffect(() => {
+    if (
+      previousCancelAnimationSignalRef.current === cancelAnimationSignal
+    ) {
+      return;
+    }
+    previousCancelAnimationSignalRef.current = cancelAnimationSignal;
+    if (ignoreCancelAnimation) return;
+
+    setActivePosition(anchorIndexRef.current);
+  }, [
+    cancelAnimationSignal,
+    ignoreCancelAnimation,
+    setActivePosition,
+  ]);
 
   function handleWheel(event: WheelEvent<HTMLDivElement>) {
     if (items.length <= 1 || Math.abs(event.deltaY) < 0.5) return;
 
     event.preventDefault();
+    onManualInteraction?.();
+    if (autoAnimationRef.current !== null) {
+      stopMomentum();
+    }
     const pixelDelta =
       event.deltaMode === 1
         ? event.deltaY * 16
@@ -176,9 +346,17 @@ export function VerticalCarousel<T extends CarouselItem>({
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "ArrowDown") {
       event.preventDefault();
+      onManualInteraction?.();
+      if (autoAnimationRef.current !== null) {
+        stopMomentum();
+      }
       addVelocity(0.12);
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
+      onManualInteraction?.();
+      if (autoAnimationRef.current !== null) {
+        stopMomentum();
+      }
       addVelocity(-0.12);
     } else if (
       (event.key === "Enter" || event.key === " ") &&
@@ -192,6 +370,7 @@ export function VerticalCarousel<T extends CarouselItem>({
   }
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    onManualInteraction?.();
     touchStartYRef.current = event.touches[0]?.clientY ?? null;
     touchStartPositionRef.current = positionRef.current;
     stopMomentum();

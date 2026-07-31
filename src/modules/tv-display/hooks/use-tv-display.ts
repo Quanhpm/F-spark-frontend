@@ -1,129 +1,174 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import {
-  getAdminDashboardGroups,
-  type AdminDashboardGroupProgressDto,
-} from "@/modules/dashboards";
-import { listGroups, type GroupSummaryDto } from "@/modules/groups";
-import type { ISODateTimeString } from "@/shared/types";
-
+  getTvShowcaseProjects,
+  getTvShowcaseRecruitments,
+} from "../api";
 import type {
   ProjectDisplayItem,
   RecruitmentDisplayItem,
   TvDisplayData,
+  TvShowcaseFilters,
+  TvShowcaseProjectDto,
+  TvShowcaseProjectPageDto,
+  TvShowcaseRecruitmentDto,
+  TvShowcaseRecruitmentPageDto,
 } from "../types";
 
-const REFRESH_INTERVAL_MS = 60_000;
-const tvDisplayQueryKey = ["tv-display"] as const;
+const TV_SHOWCASE_PAGE_SIZE = 20;
 
 function clampPercent(value: number) {
   return Math.min(100, Math.max(0, Math.round(value)));
 }
 
-function numberValue(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+function normalizeFilter(value?: string) {
+  const normalizedValue = value?.trim();
+  return normalizedValue ? normalizedValue : undefined;
 }
 
-function dateTimeValue(value: unknown): ISODateTimeString | null {
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
+function dedupeByGroupId<TItem extends { groupId: number }>(items: TItem[]) {
+  const seenGroupIds = new Set<number>();
 
-function mergeProjectData(
-  dashboardGroups: AdminDashboardGroupProgressDto[],
-  groups: GroupSummaryDto[],
-) {
-  const groupsById = new Map(groups.map((group) => [group.id, group]));
-
-  return dashboardGroups
-    .map((dashboardGroup): ProjectDisplayItem | null => {
-      const groupId = numberValue(dashboardGroup.groupId ?? dashboardGroup.id);
-      if (!groupId) return null;
-
-      const group = groupsById.get(groupId);
-      const status = group?.status ?? dashboardGroup.status;
-      if (status !== "ACTIVE") return null;
-
-      return {
-        completedTasks: numberValue(
-          dashboardGroup.completedTasks ?? dashboardGroup.completedTaskCount,
-        ),
-        courseCode: group?.courseCode ?? dashboardGroup.courseCode ?? "F-SPARK",
-        groupId,
-        groupLabel:
-          group?.groupNo ?? dashboardGroup.groupNo ?? `Nhóm ${groupId}`,
-        groupName:
-          group?.name ?? dashboardGroup.groupName ?? `Nhóm ${groupId}`,
-        id: `project-${groupId}`,
-        inProgressTasks: numberValue(dashboardGroup.inProgressTasks),
-        instructorName: group?.instructorName ?? "Chưa phân công",
-        memberCount: group?.memberCount ?? numberValue(dashboardGroup.memberCount),
-        nextDueAt: dateTimeValue(dashboardGroup.nextDueAt),
-        overdueTasks: numberValue(
-          dashboardGroup.overdueTasks ?? dashboardGroup.overdueTaskCount,
-        ),
-        progressPercent: clampPercent(
-          numberValue(dashboardGroup.progressPercent),
-        ),
-        projectName:
-          group?.projectName ??
-          dashboardGroup.projectName ??
-          group?.name ??
-          dashboardGroup.groupName ??
-          "Dự án chưa đặt tên",
-        totalTasks: numberValue(
-          dashboardGroup.totalTasks ?? dashboardGroup.totalTaskCount,
-        ),
-      };
-    })
-    .filter((item): item is ProjectDisplayItem => item !== null)
-    .sort((first, second) =>
-      first.projectName.localeCompare(second.projectName, "vi"),
-    );
-}
-
-function buildRecruitmentData(groups: GroupSummaryDto[]) {
-  return groups
-    .filter(
-      (group) =>
-        group.status === "ACTIVE" &&
-        group.recruitmentNeeds.some((need) => need.quantity > 0),
-    )
-    .map((group): RecruitmentDisplayItem => ({
-      courseCode: group.courseCode,
-      groupId: group.id,
-      groupLabel: group.groupNo,
-      groupName: group.name,
-      id: `recruitment-${group.id}`,
-      instructorName: group.instructorName ?? "Chưa phân công",
-      positions: group.recruitmentNeeds.filter((need) => need.quantity > 0),
-      projectName: group.projectName ?? group.name,
-      totalOpenings: group.recruitmentNeeds.reduce(
-        (total, need) => total + Math.max(0, need.quantity),
-        0,
-      ),
-    }))
-    .sort((first, second) => second.totalOpenings - first.totalOpenings);
-}
-
-export function useTvDisplay() {
-  return useQuery({
-    queryFn: async (): Promise<TvDisplayData> => {
-      const [dashboardResponse, groupsResponse] = await Promise.all([
-        getAdminDashboardGroups(),
-        listGroups(),
-      ]);
-
-      return {
-        projects: mergeProjectData(
-          dashboardResponse.data,
-          groupsResponse.data,
-        ),
-        recruitments: buildRecruitmentData(groupsResponse.data),
-        refreshedAt: Date.now(),
-      };
-    },
-    queryKey: tvDisplayQueryKey,
-    refetchInterval: REFRESH_INTERVAL_MS,
-    refetchIntervalInBackground: true,
+  return items.filter((item) => {
+    if (seenGroupIds.has(item.groupId)) return false;
+    seenGroupIds.add(item.groupId);
+    return true;
   });
+}
+
+function buildProjects(items: TvShowcaseProjectDto[]) {
+  return items.map(
+    (item): ProjectDisplayItem => ({
+      completedTasks: item.completedTasks,
+      courseCode: item.courseCode,
+      groupId: item.groupId,
+      groupLabel: item.groupNo,
+      groupName: item.groupName,
+      id: `project-${item.groupId}`,
+      inProgressTasks: item.inProgressTasks,
+      instructorName: item.instructorName ?? "Chưa phân công",
+      memberCount: item.memberCount,
+      nextDueAt: item.nextDueAt,
+      overdueTasks: item.overdueTasks,
+      progressPercent: clampPercent(item.progressPercent),
+      projectName: item.projectName,
+      totalTasks: item.totalTasks,
+    }),
+  );
+}
+
+function buildRecruitments(items: TvShowcaseRecruitmentDto[]) {
+  return items.map(
+    (item): RecruitmentDisplayItem => ({
+      courseCode: item.courseCode,
+      groupId: item.groupId,
+      groupLabel: item.groupNo,
+      groupName: item.groupName,
+      id: `recruitment-${item.groupId}`,
+      instructorName: item.instructorName ?? "Chưa phân công",
+      positions: item.positions,
+      projectName: item.projectName,
+      totalOpenings: item.totalOpenings,
+    }),
+  );
+}
+
+export function useTvDisplay(filters: TvShowcaseFilters = {}) {
+  const term = normalizeFilter(filters.term);
+  const courseCode = normalizeFilter(filters.courseCode);
+  const filterKey = { courseCode, size: TV_SHOWCASE_PAGE_SIZE, term };
+  const projectQueryKey = [
+    "tv-display",
+    "showcase",
+    "projects",
+    filterKey,
+  ] as const;
+  const recruitmentQueryKey = [
+    "tv-display",
+    "showcase",
+    "recruitments",
+    filterKey,
+  ] as const;
+
+  const projectQuery = useInfiniteQuery<
+    TvShowcaseProjectPageDto,
+    Error,
+    InfiniteData<TvShowcaseProjectPageDto>,
+    typeof projectQueryKey,
+    number
+  >({
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNext ? lastPage.number + 1 : undefined,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getTvShowcaseProjects({
+        courseCode,
+        page: pageParam,
+        size: TV_SHOWCASE_PAGE_SIZE,
+        term,
+      }),
+    queryKey: projectQueryKey,
+  });
+
+  const recruitmentQuery = useInfiniteQuery<
+    TvShowcaseRecruitmentPageDto,
+    Error,
+    InfiniteData<TvShowcaseRecruitmentPageDto>,
+    typeof recruitmentQueryKey,
+    number
+  >({
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNext ? lastPage.number + 1 : undefined,
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
+      getTvShowcaseRecruitments({
+        courseCode,
+        page: pageParam,
+        size: TV_SHOWCASE_PAGE_SIZE,
+        term,
+      }),
+    queryKey: recruitmentQueryKey,
+  });
+
+  const data = useMemo<TvDisplayData | undefined>(() => {
+    if (!projectQuery.data || !recruitmentQuery.data) return undefined;
+
+    const projectItems = dedupeByGroupId(
+      projectQuery.data.pages.flatMap((page) => page.content),
+    );
+    const recruitmentItems = dedupeByGroupId(
+      recruitmentQuery.data.pages.flatMap((page) => page.content),
+    );
+    const allPages = [
+      ...projectQuery.data.pages,
+      ...recruitmentQuery.data.pages,
+    ];
+    const refreshedAt = allPages.reduce((latest, page) => {
+      const pageRefreshedAt = Date.parse(page.refreshedAt);
+      return Number.isFinite(pageRefreshedAt)
+        ? Math.max(latest, pageRefreshedAt)
+        : latest;
+    }, 0);
+
+    return {
+      projects: buildProjects(projectItems),
+      recruitments: buildRecruitments(recruitmentItems),
+      refreshedAt,
+      totalProjects:
+        projectQuery.data.pages[projectQuery.data.pages.length - 1]
+          ?.totalElements ?? projectItems.length,
+      totalRecruitments:
+        recruitmentQuery.data.pages[recruitmentQuery.data.pages.length - 1]
+          ?.totalElements ?? recruitmentItems.length,
+    };
+  }, [projectQuery.data, recruitmentQuery.data]);
+
+  return {
+    data,
+    isError: projectQuery.isError || recruitmentQuery.isError,
+    isPending: projectQuery.isPending || recruitmentQuery.isPending,
+    projectQuery,
+    recruitmentQuery,
+  };
 }

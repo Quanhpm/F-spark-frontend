@@ -2204,6 +2204,44 @@ GET /api/dashboard/admin/execution-status
 
 **Response:** `APIResponse<DashboardExecutionStatusDto>`
 
+---
+
+#### 13.11 TV Showcase Feeds
+```
+GET /api/dashboard/tv-showcase/projects
+GET /api/dashboard/tv-showcase/recruitments
+```
+**Auth Required:** Yes (ADMIN)
+
+**Query:**
+
+| Field | Type | Notes |
+|---|---|---|
+| `term` | string | Optional academic term filter |
+| `courseCode` | string | Optional course filter |
+| `page` | integer | Zero-based; default `0` |
+| `size` | integer | Page size; TV Display uses `20` |
+
+Both responses use the same paginated envelope: `refreshedAt`, `content`,
+`page`, `number`, `size`, `numberOfElements`, `totalElements`, `totalPages`,
+`hasNext` and `hasPrevious`.
+
+**Projects response:** `APIResponse<TvShowcaseDataDtoProject>`
+
+Each project item contains `groupId`, `groupNo`, `courseCode`, `projectName`,
+`instructorName`, `leader`, `progressPercent`, `completedTasks`, `totalTasks`,
+`inProgressTasks`, `overdueTasks` and `nextDueAt`.
+
+**Recruitments response:** `APIResponse<TvShowcaseDataDtoRecruitment>`
+
+Each recruitment item contains `groupId`, `groupNo`, `courseCode`,
+`projectName`, `instructorName`, `leader`, `totalOpenings` and `positions`.
+Each position contains `role`, `displayNameVi`, `displayNameEn` and `quantity`.
+
+Verified against live OpenAPI on 2026-07-31. The two feeds paginate
+independently, so clients should keep separate page state and use each
+response's own `totalElements` and `hasNext` values.
+
 
 ---
 
