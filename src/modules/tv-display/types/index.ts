@@ -11,6 +11,13 @@ export type TvShowcaseQuery = TvShowcaseFilters & {
   size: number;
 };
 
+export type TvShowcaseLeaderDto = {
+  email: string;
+  fullName: string;
+  id: number;
+  studentCode: string;
+};
+
 export type TvShowcaseProjectDto = {
   completedTasks: number;
   courseCode: string;
@@ -19,6 +26,7 @@ export type TvShowcaseProjectDto = {
   groupNo: string;
   inProgressTasks: number;
   instructorName: string | null;
+  leader: TvShowcaseLeaderDto | null;
   memberCount: number;
   nextDueAt: ISODateTimeString | null;
   overdueTasks: number;
@@ -38,6 +46,7 @@ export type TvShowcaseRecruitmentDto = {
   groupName: string;
   groupNo: string;
   instructorName: string | null;
+  leader: TvShowcaseLeaderDto | null;
   positions: TvShowcaseRecruitmentPositionDto[];
   projectName: string;
   totalOpenings: number;
@@ -71,6 +80,7 @@ export type ProjectDisplayItem = {
   id: string;
   inProgressTasks: number;
   instructorName: string;
+  leaderName: string;
   memberCount: number;
   nextDueAt: ISODateTimeString | null;
   overdueTasks: number;
@@ -85,7 +95,7 @@ export type RecruitmentDisplayItem = {
   groupLabel: string;
   groupName: string;
   id: string;
-  instructorName: string;
+  leaderName: string;
   positions: TvShowcaseRecruitmentPositionDto[];
   projectName: string;
   totalOpenings: number;

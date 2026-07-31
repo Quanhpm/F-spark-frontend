@@ -2237,6 +2237,7 @@ Each project item contains `groupId`, `groupNo`, `courseCode`, `projectName`,
 Each recruitment item contains `groupId`, `groupNo`, `courseCode`,
 `projectName`, `instructorName`, `leader`, `totalOpenings` and `positions`.
 Each position contains `role`, `displayNameVi`, `displayNameEn` and `quantity`.
+The nested `leader` object contains `id`, `studentCode`, `fullName` and `email`.
 
 Verified against live OpenAPI on 2026-07-31. The two feeds paginate
 independently, so clients should keep separate page state and use each

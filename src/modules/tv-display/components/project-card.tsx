@@ -1,8 +1,9 @@
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, UserRound } from "lucide-react";
 
 import { cn } from "@/shared/lib";
 
 import type { ProjectDisplayItem } from "../types";
+import { PersonSummary } from "./person-summary";
 
 type ProjectCardProps = {
   active: boolean;
@@ -39,16 +40,18 @@ export function ProjectCard({ active, item, onClick }: ProjectCardProps) {
           {item.projectName}
         </h3>
       </div>
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-background text-brand-primary">
-          <GraduationCap size={21} />
-        </span>
-        <div className="min-w-0">
-          <span className="block text-xs font-medium text-muted">Instructor</span>
-          <strong className="mt-0.5 block truncate text-sm font-bold text-foreground min-[1440px]:text-base">
-            {item.instructorName}
-          </strong>
-        </div>
+      <div className="grid min-w-0 grid-cols-2 gap-3">
+        <PersonSummary
+          icon={<UserRound size={21} />}
+          label="Leader"
+          name={item.leaderName}
+        />
+        <PersonSummary
+          className="border-l border-border pl-3"
+          icon={<GraduationCap size={21} />}
+          label="Instructor"
+          name={item.instructorName}
+        />
       </div>
       <div className="grid gap-2.5">
         <div className="flex items-end justify-between gap-4 text-sm text-muted">
