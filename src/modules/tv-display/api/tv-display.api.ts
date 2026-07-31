@@ -3,6 +3,7 @@ import { apiGet } from "@/shared/lib";
 
 import type {
   TvShowcasePageDto,
+  TvShowcaseLeaderDto,
   TvShowcaseProjectDto,
   TvShowcaseProjectPageDto,
   TvShowcaseQuery,
@@ -110,6 +111,18 @@ function parseRecruitmentPosition(
   };
 }
 
+function parseLeader(value: unknown): TvShowcaseLeaderDto | null {
+  if (!isRecord(value)) return null;
+
+  const id = positiveInteger(value.id);
+  const email = nonEmptyString(value.email);
+  const fullName = nonEmptyString(value.fullName);
+  const studentCode = nonEmptyString(value.studentCode);
+  if (id === null || !email || !fullName || !studentCode) return null;
+
+  return { email, fullName, id, studentCode };
+}
+
 function parseProject(value: unknown): TvShowcaseProjectDto | null {
   if (!isRecord(value)) return null;
 
@@ -144,6 +157,7 @@ function parseProject(value: unknown): TvShowcaseProjectDto | null {
       ) ?? 0,
     instructorName:
       nonEmptyString(firstValue(records, ["instructorName"])) ?? null,
+    leader: parseLeader(firstValue(records, ["leader"])),
     memberCount:
       nonNegativeInteger(firstValue(records, ["memberCount"])) ?? 0,
     nextDueAt: nullableDateTime(
@@ -202,6 +216,7 @@ function parseRecruitment(
     groupNo,
     instructorName:
       nonEmptyString(firstValue(records, ["instructorName"])) ?? null,
+    leader: parseLeader(firstValue(records, ["leader"])),
     positions,
     projectName:
       nonEmptyString(

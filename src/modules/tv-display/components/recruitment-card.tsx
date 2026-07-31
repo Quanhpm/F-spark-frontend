@@ -51,7 +51,7 @@ export function RecruitmentCard({
           {item.projectName}
         </h3>
         <p className="mt-2 mb-0 truncate text-sm text-muted">
-          {item.groupLabel} · Instructor {item.instructorName}
+          {item.groupLabel} · Leader {item.leaderName}
         </p>
       </div>
       <div className="grid gap-2">
