@@ -20,6 +20,7 @@ import {
   LoadingState,
   PageHeader,
 } from "@/shared/components";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 import { ApiError, cn } from "@/shared/lib";
 
 import {
@@ -243,6 +244,9 @@ function ProjectCard({ project }: { project: DashboardProjectDto }) {
 }
 
 export function StudentDashboardPage() {
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
   const progressQuery = useStudentDashboardProgress();
   const projectsQuery = useStudentDashboardProjects();
 
@@ -253,10 +257,11 @@ export function StudentDashboardPage() {
 
   const activeGroup = useMemo(() => {
     if (!progress || progress.groups.length === 0) return null;
-    return (
-      progress.groups.find((g) => g.status === "ACTIVE") ?? progress.groups[0]
+    return resolveActiveGroup(
+      progress.groups.map((group) => ({ ...group, id: group.groupId })),
+      storedActiveGroupId,
     );
-  }, [progress]);
+  }, [progress, storedActiveGroupId]);
 
   const activeGroupId = activeGroup?.groupId;
   const { data: milestonesResponse, isLoading: isMilestonesLoading } =

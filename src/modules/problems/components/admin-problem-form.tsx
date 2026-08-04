@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useId, useState } from "react";
+import { toast } from "sonner";
 import {
   Button,
   ResponsiveDialog,
@@ -64,7 +65,9 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !statement.trim() || !domainCode) {
-      alert("Please fill in all required fields (Title, Statement, and Domain).");
+      toast.error(
+        "Please fill in all required fields: Title, Statement, and Domain.",
+      );
       return;
     }
 

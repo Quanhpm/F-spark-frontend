@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Badge,
   Card,
@@ -12,6 +12,7 @@ import {
 } from "@/shared/components";
 import { CheckCircle2, Users } from "lucide-react";
 import { useAuthStore } from "@/modules/auth";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 import { useMyGroups, useGroupDetails } from "@/modules/projects/hooks";
 import { useGroupGradeMatrix } from "../hooks";
 import { ContributionEditor } from "./contribution-editor";
@@ -22,11 +23,10 @@ export function StudentGradesPage() {
   // Student Group queries
   const { data: myGroupsResponse, isLoading: isMyGroupsLoading } = useMyGroups();
   const myGroups = myGroupsResponse?.data;
-  
-  const activeGroup = useMemo(() => {
-    const groups = myGroups || [];
-    return groups.find((g) => g.status === "ACTIVE");
-  }, [myGroups]);
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
+  const activeGroup = resolveActiveGroup(myGroups ?? [], storedActiveGroupId);
 
   const activeGroupId = activeGroup?.id;
   const { data: groupDetailsResponse, isLoading: isGroupDetailsLoading } = useGroupDetails(activeGroupId || 0);
@@ -41,10 +41,19 @@ export function StudentGradesPage() {
   // Grade matrix query
   const { data: matrixResponse, isLoading: isMatrixLoading } = useGroupGradeMatrix(activeGroupId);
   const matrix = matrixResponse?.data;
+  const hasMilestones = Boolean(matrix?.milestones.length);
+  const isMatrixComplete = hasMilestones && Boolean(matrix?.complete);
 
   // Selected milestone for contribution editing
   const [editingMilestoneId, setEditingMilestoneId] = useState<number | null>(null);
   const [editingMilestoneTitle, setEditingMilestoneTitle] = useState("");
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setEditingMilestoneId(null);
+    setEditingMilestoneTitle("");
+  }, [activeGroupId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const isLoading = isMyGroupsLoading || isGroupDetailsLoading || isMatrixLoading;
 
@@ -83,8 +92,9 @@ export function StudentGradesPage() {
                 description="List of all course milestones, scores, and instructor feedback."
               />
               <CardContent className="p-0 border-t border-border">
-                <div className="divide-y divide-border">
-                  {matrix.milestones.map((col) => {
+                {hasMilestones ? (
+                  <div className="divide-y divide-border">
+                    {matrix.milestones.map((col) => {
                     const grade = col.groupGrade;
                     const myScore = myMemberRow?.milestoneScores.find(
                       (ms) => ms.milestoneId === col.milestoneId
@@ -166,8 +176,15 @@ export function StudentGradesPage() {
                         )}
                       </div>
                     );
-                  })}
-                </div>
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState
+                    className="rounded-none border-0 bg-transparent"
+                    description="Course milestones have not been created for this group yet."
+                    title="No milestones yet"
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -181,13 +198,21 @@ export function StudentGradesPage() {
               />
               <CardContent className="pt-0 space-y-4">
                 <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <span className="text-sm font-bold text-muted-foreground">Matrix Complete:</span>
-                  <Badge tone={matrix.complete ? "success" : "neutral"} icon={matrix.complete ? <CheckCircle2 size={13} /> : undefined}>
-                    {matrix.complete ? "Completed" : "In Progress"}
+                  <span className="text-sm font-bold text-muted-foreground">Grading Progress:</span>
+                  <Badge tone={isMatrixComplete ? "success" : "neutral"} icon={isMatrixComplete ? <CheckCircle2 size={13} /> : undefined}>
+                    {!hasMilestones
+                      ? "No Milestones"
+                      : isMatrixComplete
+                        ? "Completed"
+                        : "In Progress"}
                   </Badge>
                 </div>
-                
-                {myMemberRow && (
+
+                <p className="m-0 text-xs leading-relaxed text-muted">
+                  Completed when all milestones have grading and contribution data.
+                </p>
+
+                {hasMilestones && myMemberRow && (
                   <div className="flex flex-col gap-1.5">
                     <span className="text-xs font-bold text-muted uppercase tracking-wider">My Total Grade</span>
                     <strong className="text-3xl font-extrabold text-brand-primary leading-none">

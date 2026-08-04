@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import {
   Button,
@@ -13,6 +14,7 @@ import {
   Select,
 } from "@/shared/components";
 import type { TaskStatus, TaskPriority } from "@/shared/types";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 import { useMyTasks, useMyGroups } from "../hooks";
 import { KanbanBoard } from "./kanban-board";
 import { TaskStatusBadge } from "./task-status-badge";
@@ -27,23 +29,33 @@ export function StudentTasksPage() {
   const [listStatus, setListStatus] = useState<string>("");
   const [listPriority, setListPriority] = useState<string>("");
   const [listOverdue, setListOverdue] = useState<boolean>(false);
-  const [listGroupId, setListGroupId] = useState<string>("");
   const [listDueBefore, setListDueBefore] = useState<string>("");
   const [listPage, setListPage] = useState(0);
   const hasListFilters = Boolean(
-    listGroupId || listStatus || listPriority || listOverdue || listDueBefore,
+    listStatus || listPriority || listOverdue || listDueBefore,
   );
 
-  // Group selection for Kanban board
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
+  const setActiveGroupId = useActiveGroupStore(
+    (state) => state.setActiveGroupId,
+  );
 
   // Detail panel state
   const [detailTaskId, setDetailTaskId] = useState<number | null>(null);
   const [detailGroupId, setDetailGroupId] = useState<number | null>(null);
 
+  const { data: myGroupsResponse, isLoading: isGroupsLoading } = useMyGroups();
+  const myGroups = useMemo(
+    () => myGroupsResponse?.data || [],
+    [myGroupsResponse?.data],
+  );
+  const activeGroup = resolveActiveGroup(myGroups, storedActiveGroupId);
+
   // Queries
   const myTasksFilters = {
-    groupId: listGroupId ? Number(listGroupId) : undefined,
+    groupId: activeGroup?.id,
     status: listStatus ? (listStatus as TaskStatus) : undefined,
     priority: listPriority ? (listPriority as TaskPriority) : undefined,
     overdue: listOverdue ? true : undefined,
@@ -53,25 +65,14 @@ export function StudentTasksPage() {
   };
 
   const { data: myTasksResponse, isLoading: isTasksLoading, refetch: refetchMyTasks } = useMyTasks(myTasksFilters);
-  const { data: myGroupsResponse, isLoading: isGroupsLoading } = useMyGroups();
 
   const myTasks = myTasksResponse?.data;
-  const myGroups = useMemo(() => myGroupsResponse?.data || [], [myGroupsResponse?.data]);
 
-  // Find active group or set default
-  const activeGroup = useMemo(() => {
-    if (myGroups.length === 0) return null;
-    const active = myGroups.find((g) => g.status === "ACTIVE");
-    return active || myGroups[0];
-  }, [myGroups]);
-
-  // Set initial selected group ID for board view
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (activeGroup && !selectedGroupId) {
-      setSelectedGroupId(String(activeGroup.id));
-    }
-  }, [activeGroup, selectedGroupId]);
+    setDetailTaskId(null);
+    setDetailGroupId(null);
+  }, [activeGroup?.id]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Refetch list when tab switches to "list"
@@ -82,18 +83,18 @@ export function StudentTasksPage() {
   }, [activeTab, refetchMyTasks]);
 
   const handleRowClick = (taskId: number, taskGroupId: number | null) => {
-    // If taskGroupId is not returned, we fallback to the listGroupId, then activeGroup, then selectedGroupId
+    // If taskGroupId is not returned, fall back to the shared group context.
     const finalGroupId =
       taskGroupId ||
-      (listGroupId ? Number(listGroupId) : null) ||
-      (activeGroup ? Number(activeGroup.id) : null) ||
-      (selectedGroupId ? Number(selectedGroupId) : null);
+      (activeGroup ? Number(activeGroup.id) : null);
       
     if (finalGroupId) {
       setDetailTaskId(taskId);
       setDetailGroupId(finalGroupId);
     } else {
-      alert("Cannot open task detail because task is not associated with a valid group.");
+      toast.error(
+        "Cannot open task detail because the task is not associated with a valid group.",
+      );
     }
   };
 
@@ -170,13 +171,12 @@ export function StudentTasksPage() {
                   Group Project
                 </label>
                 <Select
-                  value={listGroupId}
+                  value={activeGroup?.id ?? ""}
                   onChange={(e) => {
-                    setListGroupId(e.target.value);
+                    setActiveGroupId(Number(e.target.value));
                     setListPage(0);
                   }}
                 >
-                  <option value="">All Groups</option>
                   {myGroups.map((g) => (
                     <option key={g.id} value={String(g.id)}>
                       {g.groupNo} - {g.name}
@@ -256,7 +256,6 @@ export function StudentTasksPage() {
                 <Button
                   className="min-[640px]:col-span-2 min-[1100px]:col-span-5 min-[1100px]:justify-self-end"
                   onClick={() => {
-                    setListGroupId("");
                     setListStatus("");
                     setListPriority("");
                     setListDueBefore("");
@@ -413,8 +412,8 @@ export function StudentTasksPage() {
             <div className="grid w-fit max-w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm min-[641px]:grid-cols-[auto_minmax(280px,1fr)] max-[640px]:w-full">
               <span className="break-words text-sm font-bold text-muted">Select Group Project:</span>
               <Select
-                value={selectedGroupId}
-                onChange={(e) => setSelectedGroupId(e.target.value)}
+                value={activeGroup?.id ?? ""}
+                onChange={(e) => setActiveGroupId(Number(e.target.value))}
                 className="min-w-0 max-[640px]:w-full"
               >
                 {myGroups.map((g) => (
@@ -427,10 +426,10 @@ export function StudentTasksPage() {
           )}
 
           {/* Render Board */}
-          {selectedGroupId ? (
+          {activeGroup ? (
             <KanbanBoard
-              groupId={Number(selectedGroupId)}
-              key={selectedGroupId}
+              groupId={Number(activeGroup.id)}
+              key={activeGroup.id}
             />
           ) : isGroupsLoading ? (
             <LoadingState title="Loading your group info..." />

@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useId, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { CalendarClock, Send, Upload } from "lucide-react";
 
 import {
@@ -19,6 +19,7 @@ import type {
   CourseMilestoneStatus,
   EntityId,
 } from "@/shared/types";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 
 import {
   useAverageGrade,
@@ -250,19 +251,26 @@ export function StudentMilestoneSubmissionsPanel({
   groups,
   initialGroupId,
 }: StudentMilestoneSubmissionsPanelProps) {
-  const [selectedGroupId, setSelectedGroupId] = useState(
-    initialGroupId ? String(initialGroupId) : "",
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
+  const setActiveGroupId = useActiveGroupStore(
+    (state) => state.setActiveGroupId,
   );
   const [activeMilestone, setActiveMilestone] =
     useState<CourseMilestoneDto | null>(null);
 
-  const effectiveGroupId =
-    selectedGroupId || !groups[0]
-      ? Number(selectedGroupId) || null
-      : groups[0].id;
-  const activeGroup =
-    groups.find((group) => Number(group.id) === Number(effectiveGroupId)) ??
-    null;
+  const activeGroup = resolveActiveGroup(
+    groups,
+    storedActiveGroupId ?? initialGroupId ?? null,
+  );
+  const effectiveGroupId = activeGroup?.id ?? null;
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setActiveMilestone(null);
+  }, [effectiveGroupId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const milestonesQuery = useGroupMilestones(effectiveGroupId);
   const submissionsQuery = useGroupMilestoneSubmissions(effectiveGroupId);
@@ -313,7 +321,7 @@ export function StudentMilestoneSubmissionsPanel({
             <Select
               label="Group"
               onChange={(event) => {
-                setSelectedGroupId(event.target.value);
+                setActiveGroupId(Number(event.target.value));
                 setActiveMilestone(null);
               }}
               value={String(effectiveGroupId ?? "")}

@@ -424,9 +424,15 @@ Same as `TaskDetailDto` but **without** `checklistItems`.
   "sourceType": "OFFICIAL",
   "status": "ACTIVE",
   "strategicTheme": "Digital Transformation",
-  "researchArea": "NLP"
+  "researchArea": "NLP",
+  "proposedByGroupId": null,
+  "proposedByGroupNo": null,
+  "proposedByGroupName": null
 }
 ```
+
+The three `proposedByGroup*` fields are populated for group proposals and are
+`null` for official problems that were not proposed by a student group.
 
 ### ProblemDetailDto
 ```json
@@ -1687,7 +1693,22 @@ POST /api/groups/{groupId}/problems/propose
 
 ---
 
-#### 6.6 Get Group's Proposals
+#### 6.6 Update a Pending Group Proposal
+```
+PUT /api/groups/{groupId}/problems/proposals/{problemId}
+```
+**Auth Required:** Yes (Owning Group Leader only)
+
+Only a proposal with status `PENDING_REVIEW` can be updated. The request body
+uses the same complete `ProposeGroupProblemRequest` contract as section 6.5.
+
+**Path Parameters:** `groupId` (long), `problemId` (long)
+
+**Response:** `APIResponse<ProblemDetailDto>`
+
+---
+
+#### 6.7 Get Group's Proposals
 ```
 GET /api/groups/{groupId}/problems/proposals
 ```
@@ -1695,6 +1716,40 @@ GET /api/groups/{groupId}/problems/proposals
 **Path Parameters:** `groupId` (long)
 
 **Response:** `APIResponse<List<ProblemSummaryDto>>`
+
+---
+
+#### 6.8 Get Instructor Pending Proposals
+```
+GET /api/instructor/problems/pending
+```
+**Auth Required:** Yes (`INSTRUCTOR`)
+
+Returns pending proposals from groups assigned to the current instructor. Each
+`ProblemSummaryDto` contains the `proposedByGroupId`, `proposedByGroupNo`, and
+`proposedByGroupName` fields used to group the proposals.
+
+**Response:** `APIResponse<List<ProblemSummaryDto>>`
+
+---
+
+#### 6.9 Review a Group Proposal
+```
+PATCH /api/instructor/problems/{problemId}/review
+```
+**Auth Required:** Yes (`INSTRUCTOR` assigned to the proposal's group)
+
+**Request Body:**
+```json
+{
+  "status": "APPROVED",
+  "comment": "Optional review feedback"
+}
+```
+
+The frontend review flow uses `APPROVED` and `REJECTED` decisions.
+
+**Response:** `APIResponse<ProblemDetailDto>`
 
 ---
 
