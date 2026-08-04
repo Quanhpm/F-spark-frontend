@@ -2,8 +2,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/shared/lib";
 
-import { bookMeeting, cancelMeeting, getGroupMeetings, confirmMeeting } from "../api";
+import {
+  bookMeeting,
+  cancelMeeting,
+  confirmMeeting,
+  getGroupMeetings,
+  listMyMeetings,
+} from "../api";
 import type { BookMeetingRequest } from "../types";
+
+export function useMyMeetings() {
+  return useQuery({
+    queryFn: listMyMeetings,
+    queryKey: queryKeys.mentoring.myMeetings(),
+  });
+}
 
 export function useGroupMeetings(groupId: number | null | undefined) {
   return useQuery({
@@ -43,6 +56,9 @@ export function useBookMeeting() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.mentoring.availability(),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.myMeetings(),
+      });
     },
   });
 }
@@ -66,6 +82,9 @@ export function useConfirmMeeting() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.mentorMeetings(),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.myMeetings(),
+      });
     },
   });
 }
@@ -74,8 +93,15 @@ export function useCancelMeeting() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
-      cancelMeeting(groupId, meetingId),
+    mutationFn: ({
+      groupId,
+      meetingId,
+      reason,
+    }: {
+      groupId: number;
+      meetingId: number;
+      reason: string;
+    }) => cancelMeeting(groupId, meetingId, reason),
     onSuccess: (_response, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.mentoring.meetings(variables.groupId),
@@ -88,6 +114,9 @@ export function useCancelMeeting() {
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.mentorMeetings(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.myMeetings(),
       });
     },
   });

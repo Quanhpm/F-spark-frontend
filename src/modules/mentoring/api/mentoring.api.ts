@@ -20,6 +20,42 @@ export function listMyAvailability() {
   );
 }
 
+type MentorDashboardMeetingSummary = {
+  id: number;
+  groupId: number;
+};
+
+export async function listMyMeetings() {
+  const dashboardResponse = await apiGet<
+    ApiResponse<MentorDashboardMeetingSummary[]>
+  >("/api/dashboard/mentor/meetings", { query: { status: "ALL" } });
+
+  const groupIds = [
+    ...new Set(dashboardResponse.data.map((meeting) => meeting.groupId)),
+  ];
+
+  if (groupIds.length === 0) {
+    return { ...dashboardResponse, data: [] as MentorMeetingDto[] };
+  }
+
+  const groupMeetingResponses = await Promise.all(
+    groupIds.map((groupId) => getGroupMeetings(groupId)),
+  );
+  const meetingsById = new Map(
+    groupMeetingResponses.flatMap((response) =>
+      response.data.map((meeting) => [meeting.id, meeting] as const),
+    ),
+  );
+
+  return {
+    ...dashboardResponse,
+    data: dashboardResponse.data.flatMap((summary) => {
+      const meeting = meetingsById.get(summary.id);
+      return meeting ? [meeting] : [];
+    }),
+  };
+}
+
 export function createAvailabilitySlot(
   payload: CreateAvailabilitySlotRequest,
 ) {
@@ -69,9 +105,9 @@ export function confirmMeeting(groupId: number, meetingId: number) {
   );
 }
 
-export function cancelMeeting(groupId: number, meetingId: number) {
+export function cancelMeeting(groupId: number, meetingId: number, reason: string) {
   return apiPatch<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings/${meetingId}/cancel`,
-    {},
+    { reason },
   );
 }

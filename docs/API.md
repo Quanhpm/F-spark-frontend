@@ -58,7 +58,7 @@ Endpoints returning lists use this pagination structure inside `data`:
 | **ProblemStatus** | `ACTIVE`, `INACTIVE`, `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `ARCHIVED` |
 | **InvitationStatus** | `PENDING`, `ACCEPTED`, `DECLINED`, `CANCELED` |
 | **SlotStatus** | `AVAILABLE`, `BOOKED`, `CANCELED` |
-| **MeetingStatus** | `SCHEDULED`, `CANCELED` |
+| **MeetingStatus** | `SCHEDULED`, `CANCELED`, `COMPLETED` |
 | **ImportTargetType** | `STUDENT`, `MENTOR`, `PROBLEM_BANK` |
 | **ImportFileType** | `CSV`, `XLSX` |
 | **JoinRequestStatus** | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELED` |
@@ -2196,6 +2196,9 @@ GET /api/dashboard/student/groups
 GET /api/dashboard/mentor/meetings
 ```
 **Auth Required:** Yes (MENTOR)
+**Description:** Returns the mentor's meeting index. For slot, Meet link, booking, and confirmation details, hydrate each meeting through `GET /api/groups/{groupId}/mentor/meetings`.
+
+**Query Parameters:** `status` (`ALL`, `SCHEDULED`, `CANCELED`, `COMPLETED`; optional)
 
 **Response:** `APIResponse<List<DashboardMeetingDto>>`
 
@@ -2482,7 +2485,7 @@ status va version. `FeedbackReceivedSummaryDto` cua mentor/instructor co
 |--------|------|-----------------|----------|
 | GET | `/api/group-recruitment-roles` | — | Catalog role tuyen thanh vien |
 | PATCH | `/api/groups/{groupId}/lock` | `{ isLock: boolean }` | Khoa/mo khoa membership |
-| PATCH | `/api/groups/{groupId}/mentor/meetings/{meetingId}/cancel` | — | Huy meeting cua group |
+| PATCH | `/api/groups/{groupId}/mentor/meetings/{meetingId}/cancel` | `{ reason: string }` | Mentor huy meeting cua group, bat buoc kem ly do |
 | GET | `/api/groups/instructor/me` | `term?`, `courseCode?` | Cac group duoc gan cho instructor |
 | PATCH | `/api/groups/{groupId}/instructor` | `{ instructorId }` | Gan instructor cho group |
 

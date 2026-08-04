@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Bell, CheckCheck, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +17,10 @@ import {
   useNotifications,
   useUnreadNotificationCount,
 } from "../hooks";
+import {
+  playNotificationSound,
+  unlockNotificationSound,
+} from "../lib/notification-sound";
 import type { NotificationDto } from "../types";
 import {
   getNotificationErrorMessage,
@@ -30,6 +34,8 @@ const recentNotificationsQuery = {
   unreadOnly: true,
 } as const;
 
+const notificationPollInterval = 15_000;
+
 function formatUnreadCount(count: number) {
   return count > 99 ? "99+" : String(count);
 }
@@ -40,8 +46,13 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [actionError, setActionError] = useState("");
-  const unreadCountQuery = useUnreadNotificationCount();
-  const notificationsQuery = useNotifications(recentNotificationsQuery);
+  const previousUnreadCount = useRef<number | null>(null);
+  const unreadCountQuery = useUnreadNotificationCount({
+    refetchInterval: notificationPollInterval,
+  });
+  const notificationsQuery = useNotifications(recentNotificationsQuery, {
+    refetchInterval: notificationPollInterval,
+  });
   const markReadMutation = useMarkNotificationRead();
   const markAllMutation = useMarkAllNotificationsRead();
   const notifications = notificationsQuery.data?.data.content ?? [];
@@ -50,6 +61,30 @@ export function NotificationBell() {
   const dialogRef = useDialogAccessibility<HTMLElement>(() => setIsOpen(false), {
     active: isOpen,
   });
+
+  useEffect(() => {
+    const unlock = () => unlockNotificationSound();
+
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("keydown", unlock);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
+  useEffect(() => {
+    const currentUnreadCount = unreadCountQuery.data?.data;
+    if (currentUnreadCount === undefined) return;
+
+    const previousCount = previousUnreadCount.current;
+    previousUnreadCount.current = currentUnreadCount;
+
+    if (previousCount !== null && currentUnreadCount > previousCount) {
+      playNotificationSound();
+    }
+  }, [unreadCountQuery.data]);
 
   async function activateNotification(notification: NotificationDto) {
     setActionError("");
