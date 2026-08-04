@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Badge,
   Button,
@@ -57,7 +58,7 @@ function GradeModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (score < 0 || score > maxScore) {
-      alert(`Score must be between 0 and ${maxScore}.`);
+      toast.error(`Score must be between 0 and ${maxScore}.`);
       return;
     }
 
@@ -68,11 +69,11 @@ function GradeModal({
       },
       {
         onSuccess: () => {
-          alert("Grade submitted successfully.");
+          toast.success("Grade submitted successfully.");
           onClose();
         },
         onError: (err) => {
-          alert(`Failed to submit grade: ${err.message}`);
+          toast.error(`Failed to submit grade: ${err.message}`);
         },
       }
     );

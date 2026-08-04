@@ -39,6 +39,7 @@ import { Button, EmptyState, LoadingState } from "../ui";
 type AppShellProps = {
   children: ReactNode;
   role: UserRole;
+  topbarContent?: ReactNode;
 };
 
 type NavItem = {
@@ -103,7 +104,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
 };
 
-export function AppShell({ children, role }: AppShellProps) {
+export function AppShell({ children, role, topbarContent }: AppShellProps) {
   const pathname = usePathname();
   const [navigationOpenedAtPath, setNavigationOpenedAtPath] = useState<
     string | null
@@ -274,7 +275,13 @@ export function AppShell({ children, role }: AppShellProps) {
       </aside>
 
       <div className="min-w-0">
-        <header className="flex min-h-16 items-center justify-end border-b border-border bg-surface px-7 max-[960px]:hidden">
+        <header
+          className={cn(
+            "flex min-h-16 items-center gap-4 border-b border-border bg-surface px-7 max-[960px]:hidden",
+            topbarContent ? "justify-between" : "justify-end",
+          )}
+        >
+          {topbarContent && <div className="min-w-0">{topbarContent}</div>}
           <NotificationBell />
         </header>
         <header className="sticky top-0 z-40 grid min-h-16 grid-cols-[44px_minmax(0,1fr)_48px] items-center gap-2 border-b border-border bg-surface/95 px-4 min-[961px]:hidden max-[480px]:px-3">
@@ -290,19 +297,23 @@ export function AppShell({ children, role }: AppShellProps) {
             <span className="sr-only">Open navigation</span>
           </Button>
 
-          <Link
-            className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-            href={activeNavItem.href}
-          >
-            <BrandLogo
-              imageClassName="h-8 w-[76px]"
-              showName={false}
-              variant="sidebar"
-            />
-            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-foreground">
-              {activeNavItem.label}
-            </span>
-          </Link>
+          {topbarContent ? (
+            <div className="min-w-0">{topbarContent}</div>
+          ) : (
+            <Link
+              className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+              href={activeNavItem.href}
+            >
+              <BrandLogo
+                imageClassName="h-8 w-[76px]"
+                showName={false}
+                variant="sidebar"
+              />
+              <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-foreground">
+                {activeNavItem.label}
+              </span>
+            </Link>
+          )}
 
           <NotificationBell />
         </header>

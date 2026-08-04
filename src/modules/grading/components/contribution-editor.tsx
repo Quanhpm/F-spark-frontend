@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button, TextInput } from "@/shared/components";
 import { useUpdateContributions } from "../hooks";
 import type { MemberRow } from "../types";
@@ -59,11 +60,11 @@ export function ContributionEditor({
       },
       {
         onSuccess: () => {
-          alert("Contributions updated successfully.");
+          toast.success("Contributions updated successfully.");
           if (onSuccess) onSuccess();
         },
         onError: (err) => {
-          alert(`Failed to save contributions: ${err.message}`);
+          toast.error(`Failed to save contributions: ${err.message}`);
         },
       }
     );

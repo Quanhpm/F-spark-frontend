@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { StudentGroupSwitcher } from "@/modules/groups";
 import { AppShell } from "@/shared/components";
 
 type StudentLayoutProps = Readonly<{
@@ -7,5 +8,9 @@ type StudentLayoutProps = Readonly<{
 }>;
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
-  return <AppShell role="STUDENT">{children}</AppShell>;
+  return (
+    <AppShell role="STUDENT" topbarContent={<StudentGroupSwitcher />}>
+      {children}
+    </AppShell>
+  );
 }

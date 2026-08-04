@@ -1,4 +1,5 @@
 import { FormEvent, useId, useState } from "react";
+import { toast } from "sonner";
 import { Button, ResponsiveDialog } from "@/shared/components";
 import type { ProblemStatus, EntityId } from "@/shared/types";
 import { useReviewProblem } from "../hooks/use-problem-mutations";
@@ -25,7 +26,7 @@ export function ReviewProposalModal({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (status === "REJECTED" && !comment.trim()) {
-      alert("Please provide a reason / comment when rejecting a proposal.");
+      toast.error("Please provide a reason or comment when rejecting a proposal.");
       return;
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Inbox,
@@ -9,7 +9,6 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { useAuthStore } from "@/modules/auth";
 import {
@@ -37,6 +36,7 @@ import {
   useMyInvitations,
   useMyJoinRequests,
 } from "../../hooks";
+import { resolveActiveGroup, useActiveGroupStore } from "../../stores";
 import type {
   GroupJoinRequestDto,
   GroupSummaryDto,
@@ -86,7 +86,6 @@ type StudentGroupsPageProps = {
 };
 
 export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
-  const router = useRouter();
   const sessionEmail = useAuthStore((state) => state.session?.user.email);
   const [activeSection, setActiveSection] =
     useState<GroupsSection>("workspace");
@@ -95,6 +94,12 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
+  const setActiveGroupId = useActiveGroupStore(
+    (state) => state.setActiveGroupId,
+  );
 
   const myGroupsQuery = useMyGroups();
   const myInvitationsQuery = useMyInvitations();
@@ -110,12 +115,11 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
     () => myGroupsQuery.data?.data ?? [],
     [myGroupsQuery.data?.data],
   );
-  const [activeGroupId, setActiveGroupId] = useState<number | null>(
-    initialGroupId ?? null,
+  const activeGroupSummary = resolveActiveGroup(
+    myGroups,
+    storedActiveGroupId ?? initialGroupId ?? null,
   );
-  const effectiveGroupId = myGroups.some((group) => group.id === activeGroupId)
-    ? activeGroupId
-    : (myGroups[0]?.id ?? null);
+  const effectiveGroupId = activeGroupSummary?.id ?? null;
   const activeGroupQuery = useGroup(effectiveGroupId);
   const activeGroup = activeGroupQuery.data?.data ?? null;
   const invitations = myInvitationsQuery.data?.data ?? [];
@@ -138,10 +142,16 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
     (request) => request.status === "PENDING",
   ).length;
 
-  function selectActiveGroup(groupId: number) {
-    setActiveGroupId(groupId);
-    router.replace(`/student/groups?groupId=${groupId}`, { scroll: false });
-  }
+  useEffect(() => {
+    if (storedActiveGroupId === null && initialGroupId && activeGroupSummary) {
+      setActiveGroupId(activeGroupSummary.id);
+    }
+  }, [
+    activeGroupSummary,
+    initialGroupId,
+    setActiveGroupId,
+    storedActiveGroupId,
+  ]);
 
   const recruitingGroups = useMemo(() => {
     const groups = groupsQuery.data?.data ?? [];
@@ -308,9 +318,7 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
         ) : (
           <ActiveGroupWorkspace
             group={activeGroup}
-            groups={myGroups}
             key={activeGroup.id}
-            onGroupChange={selectActiveGroup}
             sessionEmail={sessionEmail}
           />
         ))}
@@ -455,7 +463,7 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
           onClose={() => setIsCreateOpen(false)}
           onSubmit={async (payload) => {
             const response = await createGroupMutation.mutateAsync(payload);
-            selectActiveGroup(response.data.id);
+            setActiveGroupId(response.data.id);
             setActiveSection("workspace");
           }}
         />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import {
   Button,
@@ -64,7 +65,7 @@ export function AdminProblemsPage() {
 
     const extension = file.name.split(".").pop()?.toLowerCase();
     if (extension !== "csv" && extension !== "xlsx") {
-      alert("Invalid file format. Please upload a CSV or XLSX file.");
+      toast.error("Invalid file format. Please upload a CSV or XLSX file.");
       return;
     }
 
@@ -72,16 +73,13 @@ export function AdminProblemsPage() {
       importMutation.mutate(file, {
         onSuccess: (response) => {
           const res = response.data;
-          alert(
-            `Import batch completed successfully!\n` +
-            `- Total Rows: ${res.totalRows}\n` +
-            `- Success Rows: ${res.successRows}\n` +
-            `- Failed Rows: ${res.failedRows}`
-          );
+          toast.success("Import batch completed successfully.", {
+            description: `${res.successRows} of ${res.totalRows} rows imported; ${res.failedRows} failed.`,
+          });
           e.target.value = "";
         },
         onError: (err) => {
-          alert(`Import failed: ${err.message}`);
+          toast.error(`Import failed: ${err.message}`);
           e.target.value = "";
         },
       });
@@ -419,7 +417,7 @@ export function AdminProblemsPage() {
       {isCreating && (
         <AdminProblemForm
           onClose={() => setIsCreating(false)}
-          onSuccess={() => alert("Official topic created successfully.")}
+          onSuccess={() => toast.success("Official topic created successfully.")}
         />
       )}
 
@@ -429,7 +427,7 @@ export function AdminProblemsPage() {
           problemId={activeEditProblemId}
           initialValues={editProblemDetails?.data}
           onClose={() => setActiveEditProblemId(null)}
-          onSuccess={() => alert("Thesis topic updated successfully.")}
+          onSuccess={() => toast.success("Thesis topic updated successfully.")}
         />
       )}
 
@@ -442,7 +440,9 @@ export function AdminProblemsPage() {
             setActiveReviewProblemId(null);
             setActiveReviewProblemTitle("");
           }}
-          onSuccess={() => alert("Proposal review completed successfully.")}
+          onSuccess={() =>
+            toast.success("Proposal review completed successfully.")
+          }
         />
       )}
     </div>

@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useId, useState } from "react";
+import { toast } from "sonner";
 import { useProblemDomains } from "../hooks";
 import {
   useCreateProblemDomain,
@@ -92,7 +93,7 @@ export function DomainManager() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!code.trim() || !name.trim()) {
-      alert("Code and Name are required.");
+      toast.error("Code and Name are required.");
       return;
     }
 
