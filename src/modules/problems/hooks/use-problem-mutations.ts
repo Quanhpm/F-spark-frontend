@@ -4,6 +4,7 @@ import {
   clearGroupProblem,
   createOfficialProblem,
   createProblemDomain,
+  deletePendingGroupProposal,
   proposeGroupProblem,
   reviewProblem,
   reviewProblemAsInstructor,
@@ -17,6 +18,7 @@ import {
 import type {
   CreateOfficialProblemRequest,
   CreateProblemDomainRequest,
+  ProblemSummaryDto,
   ProposeProblemRequest,
   ReviewProblemRequest,
   SelectProblemRequest,
@@ -24,7 +26,7 @@ import type {
   UpdateProblemRequest,
   UpdateProblemStatusRequest,
 } from "../types";
-import type { EntityId } from "@/shared/types";
+import type { ApiResponse, EntityId } from "@/shared/types";
 
 export function useSelectGroupProblem(groupId: EntityId) {
   const queryClient = useQueryClient();
@@ -111,6 +113,55 @@ export function useUpdatePendingGroupProposal(
         ],
       });
       queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.detail(Number(problemId)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.pendingInstructor(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.detail(Number(groupId)),
+      });
+    },
+  });
+}
+
+export function useDeletePendingGroupProposal(groupId: EntityId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (problemId: EntityId) =>
+      deletePendingGroupProposal(groupId, problemId),
+    onSuccess: (_response, problemId) => {
+      const proposalsQueryKey = [
+        ...queryKeys.problems.all,
+        "groups",
+        Number(groupId),
+        "proposals",
+      ] as const;
+
+      queryClient.setQueryData<ApiResponse<ProblemSummaryDto[]>>(
+        proposalsQueryKey,
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.filter(
+                  (proposal) => Number(proposal.id) !== Number(problemId),
+                ),
+              }
+            : current,
+      );
+      queryClient.invalidateQueries({
+        queryKey: proposalsQueryKey,
+      });
+      queryClient.removeQueries({
+        exact: true,
         queryKey: queryKeys.problems.detail(Number(problemId)),
       });
       queryClient.invalidateQueries({

@@ -26,17 +26,20 @@ import { ProblemFilters } from "./problem-filters";
 import { ProblemDetailModal } from "./problem-detail-modal";
 import { ProblemStatusBadge } from "./problem-status-badge";
 import { ProposeProblemForm } from "./propose-problem-form";
-import { Archive, Pencil, Plus } from "lucide-react";
+import { DeleteProposalDialog } from "./delete-proposal-dialog";
+import { Archive, Pencil, Plus, Trash2 } from "lucide-react";
 
 type ProposalArchiveItemProps = {
-  canEdit: boolean;
+  canManage: boolean;
+  onDelete: () => void;
   onEdit: () => void;
   onView: () => void;
   problem: ProblemSummaryDto;
 };
 
 function ProposalArchiveItem({
-  canEdit,
+  canManage,
+  onDelete,
   onEdit,
   onView,
   problem,
@@ -66,10 +69,24 @@ function ProposalArchiveItem({
         <Button onClick={onView} size="sm" variant="secondary">
           View Details
         </Button>
-        {canEdit && (
-          <Button icon={<Pencil className="size-4" />} onClick={onEdit} size="sm">
-            Edit
-          </Button>
+        {canManage && (
+          <>
+            <Button
+              icon={<Pencil className="size-4" />}
+              onClick={onEdit}
+              size="sm"
+            >
+              Edit
+            </Button>
+            <Button
+              icon={<Trash2 className="size-4" />}
+              onClick={onDelete}
+              size="sm"
+              variant="danger"
+            >
+              Delete
+            </Button>
+          </>
         )}
       </div>
     </article>
@@ -92,6 +109,8 @@ export function StudentProblemsPage() {
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [isProposing, setIsProposing] = useState(false);
   const [editingProblemId, setEditingProblemId] = useState<EntityId | null>(null);
+  const [deletingProposal, setDeletingProposal] =
+    useState<ProblemSummaryDto | null>(null);
 
   // Student Group queries
   const { data: myGroupsResponse } = useMyGroups();
@@ -142,6 +161,7 @@ export function StudentProblemsPage() {
     setIsArchiveOpen(false);
     setIsProposing(false);
     setEditingProblemId(null);
+    setDeletingProposal(null);
     setPage(0);
   }, [activeGroupId]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -178,22 +198,6 @@ export function StudentProblemsPage() {
             </Button>
           ))}
       </div>
-
-      {activeGroup && (
-        <Card isPadded>
-          <div className="min-w-0">
-            <p className="m-0 text-xs font-bold uppercase tracking-wider text-muted">
-              Current group context
-            </p>
-            <h2 className="mt-1 mb-0 break-words text-lg font-bold text-foreground">
-              {activeGroup.groupNo} - {activeGroup.name}
-            </h2>
-            <p className="mt-1 mb-0 break-words text-sm text-muted">
-              {activeGroup.courseCode} · {activeGroup.term}
-            </p>
-          </div>
-        </Card>
-      )}
 
       {/* Selected problem summary */}
       {activeGroup && (
@@ -375,10 +379,14 @@ export function StudentProblemsPage() {
             <div className="grid min-w-0 gap-3">
               {groupProposals.map((proposal) => (
                 <ProposalArchiveItem
-                  canEdit={
+                  canManage={
                     isGroupLeader && proposal.status === "PENDING_REVIEW"
                   }
                   key={proposal.id}
+                  onDelete={() => {
+                    setIsArchiveOpen(false);
+                    setDeletingProposal(proposal);
+                  }}
                   onEdit={() => {
                     setIsArchiveOpen(false);
                     setEditingProblemId(proposal.id);
@@ -432,6 +440,17 @@ export function StudentProblemsPage() {
           groupId={activeGroupId}
           onClose={() => setEditingProblemId(null)}
           problemId={editingProblemId}
+        />
+      )}
+
+      {deletingProposal && activeGroupId && (
+        <DeleteProposalDialog
+          groupId={activeGroupId}
+          onClose={() => {
+            setDeletingProposal(null);
+            setIsArchiveOpen(true);
+          }}
+          problem={deletingProposal}
         />
       )}
     </div>

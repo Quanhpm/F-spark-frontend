@@ -73,6 +73,15 @@ export function updatePendingGroupProposal(
   );
 }
 
+export function deletePendingGroupProposal(
+  groupId: EntityId,
+  problemId: EntityId,
+) {
+  return apiDelete<EmptyApiResponse>(
+    `/api/groups/${groupId}/problems/proposals/${problemId}`,
+  );
+}
+
 export function createOfficialProblem(payload: CreateOfficialProblemRequest) {
   return apiPost<ApiResponse<ProblemDetailDto>>(
     "/api/admin/problems",

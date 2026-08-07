@@ -40,7 +40,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <Toaster closeButton position="top-right" richColors />
+      <Toaster closeButton position="top-center" richColors />
       <ReactQueryDevtools buttonPosition="bottom-right" initialIsOpen={false} />
     </QueryClientProvider>
   );

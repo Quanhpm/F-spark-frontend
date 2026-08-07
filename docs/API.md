@@ -1708,7 +1708,22 @@ uses the same complete `ProposeGroupProblemRequest` contract as section 6.5.
 
 ---
 
-#### 6.7 Get Group's Proposals
+#### 6.7 Delete a Pending Group Proposal
+```
+DELETE /api/groups/{groupId}/problems/proposals/{problemId}
+```
+**Auth Required:** Yes (Owning Group Leader only)
+
+Only a self-proposed problem with status `PENDING_REVIEW` can be deleted. This
+allows the leader to withdraw an idea before instructor review.
+
+**Path Parameters:** `groupId` (long), `problemId` (long)
+
+**Response:** `APIResponse<void>`
+
+---
+
+#### 6.8 Get Group's Proposals
 ```
 GET /api/groups/{groupId}/problems/proposals
 ```
@@ -1719,7 +1734,7 @@ GET /api/groups/{groupId}/problems/proposals
 
 ---
 
-#### 6.8 Get Instructor Pending Proposals
+#### 6.9 Get Instructor Pending Proposals
 ```
 GET /api/instructor/problems/pending
 ```
@@ -1733,7 +1748,7 @@ Returns pending proposals from groups assigned to the current instructor. Each
 
 ---
 
-#### 6.9 Review a Group Proposal
+#### 6.10 Review a Group Proposal
 ```
 PATCH /api/instructor/problems/{problemId}/review
 ```

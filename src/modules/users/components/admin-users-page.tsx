@@ -1057,7 +1057,6 @@ export function AdminUsersPage() {
                     <th className={tableHeadCellClassName}>Role</th>
                     <th className={tableHeadCellClassName}>Status</th>
                     <th className={tableHeadCellClassName}>Last login</th>
-                    <th className={tableHeadCellClassName}>Password</th>
                     <th className={tableHeadCellClassName} aria-label="Actions" />
                   </tr>
                 </thead>
@@ -1088,13 +1087,6 @@ export function AdminUsersPage() {
                       </td>
                       <td className={mutedTableCellClassName}>
                         {formatDateTime(user.lastLoginAt)}
-                      </td>
-                      <td className={tableCellClassName}>
-                        {user.mustChangePassword ? (
-                          <Badge tone="warning">Must change</Badge>
-                        ) : (
-                          <Badge tone="neutral">Normal</Badge>
-                        )}
                       </td>
                       <td className={tableCellClassName}>
                         <div className={actionsClassName}>
@@ -1150,11 +1142,6 @@ export function AdminUsersPage() {
 
                   <div className="flex min-w-0 flex-wrap gap-2">
                     <Badge tone="neutral">{user.role}</Badge>
-                    {user.mustChangePassword ? (
-                      <Badge tone="warning">Must change password</Badge>
-                    ) : (
-                      <Badge tone="neutral">Password normal</Badge>
-                    )}
                   </div>
 
                   <dl className="m-0 grid min-w-0 grid-cols-2 gap-3 max-[480px]:grid-cols-1">
