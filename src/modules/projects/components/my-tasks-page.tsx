@@ -119,7 +119,7 @@ export function StudentTasksPage() {
         {/* Tab triggers */}
         <div
           aria-label="Task views"
-          className="flex w-fit min-w-0 max-w-full snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-surface-base p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[480px]:w-full"
+          className="flex w-fit min-w-0 max-w-full snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[480px]:w-full"
           role="tablist"
         >
           <button
@@ -165,9 +165,9 @@ export function StudentTasksPage() {
           
           <CardContent className="space-y-6">
             {/* Filters Row */}
-            <div className="grid grid-cols-1 items-end gap-3 rounded-2xl border border-border bg-surface-base p-4 min-[640px]:grid-cols-2 min-[1100px]:grid-cols-5">
+            <div className="grid grid-cols-1 items-end gap-3 rounded-2xl border border-border bg-surface p-4 min-[640px]:grid-cols-2 min-[1100px]:grid-cols-5">
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Group Project
                 </label>
                 <Select
@@ -186,7 +186,7 @@ export function StudentTasksPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Task Status
                 </label>
                 <Select
@@ -206,7 +206,7 @@ export function StudentTasksPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Task Priority
                 </label>
                 <Select
@@ -225,7 +225,7 @@ export function StudentTasksPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Due Before
                 </label>
                 <input
@@ -277,20 +277,20 @@ export function StudentTasksPage() {
                 <div className="hidden w-full overflow-x-auto rounded-xl border border-border min-[761px]:block">
                   <table className="w-full border-collapse text-left">
                     <thead>
-                      <tr className="border-b border-border bg-surface-base">
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <tr className="border-b border-border bg-surface">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Task
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Status
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Priority
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Due Date
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted text-right">
                           Actions
                         </th>
                       </tr>
@@ -307,7 +307,7 @@ export function StudentTasksPage() {
                               {task.title}
                             </div>
                             {task.description && (
-                              <div className="mt-1 text-xs text-muted-foreground/60 line-clamp-1 max-w-[300px]">
+                              <div className="mt-1 text-xs text-muted/60 line-clamp-1 max-w-[300px]">
                                 {task.description}
                               </div>
                             )}

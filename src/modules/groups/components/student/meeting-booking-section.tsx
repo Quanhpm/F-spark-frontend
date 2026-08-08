@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, CheckCircle2, LinkIcon } from "lucide-react";
+import { CalendarClock, CheckCircle2, Clock3, LinkIcon } from "lucide-react";
 
 import {
   Badge,
@@ -155,23 +155,27 @@ function MeetingCard({
       <div className="mt-2 grid gap-1 border-t border-border/60 pt-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-muted">Leader confirm:</span>
-          <span
-            className={
-              leaderConfirmed ? "font-bold text-green-700" : "text-muted-foreground"
+          <Badge
+            icon={
+              leaderConfirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />
             }
+            size="sm"
+            tone={leaderConfirmed ? "success" : "warning"}
           >
-            {leaderConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-          </span>
+            {leaderConfirmed ? "Confirmed" : "Pending"}
+          </Badge>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted">Mentor confirm:</span>
-          <span
-            className={
-              mentorConfirmed ? "font-bold text-green-700" : "text-muted-foreground"
+          <Badge
+            icon={
+              mentorConfirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />
             }
+            size="sm"
+            tone={mentorConfirmed ? "success" : "warning"}
           >
-            {mentorConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-          </span>
+            {mentorConfirmed ? "Confirmed" : "Pending"}
+          </Badge>
         </div>
       </div>
 

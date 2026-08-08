@@ -84,7 +84,7 @@ export function ReviewProposalModal({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Review Decision
               </label>
               <div className="flex flex-wrap gap-3 max-[480px]:grid">
@@ -114,7 +114,7 @@ export function ReviewProposalModal({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Review Comment / Feedback {status === "REJECTED" && "*"}
               </label>
               <textarea

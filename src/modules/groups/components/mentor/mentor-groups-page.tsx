@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarClock,
+  CheckCircle2,
+  Clock3,
   Eye,
   Users,
   XCircle,
@@ -172,30 +174,38 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     </p>
 
                     {/* Confirmation Status */}
-                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                    <div className="flex flex-col gap-1.5 text-xs text-muted">
                       <div className="flex items-center gap-1.5">
                         <span>Leader:</span>
-                        <span
-                          className={
-                            leaderConfirmed
-                              ? "font-bold text-green-700"
-                              : "text-muted-foreground"
+                        <Badge
+                          icon={
+                            leaderConfirmed ? (
+                              <CheckCircle2 size={13} />
+                            ) : (
+                              <Clock3 size={13} />
+                            )
                           }
+                          size="sm"
+                          tone={leaderConfirmed ? "success" : "warning"}
                         >
-                          {leaderConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-                        </span>
+                          {leaderConfirmed ? "Confirmed" : "Pending"}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span>Mentor:</span>
-                        <span
-                          className={
-                            mentorConfirmed
-                              ? "font-bold text-green-700"
-                              : "text-muted-foreground"
+                        <Badge
+                          icon={
+                            mentorConfirmed ? (
+                              <CheckCircle2 size={13} />
+                            ) : (
+                              <Clock3 size={13} />
+                            )
                           }
+                          size="sm"
+                          tone={mentorConfirmed ? "success" : "warning"}
                         >
-                          {mentorConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-                        </span>
+                          {mentorConfirmed ? "Confirmed" : "Pending"}
+                        </Badge>
                       </div>
                     </div>
                   </div>

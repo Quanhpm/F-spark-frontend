@@ -141,7 +141,7 @@ function ProposalEditor({
 
         <div className="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
               Select Domain *
             </label>
             <Select
@@ -159,7 +159,7 @@ function ProposalEditor({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
               Difficulty Level
             </label>
             <Select
@@ -176,7 +176,7 @@ function ProposalEditor({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
             Problem Description / Statement *
           </label>
           <textarea
@@ -189,7 +189,7 @@ function ProposalEditor({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
             Expected Output
           </label>
           <textarea

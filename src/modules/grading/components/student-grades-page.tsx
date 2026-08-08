@@ -136,7 +136,7 @@ export function StudentGradesPage() {
 
                         {col.graded && grade && (
                           <div className="grid gap-2 rounded-xl bg-background border border-border p-3.5">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold">
+                            <div className="flex items-center justify-between text-xs text-muted font-semibold">
                               <span>Group Grade:</span>
                               <span className="text-sm font-extrabold text-foreground">
                                 {grade.score} / {col.maxScore}
@@ -144,7 +144,7 @@ export function StudentGradesPage() {
                             </div>
 
                             {myScore && (
-                              <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold border-t border-border/40 pt-1.5">
+                              <div className="flex items-center justify-between text-xs text-muted font-semibold border-t border-border/40 pt-1.5">
                                 <span>My Contribution / Individual Grade:</span>
                                 <span className="text-sm font-extrabold text-brand-primary">
                                   {myScore.contributionPercent}% &bull; {myScore.calculatedScore.toFixed(2)}
@@ -153,7 +153,7 @@ export function StudentGradesPage() {
                             )}
 
                             {grade.feedback && (
-                              <div className="text-xs text-muted-foreground bg-surface border border-border/40 rounded-lg p-2.5 mt-1.5 leading-normal">
+                              <div className="text-xs text-muted bg-surface border border-border/40 rounded-lg p-2.5 mt-1.5 leading-normal">
                                 <strong className="block text-foreground mb-0.5">Instructor Feedback:</strong>
                                 {grade.feedback}
                               </div>
@@ -198,7 +198,7 @@ export function StudentGradesPage() {
               />
               <CardContent className="pt-0 space-y-4">
                 <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                  <span className="text-sm font-bold text-muted-foreground">Grading Progress:</span>
+                  <span className="text-sm font-bold text-muted">Grading Progress:</span>
                   <Badge tone={isMatrixComplete ? "success" : "neutral"} icon={isMatrixComplete ? <CheckCircle2 size={13} /> : undefined}>
                     {!hasMilestones
                       ? "No Milestones"

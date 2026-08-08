@@ -37,7 +37,7 @@ export function ProblemFilters({
     <div className="grid min-w-0 grid-cols-1 items-end gap-3.5 rounded-2xl border border-border bg-surface p-4 shadow-sm min-[640px]:grid-cols-2 min-[1000px]:grid-cols-4">
       {/* Search Title */}
       <div>
-        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
           Search Problems
         </label>
         <div className="relative">
@@ -53,7 +53,7 @@ export function ProblemFilters({
 
       {/* Domain code */}
       <div>
-        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
           Problem Domain
         </label>
         <Select
@@ -71,7 +71,7 @@ export function ProblemFilters({
 
       {/* Difficulty */}
       <div>
-        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
           Difficulty Level
         </label>
         <Select
@@ -90,7 +90,7 @@ export function ProblemFilters({
         <>
           {onStatusChange && (
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Status
               </label>
               <Select
@@ -112,7 +112,7 @@ export function ProblemFilters({
         <>
           {onSourceTypeChange && (
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Source Type
               </label>
               <Select

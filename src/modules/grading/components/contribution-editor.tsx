@@ -105,7 +105,7 @@ export function ContributionEditor({
                   }
                 />
               </div>
-              <span className="text-sm font-semibold text-muted-foreground">%</span>
+              <span className="text-sm font-semibold text-muted">%</span>
             </div>
           </div>
         ))}

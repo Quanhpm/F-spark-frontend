@@ -1,9 +1,8 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useId, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/shared/components";
+import { Button, ResponsiveDialog } from "@/shared/components";
 import type { ProblemStatus, EntityId } from "@/shared/types";
 import { useReviewProblemAsInstructor } from "../hooks/use-problem-mutations";
-import { X } from "lucide-react";
 
 type InstructorReviewProposalModalProps = {
   problemId: EntityId;
@@ -18,6 +17,7 @@ export function InstructorReviewProposalModal({
   onClose,
   onSuccess,
 }: InstructorReviewProposalModalProps) {
+  const formId = useId();
   const [status, setStatus] = useState<ProblemStatus>("APPROVED");
   const [comment, setComment] = useState("");
 
@@ -45,48 +45,56 @@ export function InstructorReviewProposalModal({
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-45 bg-[rgba(26,26,26,0.36)]" onClick={onClose} />
-      
-      <div className="fixed inset-0 z-50 grid place-items-center p-6 pointer-events-none">
-        <div className="grid w-[min(480px,100%)] max-h-[85vh] grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-border bg-surface shadow-modal pointer-events-auto">
-          
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-6 py-4 bg-surface-base">
-            <h3 className="m-0 text-base font-bold text-foreground">
-              Instructor Review Proposal
-            </h3>
-            <Button
-              variant="secondary"
-              onClick={onClose}
-              className="size-8 p-0 rounded-lg"
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+    <ResponsiveDialog
+      bodyClassName="p-0"
+      className="min-[761px]:max-w-[520px]"
+      closeLabel="Close proposal review"
+      closeOnBackdrop={false}
+      description="Approve or reject this proposal and optionally leave feedback."
+      footer={
+        <>
+          <Button
+            disabled={reviewMutation.isPending}
+            onClick={onClose}
+            type="button"
+            variant="secondary"
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={reviewMutation.isPending}
+            form={formId}
+            type="submit"
+          >
+            {reviewMutation.isPending ? "Submitting..." : "Save Review"}
+          </Button>
+        </>
+      }
+      mobileMode="fullscreen"
+      onClose={onClose}
+      title="Instructor Review Proposal"
+    >
+          <form className="grid gap-4 p-4 min-[481px]:p-6" id={formId} onSubmit={handleSubmit}>
             <div>
               <span className="block text-xs font-bold text-muted uppercase tracking-wider mb-1">Topic Title</span>
-              <div className="text-sm font-semibold text-foreground p-3 bg-neutral-50/50 rounded-xl border border-border/60 leading-snug">
+              <div className="rounded-xl border border-border bg-background p-3 text-sm font-semibold leading-snug text-foreground">
                 {problemTitle}
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Review Decision
               </label>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer font-bold text-sm text-green-700">
+                <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-bold text-brand-primary">
                   <input
                     type="radio"
                     name="status"
                     value="APPROVED"
                     checked={status === "APPROVED"}
                     onChange={() => setStatus("APPROVED")}
-                    className="size-4.5 accent-green-600 cursor-pointer"
+                    className="size-4.5 cursor-pointer accent-brand-primary"
                   />
                   Approve Proposal
                 </label>
@@ -105,7 +113,7 @@ export function InstructorReviewProposalModal({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Review Comment / Feedback {status === "REJECTED" && "*"}
               </label>
               <textarea
@@ -121,23 +129,7 @@ export function InstructorReviewProposalModal({
               />
             </div>
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-2.5 pt-4 border-t border-border mt-6">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClose}
-                disabled={reviewMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={reviewMutation.isPending}>
-                {reviewMutation.isPending ? "Submitting..." : "Save Review"}
-              </Button>
-            </div>
           </form>
-        </div>
-      </div>
-    </>
+    </ResponsiveDialog>
   );
 }

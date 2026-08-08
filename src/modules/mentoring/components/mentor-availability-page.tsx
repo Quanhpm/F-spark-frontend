@@ -302,18 +302,18 @@ function getCalendarEventStatusTone(status: CalendarEventStatus) {
 
 function getCalendarEventCardClassName(status: CalendarEventStatus) {
   if (status === "AVAILABLE") {
-    return "border-amber-300/70 bg-amber-500/10 text-amber-950 hover:border-amber-400 hover:bg-amber-500/15 hover:shadow-card-interactive";
+    return "border-brand-secondary/60 bg-brand-secondary/10 text-foreground hover:border-brand-secondary hover:bg-brand-secondary/15 hover:shadow-card-interactive";
   }
 
   if (status === "SCHEDULED") {
-    return "border-blue-300/70 bg-blue-500/10 text-blue-950 hover:border-blue-400 hover:bg-blue-500/15 hover:shadow-card-interactive";
+    return "border-brand-primary/40 bg-brand-primary/5 text-foreground hover:border-brand-primary/70 hover:bg-brand-primary/10 hover:shadow-card-interactive";
   }
 
   if (status === "COMPLETED") {
-    return "border-emerald-300/70 bg-emerald-500/10 text-emerald-950 hover:border-emerald-400 hover:bg-emerald-500/15 hover:shadow-card-interactive";
+    return "border-border-warm bg-surface-warm text-foreground hover:border-brand-secondary/70 hover:bg-surface-warm/80 hover:shadow-card-interactive";
   }
 
-  return "border-red-300/70 bg-red-500/10 text-red-950 hover:border-red-400 hover:bg-red-500/15 hover:shadow-card-interactive";
+  return "border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 hover:shadow-card-interactive";
 }
 
 function createCalendarEvents(

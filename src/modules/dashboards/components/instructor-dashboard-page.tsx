@@ -59,7 +59,7 @@ export function InstructorDashboardPage() {
           </div>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-600" isPadded>
+        <Card className="border-l-4 border-l-brand-secondary" isPadded>
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
@@ -69,13 +69,13 @@ export function InstructorDashboardPage() {
                 {submittedCount}
               </strong>
             </div>
-            <span className="grid size-11 place-items-center rounded-xl bg-blue-50 text-blue-600">
+            <span className="grid size-11 place-items-center rounded-xl bg-brand-secondary/10 text-brand-secondary">
               <Users size={20} />
             </span>
           </div>
         </Card>
 
-        <Card className="border-l-4 border-l-green-600" isPadded>
+        <Card className="border-l-4 border-l-brand-primary" isPadded>
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
@@ -85,13 +85,13 @@ export function InstructorDashboardPage() {
                 {gradedCount}
               </strong>
             </div>
-            <span className="grid size-11 place-items-center rounded-xl bg-green-50 text-green-600">
+            <span className="grid size-11 place-items-center rounded-xl bg-brand-primary/10 text-brand-primary">
               <CheckCircle2 size={20} />
             </span>
           </div>
         </Card>
 
-        <Card className="border-l-4 border-l-red-600" isPadded>
+        <Card className="border-l-4 border-l-red-300" isPadded>
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
@@ -101,7 +101,7 @@ export function InstructorDashboardPage() {
                 {lateCount}
               </strong>
             </div>
-            <span className="grid size-11 place-items-center rounded-xl bg-red-50 text-red-600">
+            <span className="grid size-11 place-items-center rounded-xl bg-red-50 text-red-700">
               <AlertTriangle size={20} />
             </span>
           </div>
@@ -137,13 +137,13 @@ export function InstructorDashboardPage() {
           <div className="overflow-x-auto border-t border-border">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-border bg-surface-base">
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Group</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Milestone</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Submitted</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Graded</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">Contributions</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Actions</th>
+                <tr className="border-b border-border bg-surface">
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Group</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Milestone</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Submitted</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Graded</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Contributions</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-sm">

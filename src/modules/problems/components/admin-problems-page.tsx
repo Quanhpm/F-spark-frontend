@@ -204,14 +204,14 @@ export function AdminProblemsPage() {
               <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm max-[760px]:hidden">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="border-b border-border bg-surface-base">
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Code</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground font-semibold">Title</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Domain</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Difficulty</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Source</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Actions</th>
+                    <tr className="border-b border-border bg-surface">
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Code</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted font-semibold">Title</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Domain</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Difficulty</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Source</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Status</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-sm">
@@ -227,7 +227,7 @@ export function AdminProblemsPage() {
                         <td className="px-5 py-3.5 font-bold text-foreground max-w-xs truncate">
                           {prob.title}
                         </td>
-                        <td className="px-5 py-3.5 text-muted-foreground">
+                        <td className="px-5 py-3.5 text-muted">
                           {prob.domainCode}
                         </td>
                         <td className="px-5 py-3.5">
