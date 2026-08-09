@@ -41,6 +41,7 @@ function GradeModal({
   // Find the milestone column
   const column = matrix?.milestones.find((m) => m.milestoneId === milestoneId);
   const maxScore = column?.maxScore ?? 10;
+  const isContributionsComplete = column?.contributionsComplete ?? false;
   
   const [score, setScore] = useState<number>(() => column?.groupGrade?.score ?? 0);
   const [feedback, setFeedback] = useState<string>(() => column?.groupGrade?.feedback ?? "");
@@ -97,7 +98,7 @@ function GradeModal({
             Cancel
           </Button>
           <Button
-            disabled={gradeMutation.isPending}
+            disabled={gradeMutation.isPending || !isContributionsComplete}
             form={formId}
             type="submit"
           >
@@ -136,6 +137,19 @@ function GradeModal({
               </div>
             </div>
 
+            {!isContributionsComplete && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800 flex items-start gap-2.5">
+                <AlertCircle className="size-5 shrink-0 mt-0.5 text-amber-600" />
+                <div>
+                  <h5 className="m-0 font-bold text-amber-950">Chưa hoàn tất đánh giá Contribution</h5>
+                  <p className="mt-1 mb-0 text-xs text-amber-900 leading-normal font-medium">
+                    Sinh viên chưa thực hiện đánh giá mức độ đóng góp (Contribution) nhóm cho cột mốc này. 
+                    Vui lòng liên hệ Nhóm trưởng để hoàn tất đánh giá trước khi cho điểm.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <TextInput
                 label={`Score (0 - ${maxScore})`}
@@ -146,6 +160,7 @@ function GradeModal({
                 required
                 value={score}
                 onChange={(e) => setScore(Number(e.target.value) || 0)}
+                disabled={!isContributionsComplete}
               />
 
               <div>
@@ -156,7 +171,8 @@ function GradeModal({
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="Enter comments, suggestions or required updates for this milestone..."
-                  className="min-h-[120px] w-full rounded-xl border border-border bg-surface p-3 text-base text-foreground outline-none transition-[border-color,box-shadow] focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] min-[761px]:text-sm"
+                  className="min-h-[120px] w-full rounded-xl border border-border bg-surface p-3 text-base text-foreground outline-none transition-[border-color,box-shadow] focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] min-[761px]:text-sm disabled:bg-neutral-50/80 disabled:cursor-not-allowed"
+                  disabled={!isContributionsComplete}
                 />
               </div>
             </div>

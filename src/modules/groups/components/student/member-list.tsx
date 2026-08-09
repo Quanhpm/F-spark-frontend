@@ -19,6 +19,7 @@ type MemberListProps = {
   isLeader: boolean;
   onRemoveMember: (member: GroupMemberDto) => void;
   onTransferLeadership: (member: GroupMemberDto) => void;
+  sessionEmail?: string;
 };
 
 export function MemberList({
@@ -27,6 +28,7 @@ export function MemberList({
   isLeader,
   onRemoveMember,
   onTransferLeadership,
+  sessionEmail,
 }: MemberListProps) {
   return (
     <Card>
@@ -49,6 +51,7 @@ export function MemberList({
           <div className="grid gap-3">
             {group.members.map((member) => {
               const isMemberLeader = member.role === "LEADER";
+              const isCurrentUser = sessionEmail && member.email.toLowerCase() === sessionEmail.toLowerCase();
 
               return (
                 <article
@@ -58,7 +61,7 @@ export function MemberList({
                   <div className="grid min-w-0 gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <strong className="break-words text-sm text-foreground">
-                        {member.fullName}
+                        {member.fullName}{isCurrentUser && " (You)"}
                       </strong>
                       <Badge
                         icon={isMemberLeader ? <Crown size={13} /> : undefined}
