@@ -13,7 +13,6 @@ import {
   MessageSquare,
   MonitorUp,
   UserRound,
-  Upload,
   Users,
   X,
 } from "lucide-react";
@@ -68,7 +67,6 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/student/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/student/groups", icon: Users, label: "Groups" },
     { href: "/student/tasks", icon: ClipboardList, label: "Tasks" },
-    { href: "/student/submissions", icon: Upload, label: "Submissions" },
     { href: "/student/grades", icon: Award, label: "Grades" },
     { href: "/student/problems", icon: BookOpen, label: "Problems" },
     { href: "/student/feedback", icon: MessageSquare, label: "Feedback" },
@@ -97,11 +95,6 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
       href: "/instructor/milestones",
       icon: CalendarClock,
       label: "Milestones",
-    },
-    {
-      href: "/instructor/submissions",
-      icon: ClipboardList,
-      label: "Submissions",
     },
     { href: "/instructor/problems", icon: BookOpen, label: "Problems" },
     { href: "/instructor/grading", icon: ClipboardList, label: "Grading" },

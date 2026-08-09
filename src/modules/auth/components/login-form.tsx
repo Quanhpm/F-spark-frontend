@@ -18,14 +18,6 @@ import type { AuthUser } from "../types/auth.types";
 import { BrandLogo } from "./brand-logo";
 import { GoogleSignInButton } from "./google-sign-in-button";
 
-const REMEMBERED_EMAIL_KEY = "fspark-remembered-email";
-
-function getRememberedEmail() {
-  return typeof window === "undefined"
-    ? ""
-    : localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
-}
-
 type FormErrors = {
   email?: string;
   password?: string;
@@ -45,11 +37,8 @@ export function LoginForm() {
   const router = useRouter();
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
-  const [email, setEmail] = useState(getRememberedEmail);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(
-    () => getRememberedEmail().length > 0,
-  );
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [formMessage, setFormMessage] = useState("");
@@ -82,12 +71,6 @@ export function LoginForm() {
         email: email.trim(),
         password,
       });
-
-      if (rememberMe) {
-        localStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim());
-      } else {
-        localStorage.removeItem(REMEMBERED_EMAIL_KEY);
-      }
 
       router.replace(getDefaultWorkspacePath(session.user.role));
     } catch (error) {
@@ -211,18 +194,9 @@ export function LoginForm() {
               )}
             </div>
 
-            <div className="my-1 mb-0.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[13px] text-muted max-[380px]:grid max-[380px]:grid-cols-1">
-              <label className="inline-flex min-h-11 cursor-pointer items-center gap-[9px]">
-                <input
-                  className="m-0 size-4 cursor-pointer accent-brand-primary"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(event) => setRememberMe(event.target.checked)}
-                />
-                <span>Remember me</span>
-              </label>
+            <div className="my-1 mb-0.5 flex items-center justify-end text-[13px] text-muted">
               <button
-                className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border-0 bg-transparent p-0 text-[13px] font-medium text-foreground transition-colors duration-150 ease-in-out hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary max-[380px]:justify-self-start"
+                className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border-0 bg-transparent p-0 text-[13px] font-medium text-foreground transition-colors duration-150 ease-in-out hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
                 type="button"
                 onClick={() =>
                   setFormMessage("Contact an administrator to reset your password.")
