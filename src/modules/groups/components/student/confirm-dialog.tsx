@@ -9,6 +9,7 @@ import { ApiError, cn } from "@/shared/lib";
 type ConfirmDialogProps = {
   children?: ReactNode;
   confirmLabel: string;
+  confirmDisabled?: boolean;
   description: string;
   onClose: () => void;
   onConfirm: () => Promise<unknown>;
@@ -25,6 +26,7 @@ function getErrorMessage(error: unknown) {
 export function ConfirmDialog({
   children,
   confirmLabel,
+  confirmDisabled = false,
   description,
   onClose,
   onConfirm,
@@ -63,7 +65,7 @@ export function ConfirmDialog({
             Cancel
           </Button>
           <Button
-            disabled={isSubmitting}
+            disabled={isSubmitting || confirmDisabled}
             onClick={handleConfirm}
             variant={tone === "danger" ? "danger" : "primary"}
           >

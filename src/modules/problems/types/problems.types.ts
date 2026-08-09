@@ -18,6 +18,9 @@ export type ProblemSummaryDto = {
   status: ProblemStatus;
   strategicTheme: string | null;
   researchArea: string | null;
+  proposedByGroupId: EntityId | null;
+  proposedByGroupNo: string | null;
+  proposedByGroupName: string | null;
 };
 
 export type ProblemDetailDto = {

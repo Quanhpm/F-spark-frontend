@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   Award,
@@ -235,10 +236,10 @@ export function ProblemDetailModal({
                           { status: newStatus },
                           {
                             onError: (err) => {
-                              alert(`Failed to update status: ${err.message}`);
+                              toast.error(`Failed to update status: ${err.message}`);
                             },
                             onSuccess: () => {
-                              alert("Status updated successfully!");
+                              toast.success("Status updated successfully.");
                             },
                           },
                         );

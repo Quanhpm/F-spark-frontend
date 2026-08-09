@@ -11,7 +11,6 @@ import {
   CardContent,
   CardHeader,
   PageHeader,
-  Select,
 } from "@/shared/components";
 
 import {
@@ -26,7 +25,6 @@ import {
 import type {
   GroupDetailDto,
   GroupMemberDto,
-  GroupSummaryDto,
 } from "../../types";
 import { ConfirmDialog } from "./confirm-dialog";
 import { GroupFormModal } from "./group-form-modal";
@@ -46,8 +44,6 @@ type ConfirmAction = {
 
 type ActiveGroupWorkspaceProps = {
   group: GroupDetailDto;
-  groups: GroupSummaryDto[];
-  onGroupChange: (groupId: number) => void;
   sessionEmail?: string;
 };
 
@@ -87,8 +83,6 @@ function InfoItem({
 
 export function ActiveGroupWorkspace({
   group,
-  groups,
-  onGroupChange,
   sessionEmail,
 }: ActiveGroupWorkspaceProps) {
   const router = useRouter();
@@ -192,21 +186,6 @@ export function ActiveGroupWorkspace({
       <PageHeader
         actions={
           <div className="grid justify-items-end gap-3 max-[760px]:justify-items-stretch">
-            <Select
-              fieldClassName="w-full min-[761px]:w-[280px]"
-              id="group-workspace-selector"
-              label="Group workspace"
-              onChange={(event) => onGroupChange(Number(event.target.value))}
-              value={group.id}
-            >
-              {groups.map((groupOption) => (
-                <option key={groupOption.id} value={groupOption.id}>
-                  {groupOption.groupNo} - {groupOption.name} (
-                  {groupOption.courseCode})
-                </option>
-              ))}
-            </Select>
-
             <div className="flex flex-wrap justify-end gap-2 max-[760px]:justify-start max-[480px]:grid max-[480px]:[&>button]:w-full">
               {isLeader && (
                 <>

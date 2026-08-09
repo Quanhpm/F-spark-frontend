@@ -39,7 +39,7 @@ export function ProblemCard({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <ProblemDifficultyBadge difficulty={problem.difficultyLevel} />
-          <span className="inline-flex min-w-0 break-all rounded bg-neutral-100 px-2 py-0.5 font-mono text-[11px] font-bold text-muted-foreground dark:bg-neutral-200">
+          <span className="inline-flex min-w-0 break-all rounded bg-neutral-100 px-2 py-0.5 font-mono text-[11px] font-bold text-muted dark:bg-neutral-200">
             {problem.code || "PROPOSAL"}
           </span>
         </div>
@@ -65,7 +65,7 @@ export function ProblemCard({
       </h3>
 
       {/* Domain Info */}
-      <div className="flex min-w-0 items-start gap-2 text-xs text-muted-foreground">
+      <div className="flex min-w-0 items-start gap-2 text-xs text-muted">
         <BookOpen className="size-4 shrink-0 text-muted" />
         <span className="min-w-0 break-words font-semibold text-muted">
           {problem.domainName} ({problem.domainCode})
@@ -74,13 +74,13 @@ export function ProblemCard({
 
       {/* Theme & Research Area */}
       {(problem.strategicTheme || problem.researchArea) && (
-        <div className="mt-1.5 grid grid-cols-1 gap-2 border-t border-border/50 pt-3 text-xs text-muted-foreground min-[481px]:grid-cols-2">
+        <div className="mt-1.5 grid grid-cols-1 gap-2 border-t border-border/50 pt-3 text-xs text-muted min-[481px]:grid-cols-2">
           {problem.strategicTheme && (
             <div
               className="flex min-w-0 items-start gap-1.5"
               title={`Theme: ${problem.strategicTheme}`}
             >
-              <Layers className="size-3.5 text-muted-foreground/50 shrink-0" />
+              <Layers className="size-3.5 text-muted/50 shrink-0" />
               <span className="min-w-0 break-words">{problem.strategicTheme}</span>
             </div>
           )}
@@ -89,7 +89,7 @@ export function ProblemCard({
               className="flex min-w-0 items-start gap-1.5"
               title={`Area: ${problem.researchArea}`}
             >
-              <Tag className="size-3.5 text-muted-foreground/50 shrink-0" />
+              <Tag className="size-3.5 text-muted/50 shrink-0" />
               <span className="min-w-0 break-words">{problem.researchArea}</span>
             </div>
           )}

@@ -58,7 +58,7 @@ Endpoints returning lists use this pagination structure inside `data`:
 | **ProblemStatus** | `ACTIVE`, `INACTIVE`, `PENDING_REVIEW`, `APPROVED`, `REJECTED`, `ARCHIVED` |
 | **InvitationStatus** | `PENDING`, `ACCEPTED`, `DECLINED`, `CANCELED` |
 | **SlotStatus** | `AVAILABLE`, `BOOKED`, `CANCELED` |
-| **MeetingStatus** | `SCHEDULED`, `CANCELED` |
+| **MeetingStatus** | `SCHEDULED`, `CANCELED`, `COMPLETED` |
 | **ImportTargetType** | `STUDENT`, `MENTOR`, `PROBLEM_BANK` |
 | **ImportFileType** | `CSV`, `XLSX` |
 | **JoinRequestStatus** | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELED` |
@@ -424,9 +424,15 @@ Same as `TaskDetailDto` but **without** `checklistItems`.
   "sourceType": "OFFICIAL",
   "status": "ACTIVE",
   "strategicTheme": "Digital Transformation",
-  "researchArea": "NLP"
+  "researchArea": "NLP",
+  "proposedByGroupId": null,
+  "proposedByGroupNo": null,
+  "proposedByGroupName": null
 }
 ```
+
+The three `proposedByGroup*` fields are populated for group proposals and are
+`null` for official problems that were not proposed by a student group.
 
 ### ProblemDetailDto
 ```json
@@ -1687,7 +1693,37 @@ POST /api/groups/{groupId}/problems/propose
 
 ---
 
-#### 6.6 Get Group's Proposals
+#### 6.6 Update a Pending Group Proposal
+```
+PUT /api/groups/{groupId}/problems/proposals/{problemId}
+```
+**Auth Required:** Yes (Owning Group Leader only)
+
+Only a proposal with status `PENDING_REVIEW` can be updated. The request body
+uses the same complete `ProposeGroupProblemRequest` contract as section 6.5.
+
+**Path Parameters:** `groupId` (long), `problemId` (long)
+
+**Response:** `APIResponse<ProblemDetailDto>`
+
+---
+
+#### 6.7 Delete a Pending Group Proposal
+```
+DELETE /api/groups/{groupId}/problems/proposals/{problemId}
+```
+**Auth Required:** Yes (Owning Group Leader only)
+
+Only a self-proposed problem with status `PENDING_REVIEW` can be deleted. This
+allows the leader to withdraw an idea before instructor review.
+
+**Path Parameters:** `groupId` (long), `problemId` (long)
+
+**Response:** `APIResponse<void>`
+
+---
+
+#### 6.8 Get Group's Proposals
 ```
 GET /api/groups/{groupId}/problems/proposals
 ```
@@ -1695,6 +1731,40 @@ GET /api/groups/{groupId}/problems/proposals
 **Path Parameters:** `groupId` (long)
 
 **Response:** `APIResponse<List<ProblemSummaryDto>>`
+
+---
+
+#### 6.9 Get Instructor Pending Proposals
+```
+GET /api/instructor/problems/pending
+```
+**Auth Required:** Yes (`INSTRUCTOR`)
+
+Returns pending proposals from groups assigned to the current instructor. Each
+`ProblemSummaryDto` contains the `proposedByGroupId`, `proposedByGroupNo`, and
+`proposedByGroupName` fields used to group the proposals.
+
+**Response:** `APIResponse<List<ProblemSummaryDto>>`
+
+---
+
+#### 6.10 Review a Group Proposal
+```
+PATCH /api/instructor/problems/{problemId}/review
+```
+**Auth Required:** Yes (`INSTRUCTOR` assigned to the proposal's group)
+
+**Request Body:**
+```json
+{
+  "status": "APPROVED",
+  "comment": "Optional review feedback"
+}
+```
+
+The frontend review flow uses `APPROVED` and `REJECTED` decisions.
+
+**Response:** `APIResponse<ProblemDetailDto>`
 
 ---
 
@@ -2141,6 +2211,9 @@ GET /api/dashboard/student/groups
 GET /api/dashboard/mentor/meetings
 ```
 **Auth Required:** Yes (MENTOR)
+**Description:** Returns the mentor's meeting index. For slot, Meet link, booking, and confirmation details, hydrate each meeting through `GET /api/groups/{groupId}/mentor/meetings`.
+
+**Query Parameters:** `status` (`ALL`, `SCHEDULED`, `CANCELED`, `COMPLETED`; optional)
 
 **Response:** `APIResponse<List<DashboardMeetingDto>>`
 
@@ -2427,7 +2500,7 @@ status va version. `FeedbackReceivedSummaryDto` cua mentor/instructor co
 |--------|------|-----------------|----------|
 | GET | `/api/group-recruitment-roles` | — | Catalog role tuyen thanh vien |
 | PATCH | `/api/groups/{groupId}/lock` | `{ isLock: boolean }` | Khoa/mo khoa membership |
-| PATCH | `/api/groups/{groupId}/mentor/meetings/{meetingId}/cancel` | — | Huy meeting cua group |
+| PATCH | `/api/groups/{groupId}/mentor/meetings/{meetingId}/cancel` | `{ reason: string }` | Mentor huy meeting cua group, bat buoc kem ly do |
 | GET | `/api/groups/instructor/me` | `term?`, `courseCode?` | Cac group duoc gan cho instructor |
 | PATCH | `/api/groups/{groupId}/instructor` | `{ instructorId }` | Gan instructor cho group |
 

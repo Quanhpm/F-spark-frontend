@@ -34,6 +34,7 @@ const tableHeadCellClassName =
   "border-b border-border px-4 py-3 text-left text-xs font-bold tracking-[0.04em] text-muted uppercase";
 const tableCellClassName =
   "border-b border-border px-4 py-4 align-middle text-sm text-foreground";
+const skeletonLineClassName = "h-3 animate-pulse rounded-full bg-border";
 
 type AppliedFilters = {
   groupSearch: string;
@@ -60,6 +61,97 @@ function getMutationErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
     : "Unable to assign the instructor. Please try again.";
+}
+
+function AssignmentResultsSkeleton({ rowCount }: { rowCount: number }) {
+  const visibleRowCount = Math.max(1, rowCount);
+  const mobileRowCount = Math.min(visibleRowCount, 3);
+
+  return (
+    <Card aria-busy="true" aria-label="Saving instructor assignment">
+      <span className="sr-only" role="status">
+        Saving instructor assignment and refreshing groups
+      </span>
+
+      <div className={tableWrapClassName} aria-hidden="true">
+        <div className="min-w-[1180px]">
+          <div className="grid grid-cols-[1.35fr_1fr_1fr_1.35fr_2fr_100px] border-b border-border px-4 py-3">
+            {["Group", "Term / course", "Mentor", "Current instructor", "Assign new instructor", "Action"].map(
+              (label) => (
+                <div className="px-4" key={label}>
+                  <div className={cn(skeletonLineClassName, "w-24")} />
+                </div>
+              ),
+            )}
+          </div>
+          {Array.from({ length: visibleRowCount }, (_, rowIndex) => (
+            <div
+              className="grid min-h-[92px] grid-cols-[1.35fr_1fr_1fr_1.35fr_2fr_100px] items-center border-b border-border px-4 last:border-b-0"
+              key={`assignment-skeleton-row-${rowIndex}`}
+            >
+              <div className="grid gap-2 px-4">
+                <div className={cn(skeletonLineClassName, "w-32")} />
+                <div className={cn(skeletonLineClassName, "w-20")} />
+              </div>
+              <div className="grid gap-2 px-4">
+                <div className={cn(skeletonLineClassName, "w-20")} />
+                <div className={cn(skeletonLineClassName, "w-16")} />
+              </div>
+              <div className="px-4">
+                <div className={cn(skeletonLineClassName, "h-6 w-24")} />
+              </div>
+              <div className="grid gap-2 px-4">
+                <div className={cn(skeletonLineClassName, "w-32")} />
+                <div className={cn(skeletonLineClassName, "w-20")} />
+              </div>
+              <div className="px-4">
+                <div className={cn(skeletonLineClassName, "h-10 w-full rounded-xl")} />
+              </div>
+              <div className="px-4">
+                <div className={cn(skeletonLineClassName, "h-9 w-16 rounded-xl")} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={mobileListClassName} aria-hidden="true">
+        {Array.from({ length: mobileRowCount }, (_, rowIndex) => (
+          <div
+            className={cn(mobileCardClassName, "animate-pulse")}
+            key={`assignment-mobile-skeleton-${rowIndex}`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid flex-1 gap-2">
+                <div className="h-4 w-2/3 rounded-full bg-border" />
+                <div className="h-3 w-1/3 rounded-full bg-border" />
+              </div>
+              <div className="h-6 w-16 rounded-full bg-border" />
+            </div>
+            <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
+              <div className="grid gap-2">
+                <div className="h-3 w-20 rounded-full bg-border" />
+                <div className="h-3 w-28 rounded-full bg-border" />
+              </div>
+              <div className="grid gap-2">
+                <div className="h-3 w-16 rounded-full bg-border" />
+                <div className="h-3 w-24 rounded-full bg-border" />
+              </div>
+            </div>
+            <div className="grid gap-2 border-t border-border pt-3">
+              <div className="h-3 w-28 rounded-full bg-border" />
+              <div className="h-3 w-2/3 rounded-full bg-border" />
+              <div className="h-3 w-1/3 rounded-full bg-border" />
+            </div>
+            <div className="grid gap-3 border-t border-border pt-3">
+              <div className="h-11 w-full rounded-xl bg-border" />
+              <div className="h-11 w-full rounded-xl bg-border" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
 
 export function AdminGroupInstructorPage() {
@@ -278,6 +370,8 @@ export function AdminGroupInstructorPage() {
           description="No groups match the current group filter."
           title="No groups found"
         />
+      ) : assigningGroupId !== null ? (
+        <AssignmentResultsSkeleton rowCount={paginatedGroups.length} />
       ) : (
         <Card>
           <div className={tableWrapClassName}>

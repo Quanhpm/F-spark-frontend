@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useId, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { CalendarClock, Send, Upload } from "lucide-react";
 
 import {
@@ -19,6 +19,7 @@ import type {
   CourseMilestoneStatus,
   EntityId,
 } from "@/shared/types";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 
 import {
   useAverageGrade,
@@ -43,6 +44,7 @@ export type StudentMilestoneGroupOption = {
 type StudentMilestoneSubmissionsPanelProps = {
   groups: StudentMilestoneGroupOption[];
   initialGroupId?: EntityId | null;
+  initialMilestoneId?: EntityId | null;
 };
 
 type SubmissionModalProps = {
@@ -249,20 +251,42 @@ function SubmissionModal({
 export function StudentMilestoneSubmissionsPanel({
   groups,
   initialGroupId,
+  initialMilestoneId,
 }: StudentMilestoneSubmissionsPanelProps) {
-  const [selectedGroupId, setSelectedGroupId] = useState(
-    initialGroupId ? String(initialGroupId) : "",
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
+  const setActiveGroupId = useActiveGroupStore(
+    (state) => state.setActiveGroupId,
   );
   const [activeMilestone, setActiveMilestone] =
     useState<CourseMilestoneDto | null>(null);
 
-  const effectiveGroupId =
-    selectedGroupId || !groups[0]
-      ? Number(selectedGroupId) || null
-      : groups[0].id;
-  const activeGroup =
-    groups.find((group) => Number(group.id) === Number(effectiveGroupId)) ??
-    null;
+  const activeGroup = resolveActiveGroup(
+    groups,
+    initialGroupId ?? storedActiveGroupId ?? null,
+  );
+  const effectiveGroupId = activeGroup?.id ?? null;
+
+  useEffect(() => {
+    if (
+      initialGroupId &&
+      activeGroup?.id === initialGroupId &&
+      storedActiveGroupId !== initialGroupId
+    ) {
+      setActiveGroupId(initialGroupId);
+    }
+  }, [
+    activeGroup?.id,
+    initialGroupId,
+    setActiveGroupId,
+    storedActiveGroupId,
+  ]);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setActiveMilestone(null);
+  }, [effectiveGroupId]);
 
   const milestonesQuery = useGroupMilestones(effectiveGroupId);
   const submissionsQuery = useGroupMilestoneSubmissions(effectiveGroupId);
@@ -281,6 +305,14 @@ export function StudentMilestoneSubmissionsPanel({
     [submissionsQuery.data?.data],
   );
   const averageGrade = getAverageValue(averageGradeQuery.data?.data);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!initialMilestoneId) return;
+    const milestone = milestones.find((item) => item.id === initialMilestoneId);
+    if (milestone) setActiveMilestone(milestone);
+  }, [initialMilestoneId, milestones]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (groups.length === 0) {
     return (
@@ -313,7 +345,7 @@ export function StudentMilestoneSubmissionsPanel({
             <Select
               label="Group"
               onChange={(event) => {
-                setSelectedGroupId(event.target.value);
+                setActiveGroupId(Number(event.target.value));
                 setActiveMilestone(null);
               }}
               value={String(effectiveGroupId ?? "")}

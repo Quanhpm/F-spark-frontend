@@ -46,7 +46,7 @@ export function TaskCard({ task, onClick, onDragStart }: TaskCardProps) {
       role="button"
       tabIndex={0}
       className={cn(
-        "group relative flex min-h-11 min-w-0 cursor-grab select-none flex-col gap-3 rounded-xl border border-transparent bg-surface p-3.5 shadow-sm outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-secondary/30 hover:shadow-md focus-visible:border-brand-secondary focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:cursor-grabbing"
+        "group relative flex min-h-11 min-w-0 cursor-grab select-none flex-col gap-3 rounded-xl border border-transparent bg-surface p-3.5 shadow-card outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-secondary/30 hover:shadow-card-interactive focus-visible:border-brand-secondary focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:cursor-grabbing"
       )}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -75,7 +75,7 @@ export function TaskCard({ task, onClick, onDragStart }: TaskCardProps) {
             ))}
             {task.assignees.length > 2 && (
               <div
-                className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-[#edf1f7] text-[9px] font-bold text-foreground shadow-sm"
+                className="inline-flex size-7 items-center justify-center rounded-full border-2 border-surface bg-surface-warm text-[9px] font-bold text-foreground shadow-card"
                 title={`${task.assignees.length - 2} more assignees`}
               >
                 +{task.assignees.length - 2}
@@ -97,7 +97,7 @@ export function TaskCard({ task, onClick, onDragStart }: TaskCardProps) {
 
       <div className="flex flex-wrap items-center gap-2 pt-1 text-xs font-semibold text-muted">
         {task.checklistCount > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-md bg-neutral-50 px-2 py-1">
+          <span className="inline-flex items-center gap-1 rounded-md bg-background px-2 py-1">
             <CheckSquare className="size-3.5" />
             {task.checklistCompletedCount}/{task.checklistCount}
           </span>
@@ -105,7 +105,7 @@ export function TaskCard({ task, onClick, onDragStart }: TaskCardProps) {
         {task.dueAt && (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-md bg-neutral-50 px-2 py-1",
+              "inline-flex items-center gap-1 rounded-md bg-background px-2 py-1",
               isOverdue && "bg-red-50 text-red-600",
             )}
             title={isOverdue ? "Overdue task!" : "Due date"}

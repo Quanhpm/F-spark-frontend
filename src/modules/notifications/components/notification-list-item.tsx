@@ -19,7 +19,9 @@ export function NotificationListItem({
   notification,
   onActivate,
 }: NotificationListItemProps) {
-  const hasAction = isSafeNotificationActionUrl(notification.actionUrl);
+  const hasAction =
+    (notification.action?.key && notification.action.key !== "NONE") ||
+    isSafeNotificationActionUrl(notification.actionUrl);
   const canActivate = !notification.read || hasAction;
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import {
   Button,
@@ -13,6 +14,7 @@ import {
   Select,
 } from "@/shared/components";
 import type { TaskStatus, TaskPriority } from "@/shared/types";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 import { useMyTasks, useMyGroups } from "../hooks";
 import { KanbanBoard } from "./kanban-board";
 import { TaskStatusBadge } from "./task-status-badge";
@@ -20,30 +22,51 @@ import { TaskPriorityBadge } from "./task-priority-badge";
 import { TaskDetailPanel } from "./task-detail-panel";
 import { ChevronRight, ListTodo, Kanban } from "lucide-react";
 
-export function StudentTasksPage() {
+type StudentTasksPageProps = {
+  initialGroupId?: number | null;
+  initialTaskId?: number | null;
+};
+
+export function StudentTasksPage({
+  initialGroupId,
+  initialTaskId,
+}: StudentTasksPageProps = {}) {
   const [activeTab, setActiveTab] = useState<"list" | "board">("list");
   
   // My Tasks list filters
   const [listStatus, setListStatus] = useState<string>("");
   const [listPriority, setListPriority] = useState<string>("");
   const [listOverdue, setListOverdue] = useState<boolean>(false);
-  const [listGroupId, setListGroupId] = useState<string>("");
   const [listDueBefore, setListDueBefore] = useState<string>("");
   const [listPage, setListPage] = useState(0);
   const hasListFilters = Boolean(
-    listGroupId || listStatus || listPriority || listOverdue || listDueBefore,
+    listStatus || listPriority || listOverdue || listDueBefore,
   );
 
-  // Group selection for Kanban board
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const storedActiveGroupId = useActiveGroupStore(
+    (state) => state.activeGroupId,
+  );
+  const setActiveGroupId = useActiveGroupStore(
+    (state) => state.setActiveGroupId,
+  );
 
   // Detail panel state
   const [detailTaskId, setDetailTaskId] = useState<number | null>(null);
   const [detailGroupId, setDetailGroupId] = useState<number | null>(null);
 
+  const { data: myGroupsResponse, isLoading: isGroupsLoading } = useMyGroups();
+  const myGroups = useMemo(
+    () => myGroupsResponse?.data || [],
+    [myGroupsResponse?.data],
+  );
+  const activeGroup = resolveActiveGroup(
+    myGroups,
+    initialGroupId ?? storedActiveGroupId ?? null,
+  );
+
   // Queries
   const myTasksFilters = {
-    groupId: listGroupId ? Number(listGroupId) : undefined,
+    groupId: activeGroup?.id,
     status: listStatus ? (listStatus as TaskStatus) : undefined,
     priority: listPriority ? (listPriority as TaskPriority) : undefined,
     overdue: listOverdue ? true : undefined,
@@ -53,25 +76,31 @@ export function StudentTasksPage() {
   };
 
   const { data: myTasksResponse, isLoading: isTasksLoading, refetch: refetchMyTasks } = useMyTasks(myTasksFilters);
-  const { data: myGroupsResponse, isLoading: isGroupsLoading } = useMyGroups();
 
   const myTasks = myTasksResponse?.data;
-  const myGroups = useMemo(() => myGroupsResponse?.data || [], [myGroupsResponse?.data]);
 
-  // Find active group or set default
-  const activeGroup = useMemo(() => {
-    if (myGroups.length === 0) return null;
-    const active = myGroups.find((g) => g.status === "ACTIVE");
-    return active || myGroups[0];
-  }, [myGroups]);
-
-  // Set initial selected group ID for board view
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (activeGroup && !selectedGroupId) {
-      setSelectedGroupId(String(activeGroup.id));
+    setDetailTaskId(null);
+    setDetailGroupId(null);
+  }, [activeGroup?.id]);
+
+  useEffect(() => {
+    if (!initialGroupId || !initialTaskId || activeGroup?.id !== initialGroupId) {
+      return;
     }
-  }, [activeGroup, selectedGroupId]);
+    if (storedActiveGroupId !== initialGroupId) {
+      setActiveGroupId(initialGroupId);
+    }
+    setDetailGroupId(initialGroupId);
+    setDetailTaskId(initialTaskId);
+  }, [
+    activeGroup?.id,
+    initialGroupId,
+    initialTaskId,
+    setActiveGroupId,
+    storedActiveGroupId,
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Refetch list when tab switches to "list"
@@ -82,18 +111,18 @@ export function StudentTasksPage() {
   }, [activeTab, refetchMyTasks]);
 
   const handleRowClick = (taskId: number, taskGroupId: number | null) => {
-    // If taskGroupId is not returned, we fallback to the listGroupId, then activeGroup, then selectedGroupId
+    // If taskGroupId is not returned, fall back to the shared group context.
     const finalGroupId =
       taskGroupId ||
-      (listGroupId ? Number(listGroupId) : null) ||
-      (activeGroup ? Number(activeGroup.id) : null) ||
-      (selectedGroupId ? Number(selectedGroupId) : null);
+      (activeGroup ? Number(activeGroup.id) : null);
       
     if (finalGroupId) {
       setDetailTaskId(taskId);
       setDetailGroupId(finalGroupId);
     } else {
-      alert("Cannot open task detail because task is not associated with a valid group.");
+      toast.error(
+        "Cannot open task detail because the task is not associated with a valid group.",
+      );
     }
   };
 
@@ -118,7 +147,7 @@ export function StudentTasksPage() {
         {/* Tab triggers */}
         <div
           aria-label="Task views"
-          className="flex w-fit min-w-0 max-w-full snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-surface-base p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[480px]:w-full"
+          className="flex w-fit min-w-0 max-w-full snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-surface p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-[480px]:w-full"
           role="tablist"
         >
           <button
@@ -164,19 +193,18 @@ export function StudentTasksPage() {
           
           <CardContent className="space-y-6">
             {/* Filters Row */}
-            <div className="grid grid-cols-1 items-end gap-3 rounded-2xl border border-border bg-surface-base p-4 min-[640px]:grid-cols-2 min-[1100px]:grid-cols-5">
+            <div className="grid grid-cols-1 items-end gap-3 rounded-2xl border border-border bg-surface p-4 min-[640px]:grid-cols-2 min-[1100px]:grid-cols-5">
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Group Project
                 </label>
                 <Select
-                  value={listGroupId}
+                  value={activeGroup?.id ?? ""}
                   onChange={(e) => {
-                    setListGroupId(e.target.value);
+                    setActiveGroupId(Number(e.target.value));
                     setListPage(0);
                   }}
                 >
-                  <option value="">All Groups</option>
                   {myGroups.map((g) => (
                     <option key={g.id} value={String(g.id)}>
                       {g.groupNo} - {g.name}
@@ -186,7 +214,7 @@ export function StudentTasksPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Task Status
                 </label>
                 <Select
@@ -206,7 +234,7 @@ export function StudentTasksPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Task Priority
                 </label>
                 <Select
@@ -225,7 +253,7 @@ export function StudentTasksPage() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Due Before
                 </label>
                 <input
@@ -256,7 +284,6 @@ export function StudentTasksPage() {
                 <Button
                   className="min-[640px]:col-span-2 min-[1100px]:col-span-5 min-[1100px]:justify-self-end"
                   onClick={() => {
-                    setListGroupId("");
                     setListStatus("");
                     setListPriority("");
                     setListDueBefore("");
@@ -278,20 +305,20 @@ export function StudentTasksPage() {
                 <div className="hidden w-full overflow-x-auto rounded-xl border border-border min-[761px]:block">
                   <table className="w-full border-collapse text-left">
                     <thead>
-                      <tr className="border-b border-border bg-surface-base">
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <tr className="border-b border-border bg-surface">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Task
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Status
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Priority
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">
                           Due Date
                         </th>
-                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">
+                        <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted text-right">
                           Actions
                         </th>
                       </tr>
@@ -308,7 +335,7 @@ export function StudentTasksPage() {
                               {task.title}
                             </div>
                             {task.description && (
-                              <div className="mt-1 text-xs text-muted-foreground/60 line-clamp-1 max-w-[300px]">
+                              <div className="mt-1 text-xs text-muted/60 line-clamp-1 max-w-[300px]">
                                 {task.description}
                               </div>
                             )}
@@ -413,8 +440,8 @@ export function StudentTasksPage() {
             <div className="grid w-fit max-w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 shadow-sm min-[641px]:grid-cols-[auto_minmax(280px,1fr)] max-[640px]:w-full">
               <span className="break-words text-sm font-bold text-muted">Select Group Project:</span>
               <Select
-                value={selectedGroupId}
-                onChange={(e) => setSelectedGroupId(e.target.value)}
+                value={activeGroup?.id ?? ""}
+                onChange={(e) => setActiveGroupId(Number(e.target.value))}
                 className="min-w-0 max-[640px]:w-full"
               >
                 {myGroups.map((g) => (
@@ -427,10 +454,10 @@ export function StudentTasksPage() {
           )}
 
           {/* Render Board */}
-          {selectedGroupId ? (
+          {activeGroup ? (
             <KanbanBoard
-              groupId={Number(selectedGroupId)}
-              key={selectedGroupId}
+              groupId={Number(activeGroup.id)}
+              key={activeGroup.id}
             />
           ) : isGroupsLoading ? (
             <LoadingState title="Loading your group info..." />

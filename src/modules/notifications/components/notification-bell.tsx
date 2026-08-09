@@ -1,7 +1,8 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Bell, CheckCheck, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
@@ -12,23 +13,18 @@ import {
 import { useDialogAccessibility } from "@/shared/hooks";
 
 import {
-  useMarkAllNotificationsRead,
-  useMarkNotificationRead,
-  useNotifications,
-  useUnreadNotificationCount,
-} from "../hooks";
+  useNotificationCenter,
+} from "./notification-center-provider";
+import { useAuthStore } from "@/modules/auth";
+import {
+  unlockNotificationSound,
+} from "../lib/notification-sound";
 import type { NotificationDto } from "../types";
 import {
   getNotificationErrorMessage,
-  isSafeNotificationActionUrl,
+  resolveNotificationDestination,
 } from "./notification-utils";
 import { NotificationListItem } from "./notification-list-item";
-
-const recentNotificationsQuery = {
-  page: 0,
-  size: 5,
-  unreadOnly: true,
-} as const;
 
 function formatUnreadCount(count: number) {
   return count > 99 ? "99+" : String(count);
@@ -36,20 +32,35 @@ function formatUnreadCount(count: number) {
 
 export function NotificationBell() {
   const router = useRouter();
+  const role = useAuthStore((state) => state.session?.user.role ?? "STUDENT");
   const popoverId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [actionError, setActionError] = useState("");
-  const unreadCountQuery = useUnreadNotificationCount();
-  const notificationsQuery = useNotifications(recentNotificationsQuery);
-  const markReadMutation = useMarkNotificationRead();
-  const markAllMutation = useMarkAllNotificationsRead();
-  const notifications = notificationsQuery.data?.data.content ?? [];
-  const unreadCount = unreadCountQuery.data?.data ?? 0;
+  const {
+    notifications,
+    unreadCount,
+    notificationsQuery,
+    unreadCountQuery,
+    markReadMutation,
+    markAllMutation,
+  } = useNotificationCenter();
   const isMutating = markReadMutation.isPending || markAllMutation.isPending;
   const dialogRef = useDialogAccessibility<HTMLElement>(() => setIsOpen(false), {
     active: isOpen,
   });
+
+  useEffect(() => {
+    const unlock = () => unlockNotificationSound();
+
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("keydown", unlock);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   async function activateNotification(notification: NotificationDto) {
     setActionError("");
@@ -61,9 +72,10 @@ export function NotificationBell() {
         setFeedback("Notification marked as read.");
       }
 
-      if (isSafeNotificationActionUrl(notification.actionUrl)) {
+      const destination = resolveNotificationDestination(notification, role);
+      if (destination) {
         setIsOpen(false);
-        router.push(notification.actionUrl);
+        router.push(destination);
       }
     } catch (error) {
       setActionError(getNotificationErrorMessage(error));
@@ -188,15 +200,24 @@ export function NotificationBell() {
             ) : (
               <span className="text-xs text-muted">{unreadCount} unread</span>
             )}
-            <Button
-              disabled={isMutating || unreadCount === 0}
-              icon={<CheckCheck size={16} />}
-              onClick={markAllRead}
-              size="sm"
-              variant="secondary"
-            >
-              {markAllMutation.isPending ? "Marking..." : "Mark all read"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2 max-[480px]:grid">
+              <Link
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border px-3 text-sm font-semibold text-foreground transition-colors hover:bg-background"
+                href={`/${role.toLowerCase()}/notifications`}
+                onClick={() => setIsOpen(false)}
+              >
+                View all
+              </Link>
+              <Button
+                disabled={isMutating || unreadCount === 0}
+                icon={<CheckCheck size={16} />}
+                onClick={markAllRead}
+                size="sm"
+                variant="secondary"
+              >
+                {markAllMutation.isPending ? "Marking..." : "Mark all read"}
+              </Button>
+            </div>
           </footer>
           </section>
         </>

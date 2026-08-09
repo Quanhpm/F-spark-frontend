@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/shared/lib";
 import {
   Button,
@@ -64,7 +65,7 @@ export function AdminProblemsPage() {
 
     const extension = file.name.split(".").pop()?.toLowerCase();
     if (extension !== "csv" && extension !== "xlsx") {
-      alert("Invalid file format. Please upload a CSV or XLSX file.");
+      toast.error("Invalid file format. Please upload a CSV or XLSX file.");
       return;
     }
 
@@ -72,16 +73,13 @@ export function AdminProblemsPage() {
       importMutation.mutate(file, {
         onSuccess: (response) => {
           const res = response.data;
-          alert(
-            `Import batch completed successfully!\n` +
-            `- Total Rows: ${res.totalRows}\n` +
-            `- Success Rows: ${res.successRows}\n` +
-            `- Failed Rows: ${res.failedRows}`
-          );
+          toast.success("Import batch completed successfully.", {
+            description: `${res.successRows} of ${res.totalRows} rows imported; ${res.failedRows} failed.`,
+          });
           e.target.value = "";
         },
         onError: (err) => {
-          alert(`Import failed: ${err.message}`);
+          toast.error(`Import failed: ${err.message}`);
           e.target.value = "";
         },
       });
@@ -206,14 +204,14 @@ export function AdminProblemsPage() {
               <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm max-[760px]:hidden">
                 <table className="w-full border-collapse text-left">
                   <thead>
-                    <tr className="border-b border-border bg-surface-base">
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Code</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground font-semibold">Title</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Domain</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Difficulty</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Source</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Actions</th>
+                    <tr className="border-b border-border bg-surface">
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Code</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted font-semibold">Title</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Domain</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Difficulty</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Source</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted">Status</th>
+                      <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border text-sm">
@@ -229,7 +227,7 @@ export function AdminProblemsPage() {
                         <td className="px-5 py-3.5 font-bold text-foreground max-w-xs truncate">
                           {prob.title}
                         </td>
-                        <td className="px-5 py-3.5 text-muted-foreground">
+                        <td className="px-5 py-3.5 text-muted">
                           {prob.domainCode}
                         </td>
                         <td className="px-5 py-3.5">
@@ -419,7 +417,7 @@ export function AdminProblemsPage() {
       {isCreating && (
         <AdminProblemForm
           onClose={() => setIsCreating(false)}
-          onSuccess={() => alert("Official topic created successfully.")}
+          onSuccess={() => toast.success("Official topic created successfully.")}
         />
       )}
 
@@ -429,7 +427,7 @@ export function AdminProblemsPage() {
           problemId={activeEditProblemId}
           initialValues={editProblemDetails?.data}
           onClose={() => setActiveEditProblemId(null)}
-          onSuccess={() => alert("Thesis topic updated successfully.")}
+          onSuccess={() => toast.success("Thesis topic updated successfully.")}
         />
       )}
 
@@ -442,7 +440,9 @@ export function AdminProblemsPage() {
             setActiveReviewProblemId(null);
             setActiveReviewProblemTitle("");
           }}
-          onSuccess={() => alert("Proposal review completed successfully.")}
+          onSuccess={() =>
+            toast.success("Proposal review completed successfully.")
+          }
         />
       )}
     </div>

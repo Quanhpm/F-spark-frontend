@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarClock, CheckCircle2, ClipboardList, Users } from "lucide-react";
+import { useState } from "react";
+import { CalendarClock, Users } from "lucide-react";
 
 import {
   Badge,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   EmptyState,
   LoadingState,
+  Select,
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 
@@ -17,6 +19,7 @@ import {
   useMentorDashboardMeetings,
 } from "../hooks";
 import type { DashboardGroupProgressDto, DashboardMeetingDto } from "../types";
+import type { MeetingStatus } from "@/shared/types";
 
 function getErrorMessage(error: unknown) {
   return error instanceof ApiError
@@ -29,10 +32,6 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function MentorStat({
@@ -54,6 +53,12 @@ function MentorStat({
   );
 }
 
+function getMeetingStatusTone(status: MeetingStatus) {
+  if (status === "COMPLETED") return "success";
+  if (status === "CANCELED") return "danger";
+  return "warning";
+}
+
 function MeetingCard({ meeting }: { meeting: DashboardMeetingDto }) {
   return (
     <article className="grid gap-2 rounded-xl border border-border bg-surface p-4">
@@ -66,7 +71,7 @@ function MeetingCard({ meeting }: { meeting: DashboardMeetingDto }) {
             {meeting.groupNo} - {meeting.mentorName}
           </p>
         </div>
-        <Badge tone={meeting.status === "SCHEDULED" ? "success" : "danger"}>
+        <Badge tone={getMeetingStatusTone(meeting.status)}>
           {meeting.status}
         </Badge>
       </div>
@@ -109,9 +114,16 @@ export function getMentorDashboardSummary(groups: DashboardGroupProgressDto[]) {
 export function MentorDashboardSection() {
   const groupsQuery = useMentorDashboardGroups();
   const meetingsQuery = useMentorDashboardMeetings();
+  const [meetingStatusFilter, setMeetingStatusFilter] = useState<
+    MeetingStatus | "ALL"
+  >("ALL");
 
   const groups = groupsQuery.data?.data ?? [];
   const meetings = meetingsQuery.data?.data ?? [];
+  const filteredMeetings =
+    meetingStatusFilter === "ALL"
+      ? meetings
+      : meetings.filter((meeting) => meeting.status === meetingStatusFilter);
   const summary = getMentorDashboardSummary(groups);
 
   return (
@@ -146,44 +158,8 @@ export function MentorDashboardSection() {
                 <MentorStat label="Overdue" value={summary.overdueTasks} />
                 <MentorStat
                   label="Progress"
-                  value={`${clampPercent(summary.progressPercent)}%`}
+                  value={`${summary.progressPercent}%`}
                 />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 max-[960px]:grid-cols-2 max-[760px]:grid-cols-1">
-                {groups.slice(0, 4).map((group) => (
-                  <div
-                    className="grid gap-2 rounded-xl border border-border bg-surface p-4"
-                    key={group.groupId}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="grid min-w-0 gap-1">
-                        <strong className="break-words text-sm text-foreground">
-                          {group.groupName}
-                        </strong>
-                        <span className="break-words text-xs text-muted">
-                          {group.completedTasks}/{group.totalTasks} tasks done
-                        </span>
-                      </div>
-                      <ClipboardList
-                        className="text-brand-primary"
-                        size={18}
-                      />
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-background">
-                      <div
-                        className="h-full rounded-full bg-brand-primary"
-                        style={{
-                          width: `${clampPercent(group.progressPercent)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs text-muted">
-                      <CheckCircle2 size={14} />
-                      {clampPercent(group.progressPercent)}% complete
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -192,6 +168,24 @@ export function MentorDashboardSection() {
 
       <Card>
         <CardHeader
+          actions={
+            <Select
+              aria-label="Filter upcoming meetings by status"
+              fieldClassName="w-full min-[761px]:w-[190px]"
+              id="mentor-meeting-status-filter"
+              onChange={(event) =>
+                setMeetingStatusFilter(
+                  event.target.value as MeetingStatus | "ALL",
+                )
+              }
+              value={meetingStatusFilter}
+            >
+              <option value="ALL">All statuses</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="CANCELED">Canceled</option>
+              <option value="COMPLETED">Completed</option>
+            </Select>
+          }
           description="Review the next scheduled sessions across your assigned groups."
           title="Upcoming meetings"
         />
@@ -205,9 +199,9 @@ export function MentorDashboardSection() {
               icon={<CalendarClock size={22} />}
               title="Meetings unavailable"
             />
-          ) : meetings.length > 0 ? (
+          ) : filteredMeetings.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3">
-              {meetings.map((meeting) => (
+              {filteredMeetings.map((meeting) => (
                 <MeetingCard key={meeting.id} meeting={meeting} />
               ))}
             </div>
@@ -215,7 +209,11 @@ export function MentorDashboardSection() {
             <EmptyState
               className="min-h-40"
               icon={<Users size={22} />}
-              title="No upcoming meetings"
+              title={
+                meetingStatusFilter === "ALL"
+                  ? "No upcoming meetings"
+                  : `No ${meetingStatusFilter.toLowerCase()} meetings`
+              }
             />
           )}
         </CardContent>

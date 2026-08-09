@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useId, useState } from "react";
+import { toast } from "sonner";
 import {
   Button,
   ResponsiveDialog,
@@ -64,7 +65,9 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !statement.trim() || !domainCode) {
-      alert("Please fill in all required fields (Title, Statement, and Domain).");
+      toast.error(
+        "Please fill in all required fields: Title, Statement, and Domain.",
+      );
       return;
     }
 
@@ -158,7 +161,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
 
             <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Select Domain *
                 </label>
                 <Select
@@ -176,7 +179,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Difficulty Level
                 </label>
                 <Select
@@ -190,7 +193,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Status
                 </label>
                 <Select
@@ -205,7 +208,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Problem Description / Statement *
               </label>
               <textarea
@@ -218,7 +221,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                 Expected Deliverables
               </label>
               <textarea

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useId, useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Badge,
   Button,
@@ -10,6 +11,7 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
+  ResponsiveDialog,
   TextInput,
 } from "@/shared/components";
 import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-react";
@@ -32,6 +34,7 @@ function GradeModal({
   milestoneTitle,
   onClose,
 }: GradeModalProps) {
+  const formId = useId();
   const { data: matrixResponse, isLoading } = useGroupGradeMatrix(groupId);
   const matrix = matrixResponse?.data;
 
@@ -51,14 +54,13 @@ function GradeModal({
       setFeedback(column.groupGrade.feedback ?? "");
     }
   }, [column]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const gradeMutation = useGradeGroup(milestoneId, groupId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (score < 0 || score > maxScore) {
-      alert(`Score must be between 0 and ${maxScore}.`);
+      toast.error(`Score must be between 0 and ${maxScore}.`);
       return;
     }
 
@@ -69,40 +71,52 @@ function GradeModal({
       },
       {
         onSuccess: () => {
-          alert("Grade submitted successfully.");
+          toast.success("Grade submitted successfully.");
           onClose();
         },
         onError: (err) => {
-          alert(`Failed to submit grade: ${err.message}`);
+          toast.error(`Failed to submit grade: ${err.message}`);
         },
       }
     );
   };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-[rgba(26,26,26,0.36)]" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 z-50 w-[min(540px,100%)] bg-surface shadow-2xl border-l border-border flex flex-col">
-        <header className="border-b border-border px-6 py-5 flex items-center justify-between bg-surface-base">
-          <div>
-            <h3 className="m-0 text-base font-bold text-foreground">
-              Grade Group Milestone
-            </h3>
-            <p className="m-0 text-xs text-muted">
-              {groupName} &bull; {milestoneTitle}
-            </p>
-          </div>
-          <Button variant="ghost" onClick={onClose} size="sm">
-            Close
+    <ResponsiveDialog
+      bodyClassName="p-4 min-[761px]:p-6"
+      className="max-[760px]:pt-[env(safe-area-inset-top)]"
+      closeLabel="Close grading form"
+      desktopMode="drawer"
+      footer={
+        <>
+          <Button
+            disabled={gradeMutation.isPending}
+            onClick={onClose}
+            type="button"
+            variant="secondary"
+          >
+            Cancel
           </Button>
-        </header>
-
+          <Button
+            disabled={gradeMutation.isPending || !isContributionsComplete}
+            form={formId}
+            type="submit"
+          >
+            {gradeMutation.isPending ? "Submitting..." : "Save Grade"}
+          </Button>
+        </>
+      }
+      mobileMode="fullscreen"
+      onClose={onClose}
+      title="Grade Group Milestone"
+      description={`${groupName} · ${milestoneTitle}`}
+    >
         {isLoading ? (
-          <div className="flex-1 grid place-items-center">
+          <div className="grid min-h-60 place-items-center">
             <LoadingState title="Loading grade matrix..." />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          <form className="grid gap-6" id={formId} onSubmit={handleSubmit}>
             <div className="grid gap-4 rounded-xl border border-border bg-background p-4">
               <h4 className="m-0 text-sm font-bold text-foreground">Group Members &amp; Contributions</h4>
               <div className="divide-y divide-border/60">
@@ -150,35 +164,33 @@ function GradeModal({
               />
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Feedback / Comments
                 </label>
                 <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="Enter comments, suggestions or required updates for this milestone..."
-                  className="w-full rounded-xl border border-border bg-surface p-3 text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none min-h-[120px] disabled:bg-neutral-50/80 disabled:cursor-not-allowed disabled:text-muted-foreground"
+                  className="min-h-[120px] w-full rounded-xl border border-border bg-surface p-3 text-base text-foreground outline-none transition-[border-color,box-shadow] focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] min-[761px]:text-sm disabled:bg-neutral-50/80 disabled:cursor-not-allowed"
                   disabled={!isContributionsComplete}
                 />
               </div>
             </div>
-
-            <div className="flex justify-end gap-3 pt-6 border-t border-border">
-              <Button type="button" variant="secondary" onClick={onClose} disabled={gradeMutation.isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={gradeMutation.isPending || !isContributionsComplete}>
-                {gradeMutation.isPending ? "Submitting..." : "Save Grade"}
-              </Button>
-            </div>
           </form>
         )}
-      </div>
-    </>
+    </ResponsiveDialog>
   );
 }
 
-export function InstructorGradingPage() {
+type InstructorGradingPageProps = {
+  initialGroupId?: number | null;
+  initialMilestoneId?: number | null;
+};
+
+export function InstructorGradingPage({
+  initialGroupId,
+  initialMilestoneId,
+}: InstructorGradingPageProps = {}) {
   const [term, setTerm] = useState("SU24");
   const [courseCode, setCourseCode] = useState("EXE101");
 
@@ -244,6 +256,21 @@ export function InstructorGradingPage() {
     return list;
   }, [milestoneStatuses]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!initialGroupId || !initialMilestoneId) return;
+    const group = groupedData.find((item) => item.groupId === initialGroupId);
+    const status = group?.milestones[initialMilestoneId];
+    if (!group || !status) return;
+    setActiveGradeModal({
+      groupId: group.groupId,
+      groupName: group.groupName,
+      milestoneId: initialMilestoneId,
+      milestoneTitle: status.milestoneTitle,
+    });
+  }, [groupedData, initialGroupId, initialMilestoneId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   const handleExportCsv = () => {
     exportMutation.mutate({ term, courseCode });
   };
@@ -294,10 +321,10 @@ export function InstructorGradingPage() {
           <div className="overflow-x-auto border-t border-border">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-border bg-surface-base">
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground w-48">Group</th>
+                <tr className="border-b border-border bg-surface">
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted w-48">Group</th>
                   {milestonesList.map((m) => (
-                    <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground min-w-44" key={m.milestoneId}>
+                    <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted min-w-44" key={m.milestoneId}>
                       {m.milestoneTitle}
                     </th>
                   ))}

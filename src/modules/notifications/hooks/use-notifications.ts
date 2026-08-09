@@ -21,17 +21,24 @@ function invalidateNotificationData(
   });
 }
 
-export function useNotifications(query: NotificationListQuery = {}) {
+export function useNotifications(
+  query: NotificationListQuery = {},
+  options: { refetchInterval?: number | false } = {},
+) {
   return useQuery({
     queryFn: () => listNotifications(query),
     queryKey: queryKeys.notifications.list(query),
+    ...options,
   });
 }
 
-export function useUnreadNotificationCount() {
+export function useUnreadNotificationCount(
+  options: { refetchInterval?: number | false } = {},
+) {
   return useQuery({
     queryFn: getUnreadNotificationCount,
     queryKey: queryKeys.notifications.unreadCount(),
+    ...options,
   });
 }
 

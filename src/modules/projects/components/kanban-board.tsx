@@ -71,9 +71,9 @@ function getMilestonesForCourse(courseCode: string): {
     return {
       milestoneLabel: "OUTCOMES",
       milestones: [
-        { id: "oc1", label: "Outcome 1", tone: "bg-emerald-400" },
-        { id: "oc2", label: "Outcome 2", tone: "bg-indigo-500" },
-        { id: "oc3", label: "Outcome 3", tone: "bg-amber-500" },
+        { id: "oc1", label: "Outcome 1", tone: "bg-brand-primary" },
+        { id: "oc2", label: "Outcome 2", tone: "bg-brand-secondary" },
+        { id: "oc3", label: "Outcome 3", tone: "bg-border" },
       ],
     };
   }
@@ -81,10 +81,10 @@ function getMilestonesForCourse(courseCode: string): {
   return {
     milestoneLabel: "CHECKPOINTS",
     milestones: [
-      { id: "cp1", label: "Checkpoint 1", tone: "bg-emerald-400" },
-      { id: "cp2", label: "Checkpoint 2", tone: "bg-indigo-500" },
-      { id: "cp3", label: "Checkpoint 3", tone: "bg-amber-500" },
-      { id: "cp4", label: "Checkpoint 4", tone: "bg-purple-500" },
+      { id: "cp1", label: "Checkpoint 1", tone: "bg-brand-primary" },
+      { id: "cp2", label: "Checkpoint 2", tone: "bg-brand-secondary" },
+      { id: "cp3", label: "Checkpoint 3", tone: "bg-border" },
+      { id: "cp4", label: "Checkpoint 4", tone: "bg-surface-warm" },
     ],
   };
 }
@@ -505,7 +505,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
   }
 
   return (
-    <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-[#e8eaee] shadow-sm">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-background shadow-card">
       <div className="border-b border-border bg-surface px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2.5 max-[640px]:w-full max-[640px]:snap-x max-[640px]:flex-nowrap max-[640px]:overflow-x-auto max-[640px]:overscroll-x-contain max-[640px]:[scrollbar-width:none] max-[640px]:[&::-webkit-scrollbar]:hidden">
@@ -531,7 +531,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                   className={cn(
                     "inline-flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-xl border px-3 text-xs font-bold transition-[background,border-color,color,box-shadow] min-[641px]:h-9 min-[641px]:min-h-0",
                     isActive
-                      ? "border-brand-secondary/30 bg-[#eef2ff] text-brand-primary shadow-sm"
+                      ? "border-brand-secondary/40 bg-brand-primary/5 text-brand-primary shadow-card"
                       : isCreated
                         ? "border-border bg-surface text-muted hover:border-brand-secondary/30 hover:text-foreground"
                         : "border-dashed border-border bg-surface text-muted hover:border-brand-primary hover:text-brand-primary",
@@ -541,7 +541,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                   <span
                     className={cn(
                       "size-2 rounded-full",
-                      isCreated ? milestone.tone : "bg-slate-300",
+                      isCreated ? milestone.tone : "bg-border",
                     )}
                   />
                   {milestone.label}
@@ -560,7 +560,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                   className={cn(
                     "inline-flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-xl border px-3 text-xs font-bold transition-[background,border-color,color,box-shadow] min-[641px]:h-9 min-[641px]:min-h-0",
                     isActive
-                      ? "border-brand-secondary/30 bg-[#eef2ff] text-brand-primary shadow-sm"
+                      ? "border-brand-secondary/40 bg-brand-primary/5 text-brand-primary shadow-card"
                       : "border-border bg-surface text-muted hover:border-brand-secondary/30 hover:text-foreground",
                   )}
                 >
@@ -587,7 +587,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
 
           <div className="flex flex-wrap items-center gap-3 max-[480px]:grid max-[480px]:w-full max-[480px]:[&>button]:w-full">
             <div className="flex items-center gap-2 text-xs font-bold text-muted">
-              <Circle className="size-2 fill-emerald-400 text-emerald-400" />
+              <Circle className="size-2 fill-brand-primary text-brand-primary" />
               <span>{board.activeTaskCount} active</span>
               <span className="text-border">/</span>
               <span className={cn(board.overdueTaskCount > 0 && "text-red-600")}>
@@ -617,7 +617,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div
             aria-label="Board views"
-            className="inline-flex max-w-full snap-x overflow-x-auto rounded-xl border border-border bg-surface-base p-1"
+            className="inline-flex max-w-full snap-x overflow-x-auto rounded-xl border border-border bg-background p-1"
             role="tablist"
           >
             {boardViews.map((view) => (
@@ -689,7 +689,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
         </div>
       </div>
 
-      <div className="min-h-[560px] min-w-0 max-w-full overflow-hidden bg-[#e8eaee] p-4 sm:p-5">
+      <div className="min-h-[560px] min-w-0 max-w-full overflow-hidden bg-background p-4 sm:p-5">
         {renderActiveView()}
       </div>
 
@@ -750,7 +750,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
               />
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted uppercase">
                   Description
                 </label>
                 <textarea
@@ -763,7 +763,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
 
               <div className="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted uppercase">
                     Priority
                   </label>
                   <Select
@@ -780,7 +780,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                  <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted uppercase">
                     Due Date
                   </label>
                   <DateTimeInput
@@ -801,7 +801,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
               )}
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                <label className="mb-1.5 block text-xs font-bold tracking-wider text-muted uppercase">
                   Assign Task
                 </label>
                 {group?.members && group.members.length > 0 ? (
@@ -831,7 +831,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-xs text-muted-foreground/60 italic">
+                  <div className="text-xs text-muted/60 italic">
                     Loading group members...
                   </div>
                 )}

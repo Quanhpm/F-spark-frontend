@@ -5,7 +5,12 @@ import type { EntityId } from "@/shared/types";
 
 export function useGroupProposals(groupId: EntityId) {
   return useQuery({
-    queryKey: [...queryKeys.problems.all, "groups", groupId, "proposals"],
+    queryKey: [
+      ...queryKeys.problems.all,
+      "groups",
+      Number(groupId),
+      "proposals",
+    ],
     queryFn: () => getGroupProposals(groupId),
     enabled: !!groupId,
   });

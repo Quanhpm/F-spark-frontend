@@ -3,9 +3,11 @@ import {
   apiGet,
   apiPatch,
   apiPost,
+  apiPut,
   apiUpload,
 } from "@/shared/lib";
 import type { ApiResponse, EmptyApiResponse, EntityId, PageResponse } from "@/shared/types";
+import type { GroupDetailDto } from "@/modules/groups/types";
 import type {
   CreateOfficialProblemRequest,
   CreateProblemDomainRequest,
@@ -35,7 +37,7 @@ export function getProblem(id: EntityId) {
 }
 
 export function selectGroupProblem(groupId: EntityId, payload: SelectProblemRequest) {
-  return apiPost<ApiResponse<unknown>>(
+  return apiPost<ApiResponse<GroupDetailDto>>(
     `/api/groups/${groupId}/problems/select`,
     payload,
   );
@@ -57,6 +59,26 @@ export function proposeGroupProblem(groupId: EntityId, payload: ProposeProblemRe
 export function getGroupProposals(groupId: EntityId) {
   return apiGet<ApiResponse<ProblemSummaryDto[]>>(
     `/api/groups/${groupId}/problems/proposals`,
+  );
+}
+
+export function updatePendingGroupProposal(
+  groupId: EntityId,
+  problemId: EntityId,
+  payload: ProposeProblemRequest,
+) {
+  return apiPut<ApiResponse<ProblemDetailDto>>(
+    `/api/groups/${groupId}/problems/proposals/${problemId}`,
+    payload,
+  );
+}
+
+export function deletePendingGroupProposal(
+  groupId: EntityId,
+  problemId: EntityId,
+) {
+  return apiDelete<EmptyApiResponse>(
+    `/api/groups/${groupId}/problems/proposals/${problemId}`,
   );
 }
 

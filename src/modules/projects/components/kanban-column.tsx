@@ -54,11 +54,11 @@ export function KanbanColumn({
   };
 
   const statusDotClassNames: Record<TaskStatus, string> = {
-    BACKLOG: "border-slate-300 bg-white",
-    TODO: "border-blue-300 bg-white",
-    IN_PROGRESS: "border-yellow-400 bg-yellow-50",
-    REVIEW: "border-indigo-400 bg-indigo-50",
-    DONE: "border-slate-900 bg-slate-900",
+    BACKLOG: "border-border bg-surface",
+    TODO: "border-brand-primary/60 bg-brand-primary/10",
+    IN_PROGRESS: "border-brand-secondary bg-brand-secondary/15",
+    REVIEW: "border-brand-primary bg-brand-primary/10",
+    DONE: "border-foreground bg-foreground",
   };
 
   return (
@@ -67,14 +67,14 @@ export function KanbanColumn({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={cn(
-        "flex h-full min-h-[460px] w-[88vw] max-w-[340px] shrink-0 snap-start flex-col rounded-2xl border border-white/80 bg-[#f7f7f8] p-3 shadow-sm transition-colors duration-200 min-[761px]:min-h-[535px] min-[761px]:w-[292px] min-[761px]:max-w-none",
+        "flex h-full min-h-[460px] w-[88vw] max-w-[340px] shrink-0 snap-start flex-col rounded-2xl border border-border bg-background p-3 shadow-card transition-colors duration-200 min-[761px]:min-h-[535px] min-[761px]:w-[292px] min-[761px]:max-w-none",
         isDragOver && "border-dashed border-brand-primary bg-brand-primary/5"
       )}
     >
       <div className="flex items-center justify-between pb-3">
         <div className="flex min-w-0 items-center gap-2">
           {status === "DONE" ? (
-            <CheckCircle2 className="size-4 fill-slate-900 text-surface" />
+            <CheckCircle2 className="size-4 fill-foreground text-surface" />
           ) : (
             <span
               className={cn(
@@ -86,7 +86,7 @@ export function KanbanColumn({
           <h3 className="m-0 min-w-0 break-words text-sm font-extrabold text-foreground">
             {label}
           </h3>
-          <span className="inline-flex size-5 items-center justify-center rounded-full bg-[#edf1f7] text-[11px] font-extrabold text-muted">
+          <span className="inline-flex size-5 items-center justify-center rounded-full bg-surface-warm text-[11px] font-extrabold text-muted">
             {tasks.length}
           </span>
         </div>

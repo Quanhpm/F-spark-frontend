@@ -1,18 +1,16 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarClock,
+  CheckCircle2,
+  Clock3,
   Eye,
   Users,
   XCircle,
 } from "lucide-react";
 
-import {
-  MentorDashboardSection,
-  useMentorDashboardGroups,
-} from "@/modules/dashboards";
-import type { DashboardGroupProgressDto } from "@/modules/dashboards";
+import { MentorDashboardSection } from "@/modules/dashboards";
 import { useCancelMeeting, useGroupMeetings, useConfirmMeeting } from "@/modules/mentoring";
 import type { MentorMeetingDto } from "@/modules/mentoring";
 import {
@@ -20,10 +18,12 @@ import {
   Button,
   Card,
   CardContent,
+  CardHeader,
   EmptyState,
   LoadingState,
   PageHeader,
   ResponsiveDialog,
+  TextInput,
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import type { GroupStatus } from "@/shared/types";
@@ -33,8 +33,6 @@ import type { GroupDetailDto, GroupSummaryDto } from "../../types";
 import { ConfirmDialog } from "../student/confirm-dialog";
 
 const pageClassName = "grid min-w-0 gap-6";
-const gridClassName =
-  "grid grid-cols-3 gap-4 max-[960px]:grid-cols-2 max-[760px]:grid-cols-1";
 const errorPanelClassName =
   "rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm leading-normal text-red-700";
 const detailGridClassName =
@@ -64,10 +62,6 @@ function getGroupStatusTone(status: GroupStatus) {
   return status === "ACTIVE" ? "success" : "neutral";
 }
 
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
 function InfoItem({
   label,
   value,
@@ -83,45 +77,21 @@ function InfoItem({
   );
 }
 
-function ProgressSummary({
-  progress,
-}: {
-  progress?: DashboardGroupProgressDto;
-}) {
-  if (!progress) return null;
-
-  return (
-    <div className="grid gap-2 rounded-xl border border-border bg-background px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="min-w-0 break-words text-muted">
-          Tasks: {progress.completedTasks}/{progress.totalTasks} done
-        </span>
-        <strong className="text-foreground">
-          {clampPercent(progress.progressPercent)}%
-        </strong>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-surface">
-        <div
-          className="h-full rounded-full bg-brand-primary transition-all duration-200"
-          style={{ width: `${clampPercent(progress.progressPercent)}%` }}
-        />
-      </div>
-      <div className="flex flex-wrap gap-2 text-xs text-muted">
-        <span>{progress.inProgressTasks} in progress</span>
-        <span>{progress.overdueTasks} overdue</span>
-      </div>
-    </div>
-  );
-}
-
 function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
   const meetingsQuery = useGroupMeetings(group.id);
   const confirmMeetingMutation = useConfirmMeeting();
   const cancelMeetingMutation = useCancelMeeting();
   const meetings = meetingsQuery.data?.data ?? [];
+  const [now, setNow] = useState(() => Date.now());
   const [meetingToCancel, setMeetingToCancel] =
     useState<MentorMeetingDto | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <div className="grid gap-5">
@@ -185,8 +155,9 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
             {meetings.map((meeting) => {
               const leaderConfirmed = meeting.leaderConfirmedAt !== null;
               const mentorConfirmed = meeting.mentorConfirmedAt !== null;
+              const hasStarted = new Date(meeting.startAt).getTime() <= now;
               const canConfirm =
-                meeting.status === "SCHEDULED" && !mentorConfirmed;
+                meeting.status === "SCHEDULED" && hasStarted && !mentorConfirmed;
               const canCancel = meeting.status === "SCHEDULED";
 
               return (
@@ -203,30 +174,38 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     </p>
 
                     {/* Confirmation Status */}
-                    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                    <div className="flex flex-col gap-1.5 text-xs text-muted">
                       <div className="flex items-center gap-1.5">
                         <span>Leader:</span>
-                        <span
-                          className={
-                            leaderConfirmed
-                              ? "font-bold text-green-700"
-                              : "text-muted-foreground"
+                        <Badge
+                          icon={
+                            leaderConfirmed ? (
+                              <CheckCircle2 size={13} />
+                            ) : (
+                              <Clock3 size={13} />
+                            )
                           }
+                          size="sm"
+                          tone={leaderConfirmed ? "success" : "warning"}
                         >
-                          {leaderConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-                        </span>
+                          {leaderConfirmed ? "Confirmed" : "Pending"}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span>Mentor:</span>
-                        <span
-                          className={
-                            mentorConfirmed
-                              ? "font-bold text-green-700"
-                              : "text-muted-foreground"
+                        <Badge
+                          icon={
+                            mentorConfirmed ? (
+                              <CheckCircle2 size={13} />
+                            ) : (
+                              <Clock3 size={13} />
+                            )
                           }
+                          size="sm"
+                          tone={mentorConfirmed ? "success" : "warning"}
                         >
-                          {mentorConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-                        </span>
+                          {mentorConfirmed ? "Confirmed" : "Pending"}
+                        </Badge>
                       </div>
                     </div>
                   </div>
@@ -251,7 +230,7 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     >
                       Meet
                     </Button>
-                    {canConfirm && (
+                    {meeting.status === "SCHEDULED" && (
                       <Button
                         onClick={() =>
                           confirmMeetingMutation.mutate({
@@ -259,12 +238,14 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                             meetingId: meeting.id,
                           })
                         }
-                        disabled={confirmMeetingMutation.isPending}
+                        disabled={!canConfirm || confirmMeetingMutation.isPending}
                         size="sm"
                       >
                         {confirmMeetingMutation.isPending
                           ? "Confirming..."
-                          : "Confirm"}
+                          : mentorConfirmed
+                            ? "Confirmed"
+                            : "Confirm"}
                       </Button>
                     )}
                     {canCancel && (
@@ -273,6 +254,7 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                         icon={<XCircle size={15} />}
                         onClick={() => {
                           setSuccessMessage("");
+                          setCancelReason("");
                           setMeetingToCancel(meeting);
                         }}
                         size="sm"
@@ -292,20 +274,36 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
       {meetingToCancel && (
         <ConfirmDialog
           confirmLabel="Cancel meeting"
+          confirmDisabled={!cancelReason.trim()}
           description={`Cancel the meeting scheduled for ${formatDateTime(
             meetingToCancel.startAt,
           )}?`}
-          onClose={() => setMeetingToCancel(null)}
+          onClose={() => {
+            setCancelReason("");
+            setMeetingToCancel(null);
+          }}
           onConfirm={async () => {
             await cancelMeetingMutation.mutateAsync({
               groupId: group.id,
               meetingId: meetingToCancel.id,
+              reason: cancelReason.trim(),
             });
             setSuccessMessage("Meeting canceled successfully.");
           }}
           title="Cancel mentor meeting"
           tone="danger"
-        />
+        >
+          <TextInput
+            autoFocus
+            id="mentor-meeting-cancel-reason"
+            label="Cancellation reason"
+            maxLength={500}
+            onChange={(event) => setCancelReason(event.target.value)}
+            placeholder="Enter a reason for canceling this meeting"
+            required
+            value={cancelReason}
+          />
+        </ConfirmDialog>
       )}
     </div>
   );
@@ -352,72 +350,154 @@ function MentorGroupDetailModal({
   );
 }
 
-function MentorGroupCard({
-  group,
+function MentorGroupsTable({
+  groups,
   onViewDetails,
-  progress,
 }: {
-  group: GroupSummaryDto;
-  onViewDetails: (trigger: HTMLButtonElement) => void;
-  progress?: DashboardGroupProgressDto;
+  groups: GroupSummaryDto[];
+  onViewDetails: (groupId: number, trigger: HTMLButtonElement) => void;
 }) {
   return (
-    <Card className="flex h-full flex-col transition-all duration-200 ease-in-out hover:shadow-card-interactive">
-      <CardContent className="flex h-full flex-1 flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="m-0 break-words text-[17px] leading-tight font-bold text-foreground">
-              {group.name}
-            </h2>
-            <p className="mt-1 mb-0 break-words text-sm text-muted">
-              {group.groupNo} - {group.term} - {group.courseCode}
-            </p>
-          </div>
-          <Badge tone={getGroupStatusTone(group.status)}>{group.status}</Badge>
-        </div>
-
-        <div className={detailGridClassName}>
-          <InfoItem label="Leader" value={group.leaderName} />
-          <InfoItem label="Members" value={group.memberCount} />
-          <InfoItem label="Project" value={group.projectName} />
-        </div>
-
-        <ProgressSummary progress={progress} />
-
-        {group.selectedProblem && (
-          <div className="break-words rounded-xl border border-border bg-background px-4 py-3 text-sm leading-[1.55] text-muted">
-            <span className="font-medium text-foreground">
-              {group.selectedProblem.code}
-            </span>{" "}
-            {group.selectedProblem.title}
-          </div>
-        )}
-
-        <div className="mt-auto flex justify-end pt-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
-          <Button
-            icon={<Eye size={16} />}
-            onClick={(event) => onViewDetails(event.currentTarget)}
-            size="sm"
-            variant="secondary"
-          >
-            View details
-          </Button>
+    <Card>
+      <CardHeader
+        actions={<Badge tone="neutral">{groups.length} groups</Badge>}
+        description="Compare the groups you currently mentor and open a row for full details."
+        title="Mentor hosted groups"
+      />
+      <CardContent className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] border-collapse text-left">
+            <thead className="bg-background">
+              <tr className="border-b border-border">
+                <th
+                  className="px-5 py-3 text-xs font-bold tracking-[0.04em] text-muted uppercase"
+                  scope="col"
+                >
+                  Group
+                </th>
+                <th
+                  className="px-5 py-3 text-xs font-bold tracking-[0.04em] text-muted uppercase"
+                  scope="col"
+                >
+                  Term / course
+                </th>
+                <th
+                  className="px-5 py-3 text-xs font-bold tracking-[0.04em] text-muted uppercase"
+                  scope="col"
+                >
+                  Leader
+                </th>
+                <th
+                  className="px-5 py-3 text-xs font-bold tracking-[0.04em] text-muted uppercase"
+                  scope="col"
+                >
+                  Members
+                </th>
+                <th
+                  className="px-5 py-3 text-xs font-bold tracking-[0.04em] text-muted uppercase"
+                  scope="col"
+                >
+                  Project
+                </th>
+                <th
+                  className="px-5 py-3 text-xs font-bold tracking-[0.04em] text-muted uppercase"
+                  scope="col"
+                >
+                  Status
+                </th>
+                <th className="px-5 py-3" scope="col">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => (
+                <tr
+                  className="border-b border-border last:border-b-0"
+                  key={group.id}
+                >
+                  <td className="px-5 py-4 align-top">
+                    <div className="grid min-w-[140px] gap-1">
+                      <strong className="break-words text-sm text-foreground">
+                        {group.name}
+                      </strong>
+                      <span className="text-xs text-muted">
+                        {group.groupNo}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 align-top">
+                    <div className="grid gap-1 text-sm text-foreground">
+                      <span>{group.term}</span>
+                      <span className="text-xs text-muted">
+                        {group.courseCode}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 align-top text-sm text-foreground">
+                    {formatNullable(group.leaderName)}
+                  </td>
+                  <td className="px-5 py-4 align-top text-sm text-foreground">
+                    {group.memberCount}
+                  </td>
+                  <td className="max-w-[220px] px-5 py-4 align-top">
+                    <div className="grid gap-1 text-sm text-foreground">
+                      <span className="break-words">
+                        {formatNullable(group.projectName)}
+                      </span>
+                      {group.selectedProblem && (
+                        <span className="break-words text-xs text-muted">
+                          {group.selectedProblem.code}: {group.selectedProblem.title}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 align-top">
+                    <Badge tone={getGroupStatusTone(group.status)}>
+                      {group.status}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4 align-top">
+                    <Button
+                      icon={<Eye size={16} />}
+                      onClick={(event) =>
+                        onViewDetails(group.id, event.currentTarget)
+                      }
+                      size="sm"
+                      variant="secondary"
+                    >
+                      View details
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-export function MentorGroupsPage() {
+export function MentorGroupsPage({
+  initialGroupId,
+}: {
+  initialGroupId?: number | null;
+} = {}) {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mentorGroupsQuery = useMentorGroups();
-  const dashboardGroupsQuery = useMentorDashboardGroups();
-  const groups = mentorGroupsQuery.data?.data ?? [];
-  const progressByGroupId = useMemo(() => {
-    const dashboardGroups = dashboardGroupsQuery.data?.data ?? [];
-    return new Map(dashboardGroups.map((group) => [group.groupId, group]));
-  }, [dashboardGroupsQuery.data?.data]);
+  const groups = useMemo(
+    () => mentorGroupsQuery.data?.data ?? [],
+    [mentorGroupsQuery.data?.data],
+  );
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (initialGroupId && groups.some((group) => group.id === initialGroupId)) {
+      setSelectedGroupId(initialGroupId);
+    }
+  }, [groups, initialGroupId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   const closeGroupDetail = useCallback(() => {
     setSelectedGroupId(null);
     detailTriggerRef.current?.focus();
@@ -426,7 +506,7 @@ export function MentorGroupsPage() {
   return (
     <div className={pageClassName}>
       <PageHeader
-        description="Review assigned groups, members, selected problems, task progress, and scheduled meetings."
+        description="Review assigned groups, members, selected problems, and scheduled meetings."
         eyebrow="Mentor"
         title="My Groups"
       />
@@ -452,19 +532,13 @@ export function MentorGroupsPage() {
           />
         </Card>
       ) : (
-        <div className={gridClassName}>
-          {groups.map((group) => (
-            <MentorGroupCard
-              group={group}
-              key={group.id}
-              onViewDetails={(trigger) => {
-                detailTriggerRef.current = trigger;
-                setSelectedGroupId(group.id);
-              }}
-              progress={progressByGroupId.get(group.id)}
-            />
-          ))}
-        </div>
+        <MentorGroupsTable
+          groups={groups}
+          onViewDetails={(groupId, trigger) => {
+            detailTriggerRef.current = trigger;
+            setSelectedGroupId(groupId);
+          }}
+        />
       )}
 
       {selectedGroupId && (

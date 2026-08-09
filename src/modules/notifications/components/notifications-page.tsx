@@ -15,6 +15,9 @@ import {
 } from "@/shared/components";
 
 import {
+  useAuthStore,
+} from "@/modules/auth";
+import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotifications,
@@ -23,7 +26,7 @@ import {
 import type { NotificationDto } from "../types";
 import {
   getNotificationErrorMessage,
-  isSafeNotificationActionUrl,
+  resolveNotificationDestination,
 } from "./notification-utils";
 import { NotificationListItem } from "./notification-list-item";
 
@@ -31,6 +34,7 @@ const pageSize = 20;
 
 export function NotificationsPage() {
   const router = useRouter();
+  const role = useAuthStore((state) => state.session?.user.role ?? "STUDENT");
   const [page, setPage] = useState(0);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -55,8 +59,9 @@ export function NotificationsPage() {
         setFeedback("Notification marked as read.");
       }
 
-      if (isSafeNotificationActionUrl(notification.actionUrl)) {
-        router.push(notification.actionUrl);
+      const destination = resolveNotificationDestination(notification, role);
+      if (destination) {
+        router.push(destination);
       }
     } catch (error) {
       setActionError(getNotificationErrorMessage(error));
@@ -89,7 +94,7 @@ export function NotificationsPage() {
           </Button>
         }
         description="Review updates about your groups, tasks, meetings, and feedback."
-        eyebrow="Student"
+        eyebrow={role}
         title="Notifications"
       />
 

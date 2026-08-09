@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CalendarClock, CheckCircle2, LinkIcon, XCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarClock, CheckCircle2, Clock3, LinkIcon } from "lucide-react";
 
 import {
   Badge,
@@ -16,7 +16,6 @@ import { ApiError } from "@/shared/lib";
 import {
   useBookMeeting,
   useConfirmMeeting,
-  useCancelMeeting,
   useGroupMeetings,
   useMentorAvailabilityForGroup,
 } from "@/modules/mentoring";
@@ -78,25 +77,49 @@ function getMeetingStatusTone(status: string) {
 }
 
 function MeetingCard({
-  canCancel,
-  isCanceling,
   meeting,
-  onCancel,
   groupId,
   isLeader,
 }: {
-  canCancel: boolean;
-  isCanceling: boolean;
   meeting: MentorMeetingDto;
-  onCancel: (meeting: MentorMeetingDto) => void;
   groupId: number;
   isLeader: boolean;
 }) {
   const confirmMeetingMutation = useConfirmMeeting();
   const leaderConfirmed = meeting.leaderConfirmedAt !== null;
   const mentorConfirmed = meeting.mentorConfirmedAt !== null;
-  const canConfirm =
+  const [hasStarted, setHasStarted] = useState(
+    () => new Date(meeting.startAt).getTime() <= Date.now(),
+  );
+
+  useEffect(() => {
+    const startAt = new Date(meeting.startAt).getTime();
+
+    function updateStartedState() {
+      const started = startAt <= Date.now();
+      setHasStarted(started);
+
+      if (started) {
+        window.clearTimeout(timeoutId);
+        timeoutId = undefined;
+      } else {
+        timeoutId = window.setTimeout(updateStartedState, startAt - Date.now());
+      }
+    }
+
+    let timeoutId: number | undefined;
+    updateStartedState();
+
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [meeting.startAt]);
+
+  const canShowConfirm =
     meeting.status === "SCHEDULED" && !leaderConfirmed && isLeader;
+  const canConfirm = canShowConfirm && hasStarted;
 
   return (
     <article className="grid gap-2 rounded-xl border border-border bg-surface p-4">
@@ -126,45 +149,37 @@ function MeetingCard({
             Meeting link
           </a>
         )}
-        {canCancel && meeting.status === "SCHEDULED" && (
-          <Button
-            className="max-[480px]:w-full"
-            disabled={isCanceling}
-            icon={<XCircle size={15} />}
-            onClick={() => onCancel(meeting)}
-            size="sm"
-            variant="danger"
-          >
-            Cancel meeting
-          </Button>
-        )}
       </div>
 
       {/* Confirmation Status */}
       <div className="mt-2 grid gap-1 border-t border-border/60 pt-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-muted">Leader confirm:</span>
-          <span
-            className={
-              leaderConfirmed ? "font-bold text-green-700" : "text-muted-foreground"
+          <Badge
+            icon={
+              leaderConfirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />
             }
+            size="sm"
+            tone={leaderConfirmed ? "success" : "warning"}
           >
-            {leaderConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-          </span>
+            {leaderConfirmed ? "Confirmed" : "Pending"}
+          </Badge>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted">Mentor confirm:</span>
-          <span
-            className={
-              mentorConfirmed ? "font-bold text-green-700" : "text-muted-foreground"
+          <Badge
+            icon={
+              mentorConfirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />
             }
+            size="sm"
+            tone={mentorConfirmed ? "success" : "warning"}
           >
-            {mentorConfirmed ? "✅ Confirmed" : "⏳ Pending"}
-          </span>
+            {mentorConfirmed ? "Confirmed" : "Pending"}
+          </Badge>
         </div>
       </div>
 
-      {canConfirm && (
+      {canShowConfirm && (
         <Button
           onClick={() =>
             confirmMeetingMutation.mutate({
@@ -172,7 +187,7 @@ function MeetingCard({
               meetingId: meeting.id,
             })
           }
-          disabled={confirmMeetingMutation.isPending}
+          disabled={!canConfirm || confirmMeetingMutation.isPending}
           size="sm"
           className="mt-2 w-full"
         >
@@ -192,12 +207,8 @@ export function MeetingBookingSection({
   );
   const meetingsQuery = useGroupMeetings(group.id);
   const bookMeetingMutation = useBookMeeting();
-  const cancelMeetingMutation = useCancelMeeting();
   const [slotToBook, setSlotToBook] =
     useState<MentorAvailabilitySlotDto | null>(null);
-  const [meetingToCancel, setMeetingToCancel] =
-    useState<MentorMeetingDto | null>(null);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const slots = useMemo(
     () => availabilityQuery.data?.data ?? [],
@@ -221,11 +232,6 @@ export function MeetingBookingSection({
         title="Mentor meetings"
       />
       <CardContent>
-        {successMessage && (
-          <p className="m-0 mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">
-            {successMessage}
-          </p>
-        )}
         {!group.mentor ? (
           <EmptyState
             className="min-h-44"
@@ -256,14 +262,8 @@ export function MeetingBookingSection({
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-3">
                   {meetings.map((meeting) => (
                     <MeetingCard
-                      canCancel={canBook}
-                      isCanceling={cancelMeetingMutation.isPending}
                       key={meeting.id}
                       meeting={meeting}
-                      onCancel={(selectedMeeting) => {
-                        setSuccessMessage("");
-                        setMeetingToCancel(selectedMeeting);
-                      }}
                       groupId={group.id}
                       isLeader={canBook}
                     />
@@ -351,24 +351,6 @@ export function MeetingBookingSection({
         />
       )}
 
-      {meetingToCancel && (
-        <ConfirmDialog
-          confirmLabel="Cancel meeting"
-          description={`Cancel the meeting scheduled for ${formatDateTime(
-            meetingToCancel.startAt,
-          )}?`}
-          onClose={() => setMeetingToCancel(null)}
-          onConfirm={async () => {
-            await cancelMeetingMutation.mutateAsync({
-              groupId: group.id,
-              meetingId: meetingToCancel.id,
-            });
-            setSuccessMessage("Meeting canceled successfully.");
-          }}
-          title="Cancel mentor meeting"
-          tone="danger"
-        />
-      )}
     </Card>
   );
 }

@@ -123,7 +123,6 @@ function GradeModal({ milestone, onClose, submission }: GradeModalProps) {
     setScore(String(existingGrade.score));
     setFeedback(existingGrade.feedback ?? "");
   }, [existingGrade]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -269,11 +268,25 @@ function GradeModal({ milestone, onClose, submission }: GradeModalProps) {
   );
 }
 
-export function InstructorSubmissionsPage() {
+type InstructorSubmissionsPageProps = {
+  initialGroupId?: number | null;
+  initialMilestoneId?: number | null;
+  initialSubmissionId?: number | null;
+};
+
+export function InstructorSubmissionsPage({
+  initialGroupId,
+  initialMilestoneId,
+  initialSubmissionId,
+}: InstructorSubmissionsPageProps = {}) {
   const [term, setTerm] = useState("");
   const [courseCode, setCourseCode] = useState("");
-  const [groupId, setGroupId] = useState("");
-  const [milestoneId, setMilestoneId] = useState("");
+  const [groupId, setGroupId] = useState(
+    initialGroupId ? String(initialGroupId) : "",
+  );
+  const [milestoneId, setMilestoneId] = useState(
+    initialMilestoneId ? String(initialMilestoneId) : "",
+  );
   const [status, setStatus] = useState("");
   const [late, setLate] = useState("");
   const [activeSubmission, setActiveSubmission] =
@@ -305,7 +318,10 @@ export function InstructorSubmissionsPage() {
     () => milestonesQuery.data?.data ?? [],
     [milestonesQuery.data?.data],
   );
-  const submissions = submissionsQuery.data?.data ?? [];
+  const submissions = useMemo(
+    () => submissionsQuery.data?.data ?? [],
+    [submissionsQuery.data?.data],
+  );
   const averageGrade = getAverageValue(averageGradeQuery.data?.data);
   const hasFilters = Boolean(
     term || courseCode || groupId || milestoneId || status || late,
@@ -318,6 +334,14 @@ export function InstructorSubmissionsPage() {
   const selectedSubmissionMilestone = activeSubmission
     ? (milestonesById.get(activeSubmission.milestoneId) ?? null)
     : null;
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!initialSubmissionId) return;
+    const submission = submissions.find((item) => item.id === initialSubmissionId);
+    if (submission) setActiveSubmission(submission);
+  }, [initialSubmissionId, submissions]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const uniqueTerms = useMemo(
     () =>

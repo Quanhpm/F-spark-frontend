@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   CalendarClock,
   CalendarDays,
@@ -20,7 +20,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
   LoadingState,
   PageHeader,
   ResponsiveDialog,
@@ -33,17 +32,20 @@ import {
   getMinimumDateTimeLocal,
   toDateTimeLocalValue,
 } from "@/shared/lib";
-import type { SlotStatus } from "@/shared/types";
+import type { MeetingStatus, SlotStatus } from "@/shared/types";
 
 import {
   useCancelSlot,
+  useConfirmMeeting,
   useCreateSlot,
   useMyAvailability,
+  useMyMeetings,
   useUpdateSlot,
 } from "../hooks";
 import type {
   CreateAvailabilitySlotRequest,
   MentorAvailabilitySlotDto,
+  MentorMeetingDto,
   UpdateAvailabilitySlotRequest,
 } from "../types";
 
@@ -61,6 +63,30 @@ type ConfirmAction = {
   title: string;
 };
 
+type CalendarEventStatus = "AVAILABLE" | MeetingStatus;
+type CalendarStatusFilter = "" | CalendarEventStatus;
+type CalendarView = "DAY" | "WEEK";
+
+type SlotCalendarEvent = {
+  endAt: string;
+  id: string;
+  kind: "SLOT";
+  slot: MentorAvailabilitySlotDto;
+  startAt: string;
+  status: CalendarEventStatus;
+};
+
+type MeetingCalendarEvent = {
+  endAt: string;
+  id: string;
+  kind: "MEETING";
+  meeting: MentorMeetingDto;
+  startAt: string;
+  status: MeetingStatus;
+};
+
+type AvailabilityCalendarEvent = SlotCalendarEvent | MeetingCalendarEvent;
+
 const MEET_LINK_REGEX =
   /^https:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
 
@@ -72,14 +98,12 @@ const EMPTY_SLOT_FORM: SlotFormState = {
 };
 
 const DAY_COUNT = 7;
-const DEFAULT_START_HOUR = 7;
-const DEFAULT_END_HOUR = 22;
-const HOUR_HEIGHT = 68;
+const DEFAULT_START_HOUR = 0;
+const DEFAULT_END_HOUR = 24;
+const HOUR_HEIGHT = 40;
 const MINUTE_IN_MS = 60_000;
 
 const pageClassName = "grid min-w-0 gap-6";
-const toolbarClassName =
-  "grid min-w-0 items-end gap-4 border-b border-border pb-5 min-[900px]:grid-cols-[minmax(0,1fr)_240px]";
 const errorPanelClassName =
   "rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm leading-normal text-red-700";
 
@@ -150,18 +174,41 @@ function getSlotStatusTone(status: SlotStatus) {
   return "danger";
 }
 
-function startOfWeek(value: Date) {
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-  const dayOffset = (date.getDay() + 6) % DAY_COUNT;
-  date.setDate(date.getDate() - dayOffset);
-  return date;
-}
-
 function addDays(value: Date, amount: number) {
   const date = new Date(value);
   date.setDate(date.getDate() + amount);
   return date;
+}
+
+function startOfWeek(value: Date) {
+  const date = new Date(value);
+  const dayOffset = (date.getDay() + 6) % DAY_COUNT;
+  date.setDate(date.getDate() - dayOffset);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function startOfMonth(value: Date) {
+  const date = new Date(value);
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function addMonths(value: Date, amount: number) {
+  const date = new Date(value);
+  date.setMonth(date.getMonth() + amount);
+  return date;
+}
+
+function getMonthCalendarDays(month: Date) {
+  const monthStart = startOfMonth(month);
+  const firstDayOffset = (monthStart.getDay() + 6) % DAY_COUNT;
+  const calendarStart = addDays(monthStart, -firstDayOffset);
+
+  return Array.from({ length: 42 }, (_, index) =>
+    addDays(calendarStart, index),
+  );
 }
 
 function getDateKey(value: Date | string) {
@@ -181,6 +228,32 @@ function getMinutesFromStartOfDay(value: Date | string) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+function formatDayName(value: Date, format: "long" | "short" = "short") {
+  return new Intl.DateTimeFormat("en", { weekday: format }).format(value);
+}
+
+function formatDayMonth(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short",
+  }).format(value);
+}
+
+function formatCalendarHeading(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(value);
+}
+
+function formatMonthYear(value: Date) {
+  return new Intl.DateTimeFormat("en", {
+    month: "long",
+    year: "numeric",
+  }).format(value);
+}
+
 function formatWeekRange(weekStart: Date) {
   const weekEnd = addDays(weekStart, DAY_COUNT - 1);
   const startLabel = new Intl.DateTimeFormat("en", {
@@ -196,27 +269,16 @@ function formatWeekRange(weekStart: Date) {
   return `${startLabel} – ${endLabel}`;
 }
 
-function formatDayName(value: Date, format: "long" | "short" = "short") {
-  return new Intl.DateTimeFormat("en", { weekday: format }).format(value);
-}
-
-function formatDayMonth(value: Date) {
-  return new Intl.DateTimeFormat("en", {
-    day: "numeric",
-    month: "short",
-  }).format(value);
-}
-
-function getTimelineBounds(slots: MentorAvailabilitySlotDto[]) {
-  if (slots.length === 0) {
+function getTimelineBounds(events: AvailabilityCalendarEvent[]) {
+  if (events.length === 0) {
     return { endHour: DEFAULT_END_HOUR, startHour: DEFAULT_START_HOUR };
   }
 
   const earliestStart = Math.min(
-    ...slots.map((slot) => getMinutesFromStartOfDay(slot.startAt)),
+    ...events.map((event) => getMinutesFromStartOfDay(event.startAt)),
   );
   const latestEnd = Math.max(
-    ...slots.map((slot) => getMinutesFromStartOfDay(slot.endAt)),
+    ...events.map((event) => getMinutesFromStartOfDay(event.endAt)),
   );
 
   return {
@@ -231,73 +293,135 @@ function getTimelineBounds(slots: MentorAvailabilitySlotDto[]) {
   };
 }
 
-function getSlotCardClassName(status: SlotStatus) {
-  if (status === "AVAILABLE") {
-    return "border-brand-primary/35 bg-surface-warm/65 text-foreground hover:border-brand-primary hover:shadow-card-interactive";
-  }
-
-  if (status === "BOOKED") {
-    return "border-brand-secondary/45 bg-brand-secondary/10 text-foreground hover:border-brand-secondary hover:shadow-card-interactive";
-  }
-
-  return "border-red-200 bg-red-50/85 text-red-800 hover:border-red-300 hover:shadow-card-interactive";
+function getCalendarEventStatusTone(status: CalendarEventStatus) {
+  if (status === "AVAILABLE") return "brand";
+  if (status === "COMPLETED") return "success";
+  if (status === "CANCELED") return "danger";
+  return "warning";
 }
 
-type PositionedSlot = {
-  lane: number;
-  laneCount: number;
-  slot: MentorAvailabilitySlotDto;
-};
+function getCalendarEventCardClassName(status: CalendarEventStatus) {
+  if (status === "AVAILABLE") {
+    return "border-brand-secondary/60 bg-brand-secondary/10 text-foreground hover:border-brand-secondary hover:bg-brand-secondary/15 hover:shadow-card-interactive";
+  }
 
-function positionOverlappingSlots(
+  if (status === "SCHEDULED") {
+    return "border-brand-primary/40 bg-brand-primary/5 text-foreground hover:border-brand-primary/70 hover:bg-brand-primary/10 hover:shadow-card-interactive";
+  }
+
+  if (status === "COMPLETED") {
+    return "border-border-warm bg-surface-warm text-foreground hover:border-brand-secondary/70 hover:bg-surface-warm/80 hover:shadow-card-interactive";
+  }
+
+  return "border-red-200 bg-red-50 text-red-700 hover:border-red-300 hover:bg-red-100 hover:shadow-card-interactive";
+}
+
+function createCalendarEvents(
   slots: MentorAvailabilitySlotDto[],
-): PositionedSlot[] {
-  const sortedSlots = [...slots].sort(
+  meetings: MentorMeetingDto[],
+) {
+  const meetingsBySlotId = new Map(
+    meetings.map((meeting) => [meeting.slotId, meeting]),
+  );
+  const slotIds = new Set(slots.map((slot) => slot.id));
+  const events: AvailabilityCalendarEvent[] = slots.map((slot) => {
+    const meeting = meetingsBySlotId.get(slot.id);
+
+    if (meeting) {
+      return {
+        endAt: meeting.endAt,
+        id: `meeting-${meeting.id}`,
+        kind: "MEETING",
+        meeting,
+        startAt: meeting.startAt,
+        status: meeting.status,
+      };
+    }
+
+    return {
+      endAt: slot.endAt,
+      id: `slot-${slot.id}`,
+      kind: "SLOT",
+      slot,
+      startAt: slot.startAt,
+      status: slot.status === "BOOKED" ? "SCHEDULED" : slot.status,
+    };
+  });
+
+  meetings.forEach((meeting) => {
+    if (slotIds.has(meeting.slotId)) return;
+
+    events.push({
+      endAt: meeting.endAt,
+      id: `meeting-${meeting.id}`,
+      kind: "MEETING",
+      meeting,
+      startAt: meeting.startAt,
+      status: meeting.status,
+    });
+  });
+
+  return events.sort(
     (left, right) =>
       new Date(left.startAt).getTime() - new Date(right.startAt).getTime(),
   );
-  const positionedSlots: PositionedSlot[] = [];
-  let cluster: MentorAvailabilitySlotDto[] = [];
+}
+
+type PositionedCalendarEvent = {
+  event: AvailabilityCalendarEvent;
+  lane: number;
+  laneCount: number;
+};
+
+function positionOverlappingEvents(
+  events: AvailabilityCalendarEvent[],
+): PositionedCalendarEvent[] {
+  const sortedEvents = [...events].sort(
+    (left, right) =>
+      new Date(left.startAt).getTime() - new Date(right.startAt).getTime(),
+  );
+  const positionedEvents: PositionedCalendarEvent[] = [];
+  let cluster: AvailabilityCalendarEvent[] = [];
   let clusterEnd = 0;
 
   function flushCluster() {
     if (cluster.length === 0) return;
 
     const laneEnds: number[] = [];
-    const lanes = cluster.map((slot) => {
-      const startAt = new Date(slot.startAt).getTime();
-      const endAt = new Date(slot.endAt).getTime();
+    const lanes = cluster.map((event) => {
+      const startAt = new Date(event.startAt).getTime();
+      const endAt = new Date(event.endAt).getTime();
       const availableLane = laneEnds.findIndex((laneEnd) => laneEnd <= startAt);
       const lane = availableLane === -1 ? laneEnds.length : availableLane;
       laneEnds[lane] = endAt;
-      return { lane, slot };
+      return { event, lane };
     });
 
-    positionedSlots.push(
-      ...lanes.map(({ lane, slot }) => ({
+    positionedEvents.push(
+      ...lanes.map(({ event, lane }) => ({
+        event,
         lane,
         laneCount: laneEnds.length,
-        slot,
       })),
     );
     cluster = [];
     clusterEnd = 0;
   }
 
-  sortedSlots.forEach((slot) => {
-    const startAt = new Date(slot.startAt).getTime();
-    const endAt = new Date(slot.endAt).getTime();
+  sortedEvents.forEach((event) => {
+    const startAt = new Date(event.startAt).getTime();
+    const endAt = new Date(event.endAt).getTime();
 
     if (cluster.length > 0 && startAt >= clusterEnd) {
       flushCluster();
     }
 
-    cluster.push(slot);
+    cluster.push(event);
     clusterEnd = Math.max(clusterEnd, endAt);
   });
 
   flushCluster();
-  return positionedSlots;
+  return positionedEvents;
 }
 
 function validateSlotForm(form: SlotFormState) {
@@ -602,18 +726,18 @@ function SlotDetailsDialog({
   );
 }
 
-function getSlotPositionStyle(
-  positionedSlot: PositionedSlot,
+function getCalendarEventPositionStyle(
+  positionedEvent: PositionedCalendarEvent,
   startHour: number,
 ): CSSProperties {
-  const { lane, laneCount, slot } = positionedSlot;
-  const slotStart = getMinutesFromStartOfDay(slot.startAt);
+  const { event, lane, laneCount } = positionedEvent;
+  const eventStart = getMinutesFromStartOfDay(event.startAt);
   const duration = Math.max(
     15,
-    (new Date(slot.endAt).getTime() - new Date(slot.startAt).getTime()) /
+    (new Date(event.endAt).getTime() - new Date(event.startAt).getTime()) /
       MINUTE_IN_MS,
   );
-  const top = ((slotStart - startHour * 60) / 60) * HOUR_HEIGHT;
+  const top = ((eventStart - startHour * 60) / 60) * HOUR_HEIGHT;
   const height = Math.max(38, (duration / 60) * HOUR_HEIGHT - 4);
   const laneWidth = 100 / laneCount;
 
@@ -625,46 +749,49 @@ function getSlotPositionStyle(
   };
 }
 
-function TimelineSlotCard({
-  compact = false,
+function TimelineEventCard({
   onSelect,
-  positionedSlot,
+  positionedEvent,
   startHour,
 }: {
-  compact?: boolean;
-  onSelect: (slot: MentorAvailabilitySlotDto) => void;
-  positionedSlot: PositionedSlot;
+  onSelect: (event: AvailabilityCalendarEvent) => void;
+  positionedEvent: PositionedCalendarEvent;
   startHour: number;
 }) {
-  const { slot } = positionedSlot;
+  const { event } = positionedEvent;
+  const eventTitle =
+    event.kind === "MEETING"
+      ? `${event.meeting.groupNo} · ${event.meeting.groupName}`
+      : event.slot.note || "Availability slot";
 
   return (
     <button
-      aria-label={`${slot.status} slot, ${formatDateTime(slot.startAt)} to ${formatTime(slot.endAt)}. Open details.`}
+      aria-label={`${event.status}, ${eventTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
       className={cn(
         "absolute z-10 grid min-h-9 min-w-0 cursor-pointer content-start gap-0.5 overflow-hidden rounded-lg border px-2 py-1.5 text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] focus-visible:z-20 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
-        getSlotCardClassName(slot.status),
+        getCalendarEventCardClassName(event.status),
       )}
-      onClick={() => onSelect(slot)}
-      style={getSlotPositionStyle(positionedSlot, startHour)}
-      title="Open slot details"
+      onClick={() => onSelect(event)}
+      style={getCalendarEventPositionStyle(positionedEvent, startHour)}
+      title="Open event details"
       type="button"
     >
       <span className="truncate text-[11px] leading-tight font-bold">
-        {formatTime(slot.startAt)} – {formatTime(slot.endAt)}
+        {formatTime(event.startAt)} – {formatTime(event.endAt)}
       </span>
-      {!compact && (
-        <span className="truncate text-[10px] leading-tight opacity-75">
-          {slot.note || slot.status}
-        </span>
-      )}
+      <span className="truncate text-[11px] leading-tight font-medium">
+        {eventTitle}
+      </span>
+      <span className="truncate text-[10px] leading-tight opacity-75">
+        {event.status}
+      </span>
     </button>
   );
 }
 
 function TimeGutter({ endHour, startHour }: { endHour: number; startHour: number }) {
   const hours = Array.from(
-    { length: endHour - startHour + 1 },
+    { length: endHour - startHour },
     (_, index) => startHour + index,
   );
 
@@ -684,21 +811,19 @@ function TimeGutter({ endHour, startHour }: { endHour: number; startHour: number
 }
 
 function TimelineDayCanvas({
-  compact = false,
   date,
   endHour,
-  onSelectSlot,
-  slots,
+  events,
+  onSelectEvent,
   startHour,
 }: {
-  compact?: boolean;
   date: Date;
   endHour: number;
-  onSelectSlot: (slot: MentorAvailabilitySlotDto) => void;
-  slots: MentorAvailabilitySlotDto[];
+  events: AvailabilityCalendarEvent[];
+  onSelectEvent: (event: AvailabilityCalendarEvent) => void;
   startHour: number;
 }) {
-  const positionedSlots = positionOverlappingSlots(slots);
+  const positionedEvents = positionOverlappingEvents(events);
   const hourCount = endHour - startHour;
   const now = new Date();
   const nowMinutes = getMinutesFromStartOfDay(now);
@@ -736,12 +861,11 @@ function TimelineDayCanvas({
         </div>
       )}
 
-      {positionedSlots.map((positionedSlot) => (
-        <TimelineSlotCard
-          compact={compact}
-          key={positionedSlot.slot.id}
-          onSelect={onSelectSlot}
-          positionedSlot={positionedSlot}
+      {positionedEvents.map((positionedEvent) => (
+        <TimelineEventCard
+          key={positionedEvent.event.id}
+          onSelect={onSelectEvent}
+          positionedEvent={positionedEvent}
           startHour={startHour}
         />
       ))}
@@ -749,41 +873,35 @@ function TimelineDayCanvas({
   );
 }
 
-function AvailabilityWeekTimeline({
-  onSelectDate,
-  onSelectSlot,
-  selectedDateKey,
-  slots,
-  weekStart,
+function AvailabilityDayTimeline({
+  date,
+  events,
+  onSelectEvent,
 }: {
-  onSelectDate: (date: Date) => void;
-  onSelectSlot: (slot: MentorAvailabilitySlotDto) => void;
-  selectedDateKey: string;
-  slots: MentorAvailabilitySlotDto[];
-  weekStart: Date;
+  date: Date;
+  events: AvailabilityCalendarEvent[];
+  onSelectEvent: (event: AvailabilityCalendarEvent) => void;
 }) {
-  const weekDays = Array.from({ length: DAY_COUNT }, (_, index) =>
-    addDays(weekStart, index),
+  const dayEvents = events.filter(
+    (event) => getDateKey(event.startAt) === getDateKey(date),
   );
-  const weekEnd = addDays(weekStart, DAY_COUNT);
-  const weekSlots = slots.filter((slot) => {
-    const startAt = new Date(slot.startAt);
-    return startAt >= weekStart && startAt < weekEnd;
-  });
-  const slotsByDay = weekDays.map((date) =>
-    weekSlots.filter((slot) => getDateKey(slot.startAt) === getDateKey(date)),
-  );
-  const { endHour, startHour } = getTimelineBounds(weekSlots);
-  const selectedDayIndex = Math.max(
-    0,
-    weekDays.findIndex((date) => getDateKey(date) === selectedDateKey),
-  );
-  const selectedDay = weekDays[selectedDayIndex];
-  const hourCount = endHour - startHour;
+  const { endHour, startHour } = getTimelineBounds(dayEvents);
 
   return (
-    <div className="grid min-w-0 gap-4">
-      {weekSlots.length === 0 && (
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="m-0 text-base font-bold text-foreground">
+            {formatDayName(date, "long")}
+          </h2>
+          <p className="m-0 mt-0.5 text-xs text-muted">
+            {formatDayMonth(date)} · {dayEvents.length} calendar events
+          </p>
+        </div>
+        {isSameDay(date, new Date()) && <Badge tone="brand">Today</Badge>}
+      </div>
+
+      {dayEvents.length === 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-border-warm bg-surface-warm/55 px-4 py-3.5 text-sm text-foreground">
           <CalendarDays
             aria-hidden="true"
@@ -791,156 +909,416 @@ function AvailabilityWeekTimeline({
             size={18}
           />
           <p className="m-0 leading-relaxed">
-            No slots in this week. Move to another week or create a new slot.
+            No slots for this day. Choose another date or add a new event.
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-7 gap-1.5 min-[1100px]:hidden">
-        {weekDays.map((date, index) => {
-          const isSelected = getDateKey(date) === selectedDateKey;
-          const isToday = isSameDay(date, new Date());
-
-          return (
-            <button
-              aria-label={`${formatDayName(date, "long")}, ${formatDayMonth(date)}, ${slotsByDay[index].length} slots`}
-              aria-pressed={isSelected}
-              className={cn(
-                "grid min-h-14 min-w-0 place-items-center gap-0.5 rounded-xl border px-1 py-2 text-center transition-[background,border-color,color,box-shadow] duration-[160ms] focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)]",
-                isSelected
-                  ? "border-brand-primary bg-brand-primary text-white"
-                  : "border-border bg-surface text-muted hover:border-border-warm hover:bg-background",
-              )}
-              key={getDateKey(date)}
-              onClick={() => onSelectDate(date)}
-              type="button"
-            >
-              <span className="text-[10px] leading-none font-bold tracking-wide uppercase">
-                {formatDayName(date).slice(0, 2)}
-              </span>
-              <span className="text-sm leading-none font-bold">
-                {date.getDate()}
-              </span>
-              <span
-                className={cn(
-                  "size-1.5 rounded-full",
-                  slotsByDay[index].length > 0
-                    ? isSelected
-                      ? "bg-white"
-                      : "bg-brand-primary"
-                    : "bg-transparent",
-                  isToday && !isSelected && "ring-2 ring-brand-secondary",
-                )}
-              />
-            </button>
-          );
-        })}
-      </div>
-
-      <section className="grid min-w-0 gap-3 min-[1100px]:hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="m-0 text-base font-bold text-foreground">
-              {formatDayName(selectedDay, "long")}
-            </h3>
-            <p className="m-0 mt-0.5 text-xs text-muted">
-              {formatDayMonth(selectedDay)} · {slotsByDay[selectedDayIndex].length}{" "}
-              slots
-            </p>
-          </div>
-          {isSameDay(selectedDay, new Date()) && (
-            <Badge tone="brand">Today</Badge>
-          )}
-        </div>
-        <div className="grid min-w-0 grid-cols-[60px_minmax(0,1fr)] overflow-hidden rounded-xl border border-border">
+      <div className="h-[calc(100dvh-260px)] min-h-[360px] min-w-0 shrink-0 max-h-[720px] overflow-x-hidden overflow-y-auto rounded-xl border border-border">
+        <div className="grid min-w-[420px] grid-cols-[60px_minmax(0,1fr)]">
           <TimeGutter endHour={endHour} startHour={startHour} />
           <TimelineDayCanvas
-            date={selectedDay}
+            date={date}
             endHour={endHour}
-            onSelectSlot={onSelectSlot}
-            slots={slotsByDay[selectedDayIndex]}
+            events={dayEvents}
+            onSelectEvent={onSelectEvent}
             startHour={startHour}
           />
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      <section className="hidden min-w-0 overflow-hidden rounded-xl border border-border min-[1100px]:block">
-        <div className="grid grid-cols-[72px_repeat(7,minmax(0,1fr))] border-b border-border bg-background">
-          <div className="flex items-center justify-center border-r border-border text-[10px] font-bold tracking-[0.08em] text-muted uppercase">
-            Time
-          </div>
-          {weekDays.map((date, index) => {
-            const isToday = isSameDay(date, new Date());
+function AvailabilityWeekTimeline({
+  onSelectDate,
+  events,
+  onSelectEvent,
+  weekStart,
+}: {
+  onSelectDate: (date: Date) => void;
+  events: AvailabilityCalendarEvent[];
+  onSelectEvent: (event: AvailabilityCalendarEvent) => void;
+  weekStart: Date;
+}) {
+  const days = Array.from({ length: DAY_COUNT }, (_, index) =>
+    addDays(weekStart, index),
+  );
+  const { endHour, startHour } = getTimelineBounds(events);
+
+  return (
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="m-0 text-base font-bold text-foreground">
+            Week view
+          </h2>
+          <p className="m-0 mt-0.5 text-xs text-muted">
+            {formatWeekRange(weekStart)} · {events.length} calendar events
+          </p>
+        </div>
+        <Badge tone="brand">7 days</Badge>
+      </div>
+
+      {events.length === 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-border-warm bg-surface-warm/55 px-4 py-3.5 text-sm text-foreground">
+          <CalendarDays
+            aria-hidden="true"
+            className="mt-0.5 shrink-0 text-brand-primary"
+            size={18}
+          />
+          <p className="m-0 leading-relaxed">
+            No slots for this week. Choose another week or add a new event.
+          </p>
+        </div>
+      )}
+
+      <div className="h-[calc(100dvh-260px)] min-h-[360px] min-w-0 shrink-0 max-h-[720px] overflow-x-hidden overflow-y-auto rounded-xl border border-border">
+        <div className="grid min-w-0 grid-cols-[48px_repeat(7,minmax(0,1fr))] grid-rows-[auto_auto]">
+          <div className="sticky top-0 z-30 border-r border-b border-border bg-surface" />
+          {days.map((day) => {
+            const isToday = isSameDay(day, new Date());
 
             return (
               <button
-                aria-label={`${formatDayName(date, "long")}, ${formatDayMonth(date)}, ${slotsByDay[index].length} slots`}
+                aria-label={`Select ${formatDayName(day, "long")}, ${formatDayMonth(day)}`}
                 className={cn(
-                  "grid min-h-[76px] min-w-0 place-items-center content-center gap-1 border-r border-border px-2 py-3 text-center transition-colors last:border-r-0 hover:bg-surface-warm/50 focus-visible:z-10 focus-visible:outline-0 focus-visible:shadow-[inset_0_0_0_2px_var(--brand-secondary)]",
-                  isToday && "bg-surface-warm/60",
+                  "sticky top-0 z-30 min-w-0 border-b border-border bg-surface px-1 py-2 text-center transition-colors hover:bg-background focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)]",
+                  isToday && "bg-surface-warm/75",
                 )}
-                key={getDateKey(date)}
-                onClick={() => onSelectDate(date)}
+                key={getDateKey(day)}
+                onClick={() => onSelectDate(day)}
                 type="button"
               >
-                <span className="text-[11px] font-bold tracking-[0.08em] text-muted uppercase">
-                  {formatDayName(date)}
+                <span
+                  className={cn(
+                    "block truncate text-[10px] font-bold tracking-[0.06em] text-muted uppercase",
+                    isToday && "text-brand-primary",
+                  )}
+                >
+                  {formatDayName(day)}
                 </span>
                 <span
                   className={cn(
-                    "grid size-8 place-items-center rounded-full text-sm font-bold text-foreground",
+                    "mx-auto mt-1 grid size-7 place-items-center rounded-full text-sm font-bold text-foreground",
                     isToday && "bg-brand-primary text-white",
                   )}
                 >
-                  {date.getDate()}
-                </span>
-                <span className="text-[10px] text-muted">
-                  {slotsByDay[index].length} slots
+                  {day.getDate()}
                 </span>
               </button>
             );
           })}
-        </div>
-        <div
-          className="grid grid-cols-[72px_repeat(7,minmax(0,1fr))]"
-          style={{ height: hourCount * HOUR_HEIGHT }}
-        >
+
           <TimeGutter endHour={endHour} startHour={startHour} />
-          {weekDays.map((date, index) => (
-            <div className="min-w-0 border-r border-border last:border-r-0" key={getDateKey(date)}>
-              <TimelineDayCanvas
-                compact
-                date={date}
-                endHour={endHour}
-                onSelectSlot={onSelectSlot}
-                slots={slotsByDay[index]}
-                startHour={startHour}
-              />
-            </div>
+          {days.map((day) => (
+            <TimelineDayCanvas
+              date={day}
+              endHour={endHour}
+              events={events.filter(
+                (event) => getDateKey(event.startAt) === getDateKey(day),
+              )}
+              key={getDateKey(day)}
+              onSelectEvent={onSelectEvent}
+              startHour={startHour}
+            />
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function MiniMonthCalendar({
+  calendarMonth,
+  events,
+  onMoveMonth,
+  onSelectDate,
+  selectedDateKey,
+}: {
+  calendarMonth: Date;
+  events: AvailabilityCalendarEvent[];
+  onMoveMonth: (direction: -1 | 1) => void;
+  onSelectDate: (date: Date) => void;
+  selectedDateKey: string;
+}) {
+  const calendarDays = getMonthCalendarDays(calendarMonth);
+  const eventDateKeys = new Set(
+    events.map((event) => getDateKey(event.startAt)),
+  );
+  const monthKey = calendarMonth.getMonth();
+
+  return (
+    <section className="grid min-w-0 gap-4 border-b border-border p-4 min-[761px]:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          aria-label="Previous month"
+          className="size-9 px-0"
+          icon={<ChevronLeft size={16} />}
+          onClick={() => onMoveMonth(-1)}
+          size="sm"
+          variant="ghost"
+        >
+          <span className="sr-only">Previous month</span>
+        </Button>
+        <h2 className="m-0 text-sm font-bold text-foreground">
+          {formatMonthYear(calendarMonth)}
+        </h2>
+        <Button
+          aria-label="Next month"
+          className="size-9 px-0"
+          icon={<ChevronRight size={16} />}
+          onClick={() => onMoveMonth(1)}
+          size="sm"
+          variant="ghost"
+        >
+          <span className="sr-only">Next month</span>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-y-2 text-center">
+        {["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"].map((day) => (
+          <span
+            className="text-[10px] font-bold tracking-[0.06em] text-muted uppercase"
+            key={day}
+          >
+            {day}
+          </span>
+        ))}
+        {calendarDays.map((date) => {
+          const dateKey = getDateKey(date);
+          const isSelected = dateKey === selectedDateKey;
+          const isToday = isSameDay(date, new Date());
+          const isCurrentMonth = date.getMonth() === monthKey;
+          const hasEvents = eventDateKeys.has(dateKey);
+
+          return (
+            <button
+              aria-label={`${formatDayName(date, "long")}, ${formatDayMonth(date)}${hasEvents ? ", has calendar events" : ""}`}
+              aria-pressed={isSelected}
+              className={cn(
+                "relative mx-auto grid size-8 place-items-center rounded-full text-xs transition-[background,color,box-shadow] duration-[160ms] focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)]",
+                isSelected
+                  ? "bg-foreground font-bold text-white"
+                  : isCurrentMonth
+                    ? "text-foreground hover:bg-background"
+                    : "text-muted/45 hover:bg-background",
+                isToday && !isSelected && "ring-2 ring-brand-secondary",
+              )}
+              key={dateKey}
+              onClick={() => onSelectDate(date)}
+              type="button"
+            >
+              {date.getDate()}
+              {hasEvents && (
+                <span
+                  className={cn(
+                    "absolute -bottom-0.5 size-1 rounded-full",
+                    isSelected ? "bg-white" : "bg-brand-primary",
+                  )}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function SelectedEventPanel({
+  confirmError,
+  event,
+  isConfirming,
+  onConfirmMeeting,
+  onViewSlotDetails,
+}: {
+  confirmError?: string;
+  event: AvailabilityCalendarEvent | null;
+  isConfirming: boolean;
+  onConfirmMeeting: () => void;
+  onViewSlotDetails: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  if (!event) {
+    return (
+      <section className="grid min-w-0 gap-4 p-4 min-[761px]:p-5">
+        <div className="grid gap-2 py-2 text-sm text-muted">
+          <CalendarClock className="text-brand-primary" size={20} />
+          <strong className="text-foreground">No event selected</strong>
+          <p className="m-0 leading-relaxed">
+            Select an availability slot or booked meeting to see its details.
+          </p>
+        </div>
       </section>
-    </div>
+    );
+  }
+
+  if (event.kind === "MEETING") {
+    const { meeting } = event;
+    const hasStarted = new Date(meeting.startAt).getTime() <= now;
+    const mentorConfirmed = meeting.mentorConfirmedAt !== null;
+    const leaderConfirmed = meeting.leaderConfirmedAt !== null;
+    const canConfirm =
+      meeting.status === "SCHEDULED" && hasStarted && !mentorConfirmed;
+
+    return (
+      <section className="grid min-w-0 gap-4 p-4 min-[761px]:p-5">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="grid min-w-0 gap-1">
+            <span className="text-[10px] font-bold tracking-[0.08em] text-muted uppercase">
+              Booked meeting
+            </span>
+            <h2 className="m-0 break-words text-base font-bold text-foreground">
+              {meeting.groupName}
+            </h2>
+            <span className="text-xs text-muted">{meeting.groupNo}</span>
+          </div>
+          <Badge tone={getCalendarEventStatusTone(meeting.status)}>
+            {meeting.status}
+          </Badge>
+        </div>
+
+        <div className="grid gap-2 text-sm text-muted">
+          <div className="flex items-start gap-2">
+            <CalendarDays className="mt-0.5 shrink-0" size={16} />
+            <span>{formatDate(meeting.startAt)}</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <Clock3 className="mt-0.5 shrink-0" size={16} />
+            <span>
+              {formatTime(meeting.startAt)} – {formatTime(meeting.endAt)}
+            </span>
+          </div>
+          <p className="m-0 text-sm text-muted">
+            Booked by{" "}
+            <strong className="font-medium text-foreground">
+              {meeting.bookedByStudentName}
+            </strong>{" "}
+            ({meeting.bookedByStudentCode})
+          </p>
+        </div>
+
+        <div className="grid gap-2 rounded-xl border border-border bg-background p-3.5 text-sm">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted">Group leader</span>
+            <Badge tone={leaderConfirmed ? "success" : "neutral"}>
+              {leaderConfirmed ? "Confirmed" : "Pending"}
+            </Badge>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted">Mentor</span>
+            <Badge tone={mentorConfirmed ? "success" : "neutral"}>
+              {mentorConfirmed ? "Confirmed" : "Pending"}
+            </Badge>
+          </div>
+        </div>
+
+        <a
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-medium !text-brand-primary transition-colors hover:bg-background hover:!text-brand-primary-hover"
+          href={meeting.meetLink}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <ExternalLink aria-hidden="true" size={15} />
+          Open Google Meet
+        </a>
+
+        {confirmError && <div className={errorPanelClassName}>{confirmError}</div>}
+
+        {meeting.status === "SCHEDULED" && (
+          <div className="grid gap-2">
+            <Button
+              disabled={!canConfirm || isConfirming}
+              onClick={onConfirmMeeting}
+              size="sm"
+            >
+              {isConfirming
+                ? "Confirming..."
+                : mentorConfirmed
+                  ? "Mentor confirmed"
+                  : "Confirm meeting"}
+            </Button>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  const { slot } = event;
+
+  return (
+    <section className="grid min-w-0 gap-4 p-4 min-[761px]:p-5">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="grid min-w-0 gap-1">
+          <span className="text-[10px] font-bold tracking-[0.08em] text-muted uppercase">
+            Availability slot
+          </span>
+          <h2 className="m-0 break-words text-base font-bold text-foreground">
+            {slot.note || "Availability slot"}
+          </h2>
+        </div>
+        <Badge tone={getSlotStatusTone(slot.status)}>{slot.status}</Badge>
+      </div>
+
+      <div className="grid gap-2 text-sm text-muted">
+        <div className="flex items-start gap-2">
+          <CalendarDays className="mt-0.5 shrink-0" size={16} />
+          <span>{formatDate(slot.startAt)}</span>
+        </div>
+        <div className="flex items-start gap-2">
+          <Clock3 className="mt-0.5 shrink-0" size={16} />
+          <span>
+            {formatTime(slot.startAt)} – {formatTime(slot.endAt)}
+          </span>
+        </div>
+      </div>
+
+      {slot.note && (
+        <p className="m-0 rounded-xl border border-border bg-background px-3.5 py-3 text-sm leading-relaxed text-foreground">
+          {slot.note}
+        </p>
+      )}
+
+      <Button onClick={onViewSlotDetails} size="sm" variant="secondary">
+        Open details
+      </Button>
+    </section>
   );
 }
 
 export function MentorAvailabilityPage() {
-  const [statusFilter, setStatusFilter] = useState<"" | SlotStatus>("");
+  const [statusFilter, setStatusFilter] =
+    useState<CalendarStatusFilter>("");
   const [modal, setModal] = useState<
     "create" | "details" | "duplicate" | "edit" | null
   >(null);
-  const [selectedSlot, setSelectedSlot] =
-    useState<MentorAvailabilitySlotDto | null>(null);
+  const [selectedEvent, setSelectedEvent] =
+    useState<AvailabilityCalendarEvent | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [calendarView, setCalendarView] = useState<CalendarView>("WEEK");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [calendarMonth, setCalendarMonth] = useState(() =>
+    startOfMonth(new Date()),
+  );
   const [selectedDateKey, setSelectedDateKey] = useState(() =>
     getDateKey(new Date()),
   );
 
   const availabilityQuery = useMyAvailability();
+  const meetingsQuery = useMyMeetings();
   const createSlotMutation = useCreateSlot();
   const updateSlotMutation = useUpdateSlot();
   const cancelSlotMutation = useCancelSlot();
+  const confirmMeetingMutation = useConfirmMeeting();
+  const selectedSlot =
+    selectedEvent?.kind === "SLOT" ? selectedEvent.slot : null;
 
   const availableSlots = useMemo(
     () =>
@@ -950,17 +1328,20 @@ export function MentorAvailabilityPage() {
     [availabilityQuery.data?.data],
   );
 
-  const filteredSlots = useMemo(() => {
-      const slots = availabilityQuery.data?.data ?? [];
-      const visibleSlots = statusFilter
-        ? slots.filter((slot) => slot.status === statusFilter)
-        : slots;
+  const calendarEvents = useMemo(
+    () =>
+      createCalendarEvents(
+        availabilityQuery.data?.data ?? [],
+        meetingsQuery.data?.data ?? [],
+      ),
+    [availabilityQuery.data?.data, meetingsQuery.data?.data],
+  );
 
-      return [...visibleSlots].sort(
-        (left, right) =>
-          new Date(right.startAt).getTime() - new Date(left.startAt).getTime(),
-      );
-    }, [availabilityQuery.data?.data, statusFilter]);
+  const filteredEvents = useMemo(() => {
+    return statusFilter
+      ? calendarEvents.filter((event) => event.status === statusFilter)
+      : calendarEvents;
+  }, [calendarEvents, statusFilter]);
 
   async function handleCreateSlot(form: SlotFormState) {
     await createSlotMutation.mutateAsync(createSlotPayload(form));
@@ -973,6 +1354,29 @@ export function MentorAvailabilityPage() {
       payload: updateSlotPayload(form),
       slotId: selectedSlot.id,
     });
+  }
+
+  async function handleConfirmSelectedMeeting() {
+    if (selectedEvent?.kind !== "MEETING") return;
+
+    try {
+      const response = await confirmMeetingMutation.mutateAsync({
+        groupId: selectedEvent.meeting.groupId,
+        meetingId: selectedEvent.meeting.id,
+      });
+      const meeting = response.data;
+
+      setSelectedEvent({
+        endAt: meeting.endAt,
+        id: `meeting-${meeting.id}`,
+        kind: "MEETING",
+        meeting,
+        startAt: meeting.startAt,
+        status: meeting.status,
+      });
+    } catch {
+      // React Query exposes the error in the selected-event panel.
+    }
   }
 
   function requestCancelSlot(slot: MentorAvailabilitySlotDto) {
@@ -998,135 +1402,217 @@ export function MentorAvailabilityPage() {
     });
   }
 
-  function moveWeek(direction: -1 | 1) {
-    setWeekStart((currentWeek) => addDays(currentWeek, direction * DAY_COUNT));
-    setSelectedDateKey((currentDateKey) => {
-      const currentDate = new Date(`${currentDateKey}T12:00:00`);
-      return getDateKey(addDays(currentDate, direction * DAY_COUNT));
-    });
+  function selectCalendarDate(date: Date) {
+    setSelectedDateKey(getDateKey(date));
+    setWeekStart(startOfWeek(date));
+    setCalendarMonth(startOfMonth(date));
+    setSelectedEvent(null);
+    confirmMeetingMutation.reset();
   }
 
-  function showCurrentWeek() {
-    const today = new Date();
-    setWeekStart(startOfWeek(today));
-    setSelectedDateKey(getDateKey(today));
+  function moveWeek(direction: -1 | 1) {
+    const currentSelectedDate = new Date(`${selectedDateKey}T12:00:00`);
+    const nextWeekStart = addDays(weekStart, direction * DAY_COUNT);
+
+    setWeekStart(nextWeekStart);
+    setSelectedDateKey(
+      getDateKey(addDays(currentSelectedDate, direction * DAY_COUNT)),
+    );
+    setCalendarMonth(startOfMonth(nextWeekStart));
+    setSelectedEvent(null);
+    confirmMeetingMutation.reset();
   }
+
+  function moveDay(direction: -1 | 1) {
+    const currentDate = new Date(`${selectedDateKey}T12:00:00`);
+    selectCalendarDate(addDays(currentDate, direction));
+  }
+
+  function showToday() {
+    const today = new Date();
+    selectCalendarDate(today);
+  }
+
+  function moveMonth(direction: -1 | 1) {
+    setCalendarMonth((currentMonth) => addMonths(currentMonth, direction));
+  }
+
+  const selectedDate = new Date(`${selectedDateKey}T12:00:00`);
+  const isWeekView = calendarView === "WEEK";
 
   return (
     <div className={pageClassName}>
       <PageHeader
         actions={
-          <>
-            {availableSlots.length > 0 && (
-              <Button
-                icon={<Trash2 size={16} />}
-                onClick={requestCancelAvailableSlots}
-                variant="secondary"
-              >
-                Cancel available
-              </Button>
-            )}
+          availableSlots.length > 0 ? (
             <Button
-              icon={<Plus size={16} />}
-              onClick={() => {
-                setSelectedSlot(null);
-                setModal("create");
-              }}
+              icon={<Trash2 size={16} />}
+              onClick={requestCancelAvailableSlots}
+              variant="secondary"
             >
-              Create slot
+              Cancel available
             </Button>
-          </>
+          ) : undefined
         }
         description="Create, update, and cancel availability slots that assigned groups can book."
         eyebrow="Mentor"
         title="Availability"
       />
 
-      <Card>
-        <CardHeader
-          description="Review your availability across the week and select a slot to manage it."
-          title="Weekly schedule"
-        />
-        <CardContent>
-          <div className={toolbarClassName}>
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border bg-surface p-1">
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center gap-4 border-b border-border p-4 min-[761px]:p-5">
+          <div className="grid min-w-0 gap-0.5">
+            <span className="text-[10px] font-bold tracking-[0.08em] text-muted uppercase">
+              {isWeekView ? "Week view" : "Day view"}
+            </span>
+            <strong className="truncate text-base text-foreground min-[481px]:text-lg">
+              {isWeekView
+                ? formatWeekRange(weekStart)
+                : formatCalendarHeading(selectedDate)}
+            </strong>
+          </div>
+
+          <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
+            <div
+              aria-label="Calendar view"
+              className="flex shrink-0 items-center gap-1 rounded-xl border border-border bg-surface p-1"
+              role="group"
+            >
+              {(["WEEK", "DAY"] as const).map((view) => (
                 <Button
-                  aria-label="Previous week"
-                  className="size-10 px-0"
-                  icon={<ChevronLeft size={18} />}
-                  onClick={() => moveWeek(-1)}
+                  aria-pressed={calendarView === view}
+                  className="min-w-14 px-2"
+                  key={view}
+                  onClick={() => setCalendarView(view)}
                   size="sm"
-                  variant="ghost"
+                  variant={calendarView === view ? "secondary" : "ghost"}
                 >
-                  <span className="sr-only">Previous week</span>
+                  {view === "WEEK" ? "Week" : "Day"}
                 </Button>
-                <Button
-                  aria-label="Next week"
-                  className="size-10 px-0"
-                  icon={<ChevronRight size={18} />}
-                  onClick={() => moveWeek(1)}
-                  size="sm"
-                  variant="ghost"
-                >
-                  <span className="sr-only">Next week</span>
-                </Button>
-              </div>
-              <div className="min-w-[150px] flex-1 px-1">
-                <span className="block text-[11px] font-bold tracking-[0.08em] text-muted uppercase">
-                  Week
-                </span>
-                <strong className="block truncate text-sm text-foreground min-[481px]:text-base">
-                  {formatWeekRange(weekStart)}
-                </strong>
-              </div>
+              ))}
+            </div>
+            <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border bg-surface p-1">
               <Button
-                icon={<CalendarDays size={16} />}
-                onClick={showCurrentWeek}
+                aria-label={`Previous ${isWeekView ? "week" : "day"}`}
+                className="size-9 px-0"
+                icon={<ChevronLeft size={17} />}
+                onClick={() => (isWeekView ? moveWeek(-1) : moveDay(-1))}
                 size="sm"
-                variant="secondary"
+                variant="ghost"
               >
-                Today
+                <span className="sr-only">
+                  Previous {isWeekView ? "week" : "day"}
+                </span>
+              </Button>
+              <Button
+                aria-label={`Next ${isWeekView ? "week" : "day"}`}
+                className="size-9 px-0"
+                icon={<ChevronRight size={17} />}
+                onClick={() => (isWeekView ? moveWeek(1) : moveDay(1))}
+                size="sm"
+                variant="ghost"
+              >
+                <span className="sr-only">
+                  Next {isWeekView ? "week" : "day"}
+                </span>
               </Button>
             </div>
+            <Button
+              icon={<CalendarDays size={16} />}
+              onClick={showToday}
+              size="sm"
+              variant="secondary"
+            >
+              Today
+            </Button>
             <Select
-              label="Status"
-              onChange={(event) =>
-                setStatusFilter(event.target.value as "" | SlotStatus)
-              }
+              aria-label="Filter availability by status"
+              fieldClassName="w-[150px]"
+              shellClassName="h-10"
               value={statusFilter}
+              onChange={(event) => {
+                setSelectedEvent(null);
+                confirmMeetingMutation.reset();
+                setStatusFilter(event.target.value as CalendarStatusFilter);
+              }}
             >
               <option value="">All statuses</option>
               <option value="AVAILABLE">Available</option>
-              <option value="BOOKED">Booked</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="COMPLETED">Completed</option>
               <option value="CANCELED">Canceled</option>
             </Select>
+            <Button
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setSelectedEvent(null);
+                setModal("create");
+              }}
+              size="sm"
+            >
+              Add event
+            </Button>
           </div>
-        </CardContent>
+        </div>
 
-        {availabilityQuery.isLoading ? (
+        {availabilityQuery.isLoading || meetingsQuery.isLoading ? (
           <CardContent>
-            <LoadingState title="Loading availability" />
+            <LoadingState title="Loading calendar" />
           </CardContent>
-        ) : availabilityQuery.isError ? (
+        ) : availabilityQuery.isError || meetingsQuery.isError ? (
           <CardContent>
             <div className={errorPanelClassName}>
-              {getErrorMessage(availabilityQuery.error)}
+              {getErrorMessage(
+                availabilityQuery.error ?? meetingsQuery.error,
+              )}
             </div>
           </CardContent>
         ) : (
-          <CardContent>
-            <AvailabilityWeekTimeline
-              onSelectDate={(date) => setSelectedDateKey(getDateKey(date))}
-              onSelectSlot={(slot) => {
-                setSelectedSlot(slot);
-                setModal("details");
-              }}
-              selectedDateKey={selectedDateKey}
-              slots={filteredSlots}
-              weekStart={weekStart}
-            />
-          </CardContent>
+          <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="flex min-h-0 min-w-0 flex-col p-4 min-[761px]:p-6">
+              {isWeekView ? (
+                <AvailabilityWeekTimeline
+                  events={filteredEvents}
+                  onSelectDate={selectCalendarDate}
+                  onSelectEvent={(event) => {
+                    selectCalendarDate(new Date(event.startAt));
+                    setSelectedEvent(event);
+                    setModal(event.kind === "SLOT" ? "details" : null);
+                  }}
+                  weekStart={weekStart}
+                />
+              ) : (
+                <AvailabilityDayTimeline
+                  date={selectedDate}
+                  events={filteredEvents}
+                  onSelectEvent={(event) => {
+                    setSelectedEvent(event);
+                    setModal(event.kind === "SLOT" ? "details" : null);
+                  }}
+                />
+              )}
+            </div>
+            <aside className="min-w-0 border-t border-border lg:border-t-0 lg:border-l">
+              <MiniMonthCalendar
+                calendarMonth={calendarMonth}
+                events={filteredEvents}
+                onMoveMonth={moveMonth}
+                onSelectDate={selectCalendarDate}
+                selectedDateKey={selectedDateKey}
+              />
+              <SelectedEventPanel
+                confirmError={
+                  confirmMeetingMutation.error
+                    ? getErrorMessage(confirmMeetingMutation.error)
+                    : undefined
+                }
+                event={selectedEvent}
+                isConfirming={confirmMeetingMutation.isPending}
+                onConfirmMeeting={handleConfirmSelectedMeeting}
+                onViewSlotDetails={() => setModal("details")}
+              />
+            </aside>
+          </div>
         )}
       </Card>
 
@@ -1138,7 +1624,7 @@ export function MentorAvailabilityPage() {
           }}
           onClose={() => {
             setModal(null);
-            setSelectedSlot(null);
+            setSelectedEvent(null);
           }}
           onDuplicate={() => setModal("duplicate")}
           onEdit={() => setModal("edit")}
@@ -1159,7 +1645,7 @@ export function MentorAvailabilityPage() {
           mode="duplicate"
           onClose={() => {
             setModal(null);
-            setSelectedSlot(null);
+            setSelectedEvent(null);
           }}
           onSubmit={handleCreateSlot}
           slot={selectedSlot}
@@ -1171,7 +1657,7 @@ export function MentorAvailabilityPage() {
           mode="edit"
           onClose={() => {
             setModal(null);
-            setSelectedSlot(null);
+            setSelectedEvent(null);
           }}
           onSubmit={handleUpdateSlot}
           slot={selectedSlot}

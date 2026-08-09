@@ -52,6 +52,7 @@ export const queryKeys = {
   mentoring: {
     all: ["mentoring"] as const,
     availability: () => [...queryKeys.mentoring.all, "availability"] as const,
+    myMeetings: () => [...queryKeys.mentoring.all, "meetings", "me"] as const,
     groupAvailability: (groupId: number) =>
       [...queryKeys.mentoring.all, "groups", groupId, "availability"] as const,
     meetings: (groupId: number) =>

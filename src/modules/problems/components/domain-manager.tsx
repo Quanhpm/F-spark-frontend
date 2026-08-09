@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useId, useState } from "react";
+import { toast } from "sonner";
 import { useProblemDomains } from "../hooks";
 import {
   useCreateProblemDomain,
@@ -92,7 +93,7 @@ export function DomainManager() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!code.trim() || !name.trim()) {
-      alert("Code and Name are required.");
+      toast.error("Code and Name are required.");
       return;
     }
 
@@ -159,24 +160,24 @@ export function DomainManager() {
         <div className="overflow-x-auto rounded-xl border border-border bg-surface max-[760px]:hidden">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-border bg-surface-base">
-                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Code</th>
-                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</th>
-                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Discipline</th>
-                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Edit</th>
+              <tr className="border-b border-border bg-surface">
+                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">Code</th>
+                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">Name</th>
+                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">Discipline</th>
+                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted">Status</th>
+                <th className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted text-right">Edit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {domains.map((dom) => (
                 <tr key={dom.id} className="hover:bg-neutral-50/50">
-                  <td className="px-5 py-3.5 font-mono font-bold text-xs text-muted-foreground">
+                  <td className="px-5 py-3.5 font-mono font-bold text-xs text-muted">
                     {dom.code}
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="font-bold text-foreground text-sm">{dom.name}</div>
                     {dom.description && (
-                      <div className="text-xs text-muted-foreground/60 line-clamp-1 max-w-[320px]">
+                      <div className="text-xs text-muted/60 line-clamp-1 max-w-[320px]">
                         {dom.description}
                       </div>
                     )}
@@ -319,7 +320,7 @@ export function DomainManager() {
               </div>
 
               <div>
-                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                   Description
                 </label>
                 <textarea
@@ -362,7 +363,7 @@ export function DomainManager() {
 
               <div className="grid grid-cols-2 gap-4 max-[600px]:grid-cols-1">
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
                     Status
                   </label>
                   <Select

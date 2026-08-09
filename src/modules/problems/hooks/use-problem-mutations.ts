@@ -4,10 +4,12 @@ import {
   clearGroupProblem,
   createOfficialProblem,
   createProblemDomain,
+  deletePendingGroupProposal,
   proposeGroupProblem,
   reviewProblem,
   reviewProblemAsInstructor,
   selectGroupProblem,
+  updatePendingGroupProposal,
   updateProblem,
   updateProblemDomain,
   updateProblemStatus,
@@ -16,6 +18,7 @@ import {
 import type {
   CreateOfficialProblemRequest,
   CreateProblemDomainRequest,
+  ProblemSummaryDto,
   ProposeProblemRequest,
   ReviewProblemRequest,
   SelectProblemRequest,
@@ -23,7 +26,7 @@ import type {
   UpdateProblemRequest,
   UpdateProblemStatusRequest,
 } from "../types";
-import type { EntityId } from "@/shared/types";
+import type { ApiResponse, EntityId } from "@/shared/types";
 
 export function useSelectGroupProblem(groupId: EntityId) {
   const queryClient = useQueryClient();
@@ -68,10 +71,110 @@ export function useProposeGroupProblem(groupId: EntityId) {
     mutationFn: (payload: ProposeProblemRequest) => proposeGroupProblem(groupId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [...queryKeys.problems.all, "groups", groupId, "proposals"],
+        queryKey: [
+          ...queryKeys.problems.all,
+          "groups",
+          Number(groupId),
+          "proposals",
+        ],
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.problems.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.detail(Number(groupId)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.pendingInstructor(),
+      });
+    },
+  });
+}
+
+export function useUpdatePendingGroupProposal(
+  groupId: EntityId,
+  problemId: EntityId,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProposeProblemRequest) =>
+      updatePendingGroupProposal(groupId, problemId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          ...queryKeys.problems.all,
+          "groups",
+          Number(groupId),
+          "proposals",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.detail(Number(problemId)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.pendingInstructor(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.detail(Number(groupId)),
+      });
+    },
+  });
+}
+
+export function useDeletePendingGroupProposal(groupId: EntityId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (problemId: EntityId) =>
+      deletePendingGroupProposal(groupId, problemId),
+    onSuccess: (_response, problemId) => {
+      const proposalsQueryKey = [
+        ...queryKeys.problems.all,
+        "groups",
+        Number(groupId),
+        "proposals",
+      ] as const;
+
+      queryClient.setQueryData<ApiResponse<ProblemSummaryDto[]>>(
+        proposalsQueryKey,
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.filter(
+                  (proposal) => Number(proposal.id) !== Number(problemId),
+                ),
+              }
+            : current,
+      );
+      queryClient.invalidateQueries({
+        queryKey: proposalsQueryKey,
+      });
+      queryClient.removeQueries({
+        exact: true,
+        queryKey: queryKeys.problems.detail(Number(problemId)),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.lists(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.problems.pendingInstructor(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.all,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.detail(Number(groupId)),
       });
     },
   });
@@ -144,7 +247,7 @@ export function useReviewProblemAsInstructor(id: EntityId) {
   return useMutation({
     mutationFn: (payload: ReviewProblemRequest) =>
       reviewProblemAsInstructor(id, payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.problems.pendingInstructor(),
       });
@@ -154,6 +257,24 @@ export function useReviewProblemAsInstructor(id: EntityId) {
       queryClient.invalidateQueries({
         queryKey: queryKeys.problems.detail(Number(id)),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.groups.all,
+      });
+
+      const groupId = response.data.proposedByGroup?.id;
+      if (groupId) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            ...queryKeys.problems.all,
+            "groups",
+            Number(groupId),
+            "proposals",
+          ],
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.groups.detail(Number(groupId)),
+        });
+      }
     },
   });
 }

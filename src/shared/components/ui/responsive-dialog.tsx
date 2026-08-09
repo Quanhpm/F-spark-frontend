@@ -17,8 +17,10 @@ export type ResponsiveDialogProps = {
   closeOnBackdrop?: boolean;
   closeOnEscape?: boolean;
   description?: ReactNode;
+  desktopMode?: "center" | "drawer";
   footer?: ReactNode;
   footerClassName?: string;
+  headerActions?: ReactNode;
   mobileMode?: "fullscreen" | "sheet";
   onClose: () => void;
   title: ReactNode;
@@ -31,9 +33,11 @@ export function ResponsiveDialog({
   closeLabel = "Close dialog",
   closeOnBackdrop = true,
   closeOnEscape = true,
+  desktopMode = "center",
   description,
   footer,
   footerClassName,
+  headerActions,
   mobileMode = "sheet",
   onClose,
   title,
@@ -51,6 +55,8 @@ export function ResponsiveDialog({
         mobileMode === "fullscreen"
           ? "max-[760px]:items-stretch max-[760px]:p-0 min-[761px]:items-center min-[761px]:p-4"
           : "min-[761px]:items-center min-[761px]:p-4",
+        desktopMode === "drawer" &&
+          "min-[761px]:items-stretch min-[761px]:justify-end min-[761px]:p-0",
       )}
     >
       {closeOnBackdrop ? (
@@ -71,9 +77,13 @@ export function ResponsiveDialog({
         aria-modal="true"
         className={cn(
           "relative flex w-full min-w-0 flex-col overflow-hidden border border-border bg-surface shadow-modal",
-          mobileMode === "fullscreen"
-            ? "h-dvh max-h-dvh max-w-none rounded-none border-y-0 min-[761px]:h-auto min-[761px]:max-h-[calc(100dvh-2rem)] min-[761px]:max-w-[640px] min-[761px]:rounded-2xl min-[761px]:border-y"
-            : "max-h-[calc(100dvh-env(safe-area-inset-top))] rounded-t-2xl border-b-0 min-[761px]:max-h-[calc(100dvh-2rem)] min-[761px]:max-w-[640px] min-[761px]:rounded-2xl min-[761px]:border-b",
+          desktopMode === "drawer"
+            ? mobileMode === "fullscreen"
+              ? "h-dvh max-h-dvh max-w-none rounded-none border-y-0 min-[761px]:h-dvh min-[761px]:max-h-dvh min-[761px]:max-w-[520px] min-[761px]:rounded-none min-[761px]:border-y-0 min-[761px]:border-r-0"
+              : "max-h-[calc(100dvh-env(safe-area-inset-top))] rounded-t-2xl border-b-0 min-[761px]:h-dvh min-[761px]:max-h-dvh min-[761px]:max-w-[520px] min-[761px]:rounded-none min-[761px]:border-y-0 min-[761px]:border-r-0"
+            : mobileMode === "fullscreen"
+              ? "h-dvh max-h-dvh max-w-none rounded-none border-y-0 min-[761px]:h-auto min-[761px]:max-h-[calc(100dvh-2rem)] min-[761px]:max-w-[640px] min-[761px]:rounded-2xl min-[761px]:border-y"
+              : "max-h-[calc(100dvh-env(safe-area-inset-top))] rounded-t-2xl border-b-0 min-[761px]:max-h-[calc(100dvh-2rem)] min-[761px]:max-w-[640px] min-[761px]:rounded-2xl min-[761px]:border-b",
           className,
         )}
         ref={dialogRef}
@@ -104,6 +114,11 @@ export function ResponsiveDialog({
               </div>
             )}
           </div>
+          {headerActions && (
+            <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
+              {headerActions}
+            </div>
+          )}
           <Button
             aria-label={closeLabel}
             className="size-11 shrink-0 px-0"
