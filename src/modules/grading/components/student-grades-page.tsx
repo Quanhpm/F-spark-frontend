@@ -78,7 +78,7 @@ export function StudentGradesPage({
   useEffect(() => {
     setEditingMilestoneId(null);
     setEditingMilestoneTitle("");
-  }, [activeGroupId]);
+  }, [activeGroupId, session?.user?.email]);
 
   useEffect(() => {
     if (
@@ -100,11 +100,23 @@ export function StudentGradesPage({
     const milestone = matrix.milestones.find(
       (item) => item.milestoneId === initialMilestoneId,
     );
-    if (milestone) {
+    if (milestone && !milestone.graded) {
       setEditingMilestoneId(milestone.milestoneId);
       setEditingMilestoneTitle(milestone.title);
     }
   }, [initialMilestoneId, matrix]);
+
+  useEffect(() => {
+    if (editingMilestoneId !== null && matrix) {
+      const milestone = matrix.milestones.find(
+        (m) => m.milestoneId === editingMilestoneId
+      );
+      if (milestone?.graded) {
+        setEditingMilestoneId(null);
+        setEditingMilestoneTitle("");
+      }
+    }
+  }, [editingMilestoneId, matrix]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Find active member row
@@ -339,6 +351,7 @@ export function StudentGradesPage({
                 {/* Render Contribution Editor if Leader clicks "Edit Contributions" */}
                 {isGroupLeader && editingMilestoneId !== null && (
                   <ContributionEditor
+                    key={`${activeGroupId}-${editingMilestoneId}`}
                     groupId={activeGroupId || 0}
                     milestoneId={editingMilestoneId}
                     milestoneTitle={editingMilestoneTitle}
