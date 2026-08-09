@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, ChevronRight } from "lucide-react";
+
+import { useAuthStore } from "@/modules/auth";
+import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
+import { useGroupMilestones } from "@/modules/milestones";
+import { useGroupDetails, useMyGroups } from "@/modules/projects/hooks";
 import {
   Badge,
   Card,
@@ -11,12 +17,9 @@ import {
   PageHeader,
   Select,
 } from "@/shared/components";
-import { CheckCircle2, Users } from "lucide-react";
-import { useAuthStore } from "@/modules/auth";
-import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
-import { useMyGroups, useGroupDetails } from "@/modules/projects/hooks";
+
 import { useGroupGradeMatrix } from "../hooks";
-import { ContributionEditor } from "./contribution-editor";
+import { StudentMilestoneDetailsDialog } from "./student-milestone-details-dialog";
 
 type StudentGradesPageProps = {
   initialGroupId?: number | null;
@@ -28,56 +31,101 @@ export function StudentGradesPage({
   initialMilestoneId,
 }: StudentGradesPageProps = {}) {
   const session = useAuthStore((state) => state.session);
-
-  // Student Group queries
-  const { data: myGroupsResponse, isLoading: isMyGroupsLoading } = useMyGroups();
-  const myGroups = myGroupsResponse?.data;
-  
   const storedActiveGroupId = useActiveGroupStore(
     (state) => state.activeGroupId,
   );
   const setActiveGroupId = useActiveGroupStore(
     (state) => state.setActiveGroupId,
   );
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<number | null>(
+    null,
+  );
+  const handledInitialMilestoneKey = useRef<string | null>(null);
 
+  const myGroupsQuery = useMyGroups();
+  const myGroups = myGroupsQuery.data?.data;
   const activeGroup = resolveActiveGroup(
     myGroups ?? [],
     initialGroupId ?? storedActiveGroupId ?? null,
   );
   const activeGroupId = activeGroup?.id ?? null;
 
-  const { data: groupDetailsResponse, isLoading: isGroupDetailsLoading } = useGroupDetails(activeGroupId || 0);
-  const group = groupDetailsResponse?.data;
+  const groupDetailsQuery = useGroupDetails(activeGroupId || 0);
+  const group = groupDetailsQuery.data?.data;
+  const matrixQuery = useGroupGradeMatrix(activeGroupId);
+  const matrix = matrixQuery.data?.data;
+  const milestoneDetailsQuery = useGroupMilestones(activeGroupId);
+  const milestoneDetails = milestoneDetailsQuery.data?.data ?? [];
 
-  // Find current user's member object from group details
-  const myGroupMember = useMemo(() => {
-    if (!group || !session?.user) return null;
-    return group.members.find((m) => m.email.toLowerCase() === session.user.email.toLowerCase()) || null;
-  }, [group, session]);
-
-  // Check if current user is Group Leader
-  const isGroupLeader = useMemo(() => {
-    if (!group || !session?.user || !group.leader) return false;
-    return group.leader.email.toLowerCase() === session.user.email.toLowerCase();
-  }, [group, session]);
-
-  // Grade matrix query
-  const { data: matrixResponse, isLoading: isMatrixLoading } = useGroupGradeMatrix(activeGroupId);
-  const matrix = matrixResponse?.data;
   const hasMilestones = Boolean(matrix?.milestones.length);
   const isMatrixComplete = hasMilestones && Boolean(matrix?.complete);
+  const isLoadingDetails =
+    groupDetailsQuery.isLoading || matrixQuery.isLoading;
 
-  // Selected milestone for contribution editing
-  const [editingMilestoneId, setEditingMilestoneId] = useState<number | null>(null);
-  const [editingMilestoneTitle, setEditingMilestoneTitle] = useState("");
+  const myGroupMember = useMemo(() => {
+    if (!group || !session?.user) return null;
+    return (
+      group.members.find(
+        (member) =>
+          member.email.toLowerCase() === session.user.email.toLowerCase(),
+      ) ?? null
+    );
+  }, [group, session]);
 
-  const isLoadingGroups = isMyGroupsLoading;
-  const isLoadingDetails = isGroupDetailsLoading || isMatrixLoading;
+  const isGroupLeader = useMemo(() => {
+    if (!group?.leader || !session?.user) return false;
+    return (
+      group.leader.email.toLowerCase() === session.user.email.toLowerCase()
+    );
+  }, [group, session]);
+
+  const myMemberRow = useMemo(() => {
+    if (!matrix) return null;
+    if (myGroupMember) {
+      return (
+        matrix.members.find(
+          (member) => member.studentId === myGroupMember.studentId,
+        ) ?? null
+      );
+    }
+    if (!session?.user) return null;
+
+    const accountCode = session.user.email.split("@")[0].toLowerCase();
+    return (
+      matrix.members.find(
+        (member) => member.studentCode.toLowerCase() === accountCode,
+      ) ??
+      matrix.members.find((member) =>
+        member.studentName.toLowerCase().includes(accountCode),
+      ) ??
+      null
+    );
+  }, [matrix, myGroupMember, session]);
+
+  const leaderStudentId = useMemo(() => {
+    if (!matrix || !group?.leader) return null;
+    const leaderCode = group.leader.email.split("@")[0].toLowerCase();
+    return (
+      matrix.members.find(
+        (member) =>
+          member.studentId === group.leader?.id ||
+          member.studentCode.toLowerCase() === leaderCode,
+      )?.studentId ?? null
+    );
+  }, [group, matrix]);
+
+  const selectedMilestone =
+    matrix?.milestones.find(
+      (milestone) => milestone.milestoneId === selectedMilestoneId,
+    ) ?? null;
+  const selectedMilestoneDetails =
+    milestoneDetails.find(
+      (milestone) => milestone.id === selectedMilestoneId,
+    ) ?? null;
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    setEditingMilestoneId(null);
-    setEditingMilestoneTitle("");
+    setSelectedMilestoneId(null);
   }, [activeGroupId, session?.user?.email]);
 
   useEffect(() => {
@@ -96,72 +144,49 @@ export function StudentGradesPage({
   ]);
 
   useEffect(() => {
-    if (!initialMilestoneId || !matrix) return;
+    if (!activeGroupId || !initialMilestoneId || !matrix) return;
+    const initialMilestoneKey = `${activeGroupId}:${initialMilestoneId}`;
+    if (handledInitialMilestoneKey.current === initialMilestoneKey) return;
+
     const milestone = matrix.milestones.find(
       (item) => item.milestoneId === initialMilestoneId,
     );
-    if (milestone && !milestone.graded) {
-      setEditingMilestoneId(milestone.milestoneId);
-      setEditingMilestoneTitle(milestone.title);
+    if (milestone) {
+      handledInitialMilestoneKey.current = initialMilestoneKey;
+      setSelectedMilestoneId(milestone.milestoneId);
     }
-  }, [initialMilestoneId, matrix]);
-
-  useEffect(() => {
-    if (editingMilestoneId !== null && matrix) {
-      const milestone = matrix.milestones.find(
-        (m) => m.milestoneId === editingMilestoneId
-      );
-      if (milestone?.graded) {
-        setEditingMilestoneId(null);
-        setEditingMilestoneTitle("");
-      }
-    }
-  }, [editingMilestoneId, matrix]);
+  }, [activeGroupId, initialMilestoneId, matrix]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  // Find active member row
-  const myMemberRow = useMemo(() => {
-    if (!matrix) return null;
-    if (myGroupMember) {
-      return matrix.members.find((m) => m.studentId === myGroupMember.studentId) || null;
-    }
-    if (!session?.user) return null;
-    return matrix.members.find((m) => m.studentCode === session.user.email.split("@")[0].toUpperCase())
-      || matrix.members.find((m) => m.studentName.toLowerCase().includes(session.user.email.split("@")[0].toLowerCase()))
-      || null;
-  }, [matrix, myGroupMember, session]);
 
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
+        description="View milestone grades, instructor feedback, and member contributions."
         title="My Thesis Grades"
-        description="View your group milestones grades, feedback from instructors, and manage member contributions."
       />
 
-      {isLoadingGroups ? (
+      {myGroupsQuery.isLoading ? (
         <LoadingState title="Loading your groups..." />
       ) : !myGroups || myGroups.length === 0 ? (
         <EmptyState
-          title="No groups found"
           description="You must be in a group to view grade reports."
+          title="No groups found"
         />
       ) : (
         <div className="space-y-6">
-          {/* Selector Card */}
           <Card>
             <CardContent className="grid gap-5 pt-6">
               <div className="grid grid-cols-[minmax(240px,360px)_minmax(0,1fr)] gap-4 max-[760px]:grid-cols-1">
                 <Select
                   label="Group"
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    setActiveGroupId(value);
-                  }}
+                  onChange={(event) =>
+                    setActiveGroupId(Number(event.target.value))
+                  }
                   value={String(activeGroupId ?? "")}
                 >
-                  {myGroups.map((g) => (
-                    <option key={g.id} value={String(g.id)}>
-                      {g.groupNo} - {g.name}
+                  {myGroups.map((item) => (
+                    <option key={item.id} value={String(item.id)}>
+                      {item.groupNo} - {item.name}
                     </option>
                   ))}
                 </Select>
@@ -184,186 +209,145 @@ export function StudentGradesPage({
             <LoadingState title="Loading grading information..." />
           ) : !matrix || !hasMilestones ? (
             <EmptyState
-              title="No milestones yet"
               description="Course milestones have not been created for this group yet."
+              title="No milestones yet"
             />
           ) : (
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2 space-y-6">
-                <Card>
-                  <CardHeader
-                    title="Milestone Evaluations"
-                    description="List of all course milestones, scores, and instructor feedback."
-                  />
-                  <CardContent className="p-0 border-t border-border">
-                    <div className="divide-y divide-border">
-                      {matrix.milestones.map((col) => {
-                        const grade = col.groupGrade;
-                        const myScore = myMemberRow?.milestoneScores.find(
-                          (ms) => ms.milestoneId === col.milestoneId
-                        );
+            <>
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="space-y-6 lg:col-span-2">
+                  <Card>
+                    <CardHeader
+                      description="Select a milestone to view its details, grade, and member contributions."
+                      title="Milestone Evaluations"
+                    />
+                    <CardContent className="border-t border-border p-0">
+                      <div className="divide-y divide-border">
+                        {matrix.milestones.map((milestone) => {
+                          const grade = milestone.groupGrade;
 
-                        return (
-                          <div className="p-5 space-y-3 hover:bg-neutral-50/20 transition-colors" key={col.milestoneId}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <strong className="text-sm font-bold text-foreground block">
-                                  {col.title}
-                                </strong>
-                                <span className="text-xs text-muted">
-                                  Weight: {col.weight}% &bull; Max Score: {col.maxScore}
-                                </span>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {col.graded ? (
-                                  <Badge tone="success" size="sm">
-                                    Graded
+                          return (
+                            <button
+                              className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-0 bg-transparent p-5 text-left transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-secondary max-[560px]:grid-cols-1"
+                              key={milestone.milestoneId}
+                              onClick={() =>
+                                setSelectedMilestoneId(milestone.milestoneId)
+                              }
+                              type="button"
+                            >
+                              <div className="grid min-w-0 gap-2">
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                  <strong className="break-words text-sm font-bold text-foreground">
+                                    {milestone.title}
+                                  </strong>
+                                  <Badge
+                                    size="sm"
+                                    tone={
+                                      milestone.graded ? "success" : "neutral"
+                                    }
+                                  >
+                                    {milestone.graded
+                                      ? "Graded"
+                                      : "Not Graded"}
                                   </Badge>
-                                ) : (
-                                  <Badge tone="neutral" size="sm">
-                                    Not Graded
-                                  </Badge>
-                                )}
-
-                                {col.contributionsComplete ? (
-                                  <Badge tone="brand" size="sm">
-                                    Contributions Done
-                                  </Badge>
-                                ) : (
-                                  <Badge tone="warning" size="sm">
-                                    Contributions Pending
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-
-                            {col.graded && grade && (
-                              <div className="grid gap-2 rounded-xl bg-background border border-border p-3.5">
-                                <div className="flex items-center justify-between text-xs text-muted font-semibold">
-                                  <span>Group Grade:</span>
-                                  <span className="text-sm font-extrabold text-foreground">
-                                    {grade.score} / {col.maxScore}
-                                  </span>
                                 </div>
-
-                                {myScore && (
-                                  <div className="flex items-center justify-between text-xs text-muted font-semibold border-t border-border/40 pt-1.5">
-                                    <span>My Contribution / Individual Grade:</span>
-                                    <span className="text-sm font-extrabold text-brand-primary">
-                                      {myScore.contributionPercent}% &bull; {myScore.calculatedScore.toFixed(2)}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {grade.feedback && (
-                                  <div className="text-xs text-muted bg-surface border border-border/40 rounded-lg p-2.5 mt-1.5 leading-normal">
-                                    <strong className="block text-foreground mb-0.5">Instructor Feedback:</strong>
-                                    {grade.feedback}
-                                  </div>
+                                <span className="text-xs text-muted">
+                                  Weight: {milestone.weight}% · Max score:{" "}
+                                  {milestone.maxScore}
+                                </span>
+                                {grade && (
+                                  <span className="text-sm font-bold text-brand-primary">
+                                    Group grade: {grade.score} /{" "}
+                                    {milestone.maxScore}
+                                  </span>
                                 )}
                               </div>
-                            )}
 
-                            {/* Group Members & Contributions breakdown */}
-                            <div className="rounded-xl border border-border bg-neutral-50/20 p-3.5 space-y-2">
-                              <div className="flex items-center justify-between text-xs font-bold text-foreground">
-                                <span>Thành viên &amp; Đóng góp (Contribution):</span>
+                              <div className="flex items-center gap-2 justify-self-end text-xs font-bold text-brand-primary max-[560px]:justify-self-start">
+                                <span>View details</span>
+                                <ChevronRight size={16} />
                               </div>
-                              <div className="divide-y divide-border/40 text-xs">
-                                {matrix.members.map((member) => {
-                                  const memberScore = member.milestoneScores.find(
-                                    (ms) => ms.milestoneId === col.milestoneId
-                                  );
-                                  const isCurrentUser = myGroupMember && member.studentId === myGroupMember.studentId;
-                                  const isLeader = group?.leader && (member.studentId === group.leader.id || member.studentCode.toLowerCase() === group.leader.email.split("@")[0].toLowerCase());
-                                  return (
-                                    <div key={member.studentId} className="flex items-center justify-between py-1.5 first:pt-0 last:pb-0">
-                                      <span className={isCurrentUser ? "font-bold text-brand-primary" : "text-muted-foreground"}>
-                                        {member.studentName} <span className="font-mono text-[10px]">({member.studentCode})</span>{isCurrentUser && " (You)"}{isLeader && " (Leader)"}
-                                      </span>
-                                      <span className="font-bold text-foreground">
-                                        {memberScore ? `${memberScore.contributionPercent}%` : "Chưa đánh giá"}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Leader Contribution Edit Button */}
-                            {isGroupLeader && !col.graded && (
-                              <button
-                                onClick={() => {
-                                  setEditingMilestoneId(col.milestoneId);
-                                  setEditingMilestoneTitle(col.title);
-                                }}
-                                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-brand-primary bg-brand-primary/5 px-3 text-xs font-bold text-brand-primary hover:bg-brand-primary/10 transition-colors"
-                              >
-                                <Users size={13} />
-                                <span>Edit Contributions</span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-6">
-                {/* Grade Overview Summary Card */}
-                <Card className="border-l-4 border-l-brand-primary bg-brand-primary/5">
-                  <CardHeader
-                    title="Academic Summary"
-                    description={`Active Project: ${group?.projectName || "No Project"}`}
-                  />
-                  <CardContent className="pt-0 space-y-4">
-                    <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                      <span className="text-sm font-bold text-muted">Grading Progress:</span>
-                      <Badge tone={isMatrixComplete ? "success" : "neutral"} icon={isMatrixComplete ? <CheckCircle2 size={13} /> : undefined}>
-                        {!hasMilestones
-                          ? "No Milestones"
-                          : isMatrixComplete
-                            ? "Completed"
-                            : "In Progress"}
-                      </Badge>
-                    </div>
-
-                    <p className="m-0 text-xs leading-relaxed text-muted">
-                      Completed when all milestones have grading and contribution data.
-                    </p>
-                    
-                    {hasMilestones && myMemberRow && (
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-xs font-bold text-muted uppercase tracking-wider">My Total Grade</span>
-                        <strong className="text-3xl font-extrabold text-brand-primary leading-none">
-                          {myMemberRow.totalScore.toFixed(2)}
-                        </strong>
-                        <span className="text-xs text-muted">
-                          Individual weighted total of graded milestones.
-                        </span>
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
 
-                {/* Render Contribution Editor if Leader clicks "Edit Contributions" */}
-                {isGroupLeader && editingMilestoneId !== null && (
-                  <ContributionEditor
-                    key={`${activeGroupId}-${editingMilestoneId}`}
-                    groupId={activeGroupId || 0}
-                    milestoneId={editingMilestoneId}
-                    milestoneTitle={editingMilestoneTitle}
-                    members={matrix.members}
-                    onSuccess={() => {
-                      setEditingMilestoneId(null);
-                      setEditingMilestoneTitle("");
-                    }}
-                  />
-                )}
+                <div className="space-y-6">
+                  <Card className="border-l-4 border-l-brand-primary bg-brand-primary/5">
+                    <CardHeader
+                      description={`Active Project: ${group?.projectName || "No Project"}`}
+                      title="Academic Summary"
+                    />
+                    <CardContent className="space-y-4 pt-0">
+                      <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                        <span className="text-sm font-bold text-muted">
+                          Grading Progress:
+                        </span>
+                        <Badge
+                          icon={
+                            isMatrixComplete ? (
+                              <CheckCircle2 size={13} />
+                            ) : undefined
+                          }
+                          tone={isMatrixComplete ? "success" : "neutral"}
+                        >
+                          {isMatrixComplete ? "Completed" : "In Progress"}
+                        </Badge>
+                      </div>
+
+                      <p className="m-0 text-xs leading-relaxed text-muted">
+                        Completed when all milestones have grading and
+                        contribution data.
+                      </p>
+
+                      {myMemberRow && (
+                        <div className="flex flex-col gap-1.5">
+                          <span className="text-xs font-bold tracking-wider text-muted uppercase">
+                            My Total Grade
+                          </span>
+                          <strong className="text-3xl leading-none font-extrabold text-brand-primary">
+                            {typeof myMemberRow.totalScore === "number" &&
+                            Number.isFinite(myMemberRow.totalScore)
+                              ? myMemberRow.totalScore.toFixed(2)
+                              : "Not available"}
+                          </strong>
+                          <span className="text-xs text-muted">
+                            Individual weighted total of graded milestones.
+                          </span>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </div>
+
+              {selectedMilestone && activeGroupId && (
+                <StudentMilestoneDetailsDialog
+                  canEditContributions={
+                    isGroupLeader && !selectedMilestone.graded
+                  }
+                  courseCode={matrix.courseCode}
+                  currentStudentId={myMemberRow?.studentId}
+                  groupId={activeGroupId}
+                  isMilestoneDetailsError={
+                    milestoneDetailsQuery.isError ||
+                    (!milestoneDetailsQuery.isLoading &&
+                      !selectedMilestoneDetails)
+                  }
+                  isMilestoneDetailsLoading={milestoneDetailsQuery.isLoading}
+                  key={`${activeGroupId}-${selectedMilestone.milestoneId}`}
+                  leaderStudentId={leaderStudentId}
+                  members={matrix.members}
+                  milestone={selectedMilestone}
+                  milestoneDetails={selectedMilestoneDetails}
+                  onClose={() => setSelectedMilestoneId(null)}
+                  term={matrix.term}
+                />
+              )}
+            </>
           )}
         </div>
       )}

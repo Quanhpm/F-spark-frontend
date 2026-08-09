@@ -12,6 +12,7 @@ import {
   LoadingState,
   PageHeader,
   ResponsiveDialog,
+  Select,
   TextInput,
 } from "@/shared/components";
 import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-react";
@@ -84,9 +85,8 @@ function GradeModal({
   return (
     <ResponsiveDialog
       bodyClassName="p-4 min-[761px]:p-6"
-      className="max-[760px]:pt-[env(safe-area-inset-top)]"
+      className="max-[760px]:pt-[env(safe-area-inset-top)] min-[761px]:max-w-[680px]"
       closeLabel="Close grading form"
-      desktopMode="drawer"
       footer={
         <>
           <Button
@@ -122,14 +122,19 @@ function GradeModal({
               <div className="divide-y divide-border/60">
                 {matrix?.members.map((member) => {
                   const mScore = member.milestoneScores.find((ms) => ms.milestoneId === milestoneId);
+                  const hasContribution =
+                    typeof mScore?.contributionPercent === "number" &&
+                    Number.isFinite(mScore.contributionPercent);
                   return (
                     <div className="py-2.5 flex items-center justify-between text-sm" key={member.studentId}>
                       <div>
                         <span className="font-bold text-foreground">{member.studentName}</span>
                         <span className="text-xs text-muted ml-2 font-mono">{member.studentCode}</span>
                       </div>
-                      <Badge tone={mScore?.contributionPercent ? "brand" : "neutral"} size="sm">
-                        {mScore ? `${mScore.contributionPercent}%` : "Not submitted"}
+                      <Badge tone={hasContribution ? "brand" : "neutral"} size="sm">
+                        {hasContribution
+                          ? `${mScore.contributionPercent}%`
+                          : "Not submitted"}
                       </Badge>
                     </div>
                   );
@@ -305,11 +310,15 @@ export function InstructorGradingPage({
               value={term}
               onChange={(e) => setTerm(e.target.value.toUpperCase())}
             />
-            <TextInput
+            <Select
               label="Course Code"
               value={courseCode}
-              onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-            />
+              onChange={(event) => setCourseCode(event.target.value)}
+            >
+              <option value="EXE101">EXE101</option>
+              <option value="EXE201">EXE201</option>
+              <option value="EXE401">EXE401</option>
+            </Select>
           </div>
         </CardContent>
 

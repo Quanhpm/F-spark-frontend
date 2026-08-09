@@ -165,7 +165,7 @@ export function resolveNotificationDestination(
       return withQuery(groupsPath(role), { groupId: groupId ?? undefined });
     case "OPEN_MILESTONE":
       if (role === "STUDENT") {
-        return withQuery("/student/submissions", {
+        return withQuery("/student/grades", {
           groupId: groupId ?? undefined,
           milestoneId: milestoneId ?? undefined,
         });
@@ -179,7 +179,7 @@ export function resolveNotificationDestination(
       return withQuery(groupsPath(role), { groupId: groupId ?? undefined });
     case "OPEN_SUBMISSION":
       if (role === "STUDENT") {
-        return withQuery("/student/submissions", {
+        return withQuery("/student/grades", {
           groupId: groupId ?? undefined,
           milestoneId: milestoneId ?? undefined,
         });
@@ -230,11 +230,18 @@ function resolveLegacyNotificationDestination(
 ) {
   if (!isSafeNotificationActionUrl(actionUrl)) return null;
 
-  const pathname = new URL(actionUrl, internalActionUrlOrigin).pathname;
-  const groupId = positiveId(params.groupId);
+  const legacyUrl = new URL(actionUrl, internalActionUrlOrigin);
+  const pathname = legacyUrl.pathname;
+  const groupId = positiveId(
+    params.groupId ?? legacyUrl.searchParams.get("groupId") ?? undefined,
+  );
   const taskId = positiveId(params.taskId);
-  const milestoneId = positiveId(params.milestoneId);
-  const submissionId = positiveId(params.submissionId);
+  const milestoneId = positiveId(
+    params.milestoneId ?? legacyUrl.searchParams.get("milestoneId") ?? undefined,
+  );
+  const submissionId = positiveId(
+    params.submissionId ?? legacyUrl.searchParams.get("submissionId") ?? undefined,
+  );
 
   if (pathname === "/groups/invitations") {
     return role === "STUDENT"
@@ -282,7 +289,7 @@ function resolveLegacyNotificationDestination(
 
   if (/^\/milestones\/\d+$/.test(pathname)) {
     if (role === "STUDENT") {
-      return withQuery("/student/submissions", {
+      return withQuery("/student/grades", {
         groupId: groupId ?? undefined,
         milestoneId: milestoneId ?? undefined,
       });
@@ -309,6 +316,13 @@ function resolveLegacyNotificationDestination(
 
   if (pathname === "/groups" || /^\/groups\/\d+(?:\/requests|\/mentor\/meetings)?$/.test(pathname)) {
     return withQuery(groupsPath(role), { groupId: groupId ?? undefined });
+  }
+
+  if (role === "STUDENT" && pathname === "/student/submissions") {
+    return withQuery("/student/grades", {
+      groupId: groupId ?? undefined,
+      milestoneId: milestoneId ?? undefined,
+    });
   }
 
   // Preserve already-migrated, role-scoped routes only. Unknown legacy paths
