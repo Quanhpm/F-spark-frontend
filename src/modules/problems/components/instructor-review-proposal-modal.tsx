@@ -49,7 +49,6 @@ export function InstructorReviewProposalModal({
       bodyClassName="p-0"
       className="min-[761px]:max-w-[520px]"
       closeLabel="Close proposal review"
-      closeOnBackdrop={false}
       description="Approve or reject this proposal and optionally leave feedback."
       footer={
         <>

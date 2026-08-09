@@ -10,7 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { MentorDashboardSection } from "@/modules/dashboards";
+import { MentorUpcomingMeetingsSection } from "@/modules/dashboards";
 import { useCancelMeeting, useGroupMeetings, useConfirmMeeting } from "@/modules/mentoring";
 import type { MentorMeetingDto } from "@/modules/mentoring";
 import {
@@ -511,7 +511,7 @@ export function MentorGroupsPage({
         title="My Groups"
       />
 
-      <MentorDashboardSection />
+      <MentorUpcomingMeetingsSection />
 
       {mentorGroupsQuery.isLoading ? (
         <Card isPadded>

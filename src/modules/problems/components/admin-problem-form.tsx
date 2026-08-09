@@ -113,7 +113,6 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
     <ResponsiveDialog
       bodyClassName="p-0"
       className="min-[761px]:max-w-[640px]"
-      closeOnBackdrop={false}
       description="Manage the official problem scope, classification, and supporting resources."
       footer={
         <>

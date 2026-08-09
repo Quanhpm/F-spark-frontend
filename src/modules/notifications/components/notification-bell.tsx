@@ -122,7 +122,7 @@ export function NotificationBell() {
         <>
           <button
             aria-label="Close notifications"
-            className="fixed inset-0 z-40 cursor-default border-0 bg-foreground/30 backdrop-blur-sm min-[761px]:hidden"
+            className="fixed inset-0 z-40 cursor-default border-0 bg-foreground/30 backdrop-blur-sm min-[761px]:bg-transparent min-[761px]:backdrop-blur-none"
             onClick={() => setIsOpen(false)}
             tabIndex={-1}
             type="button"

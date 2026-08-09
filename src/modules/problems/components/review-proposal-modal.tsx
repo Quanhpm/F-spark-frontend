@@ -48,7 +48,6 @@ export function ReviewProposalModal({
     <ResponsiveDialog
       bodyClassName="p-0"
       className="min-[761px]:max-w-[480px]"
-      closeOnBackdrop={false}
       description="Approve the proposal or return it with clear feedback."
       footer={
         <>

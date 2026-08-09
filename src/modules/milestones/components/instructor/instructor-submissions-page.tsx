@@ -175,7 +175,6 @@ function GradeModal({ milestone, onClose, submission }: GradeModalProps) {
     <ResponsiveDialog
       className="min-[761px]:max-w-[620px]"
       closeLabel="Close grade form"
-      closeOnBackdrop={false}
       description={`Submission #${submission.id}${
         milestone ? ` for ${milestone.title}` : ""
       }`}

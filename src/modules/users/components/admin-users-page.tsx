@@ -445,7 +445,6 @@ function UserFormModal({
     <ResponsiveDialog
       bodyClassName="p-0"
       className="min-[761px]:max-w-[760px]"
-      closeOnBackdrop={false}
       description={description}
       footer={
         <>
@@ -794,7 +793,6 @@ function ResetPasswordModal({
     <ResponsiveDialog
       bodyClassName="p-0"
       className="min-[761px]:max-w-[480px]"
-      closeOnBackdrop={false}
       description={<>Set a temporary password for {getDisplayName(user)}.</>}
       footer={
         <>
@@ -849,7 +847,6 @@ function UserDetailStateModal({
   return (
     <ResponsiveDialog
       className="min-[761px]:max-w-[480px]"
-      closeOnBackdrop={false}
       description={description}
       onClose={onClose}
       title={title}
@@ -885,7 +882,6 @@ function DeleteUserModal({ onClose, onConfirm, user }: DeleteUserModalProps) {
     <ResponsiveDialog
       bodyClassName="grid gap-[18px]"
       className="min-[761px]:max-w-[480px]"
-      closeOnBackdrop={false}
       description={
         <>
           This will soft delete {getDisplayName(user)} and remove their active

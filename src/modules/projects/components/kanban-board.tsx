@@ -705,7 +705,6 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
         <ResponsiveDialog
           className="min-[761px]:max-w-[540px]"
           closeLabel="Close task form"
-          closeOnBackdrop={false}
           footer={
             <>
               <Button
@@ -845,7 +844,6 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
         <ResponsiveDialog
           className="min-[761px]:max-w-[520px]"
           closeLabel="Close board form"
-          closeOnBackdrop={false}
           description="Add a custom task board for this group."
           footer={
             <>

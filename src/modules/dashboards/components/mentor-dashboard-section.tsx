@@ -14,17 +14,14 @@ import {
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 
-import {
-  useMentorDashboardGroups,
-  useMentorDashboardMeetings,
-} from "../hooks";
-import type { DashboardGroupProgressDto, DashboardMeetingDto } from "../types";
+import { useMentorDashboardMeetings } from "../hooks";
+import type { DashboardMeetingDto } from "../types";
 import type { MeetingStatus } from "@/shared/types";
 
 function getErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
-    : "Unable to load mentor dashboard data.";
+    : "Unable to load mentor meetings.";
 }
 
 function formatDateTime(value: string) {
@@ -32,25 +29,6 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function MentorStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="grid gap-1 rounded-xl border border-border bg-surface p-4">
-      <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-        {label}
-      </span>
-      <strong className="text-2xl leading-none font-bold text-foreground">
-        {value}
-      </strong>
-    </div>
-  );
 }
 
 function getMeetingStatusTone(status: MeetingStatus) {
@@ -92,132 +70,69 @@ function MeetingCard({ meeting }: { meeting: DashboardMeetingDto }) {
   );
 }
 
-export function getMentorDashboardSummary(groups: DashboardGroupProgressDto[]) {
-  const totalTasks = groups.reduce((sum, group) => sum + group.totalTasks, 0);
-  const completedTasks = groups.reduce(
-    (sum, group) => sum + group.completedTasks,
-    0,
-  );
-  const overdueTasks = groups.reduce((sum, group) => sum + group.overdueTasks, 0);
-  const progressPercent =
-    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
-  return {
-    completedTasks,
-    overdueTasks,
-    progressPercent,
-    totalGroups: groups.length,
-    totalTasks,
-  };
-}
-
-export function MentorDashboardSection() {
-  const groupsQuery = useMentorDashboardGroups();
+export function MentorUpcomingMeetingsSection() {
   const meetingsQuery = useMentorDashboardMeetings();
   const [meetingStatusFilter, setMeetingStatusFilter] = useState<
     MeetingStatus | "ALL"
-  >("ALL");
+  >("SCHEDULED");
 
-  const groups = groupsQuery.data?.data ?? [];
   const meetings = meetingsQuery.data?.data ?? [];
   const filteredMeetings =
     meetingStatusFilter === "ALL"
       ? meetings
       : meetings.filter((meeting) => meeting.status === meetingStatusFilter);
-  const summary = getMentorDashboardSummary(groups);
-
   return (
-    <>
-      <Card>
-        <CardHeader
-          description="A quick pulse on assigned groups and task progress."
-          title="Mentor Dashboard"
-        />
-        <CardContent>
-          {groupsQuery.isLoading ? (
-            <LoadingState
-              className="min-h-48"
-              title="Loading mentor dashboard"
-            />
-          ) : groupsQuery.error ? (
-            <EmptyState
-              className="min-h-48 border-red-200 bg-red-50"
-              description={getErrorMessage(groupsQuery.error)}
-              icon={<Users size={22} />}
-              title="Dashboard unavailable"
-            />
-          ) : (
-            <div className="grid gap-5">
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(150px,100%),1fr))] gap-3">
-                <MentorStat label="Groups" value={summary.totalGroups} />
-                <MentorStat label="Tasks" value={summary.totalTasks} />
-                <MentorStat
-                  label="Completed"
-                  value={summary.completedTasks}
-                />
-                <MentorStat label="Overdue" value={summary.overdueTasks} />
-                <MentorStat
-                  label="Progress"
-                  value={`${summary.progressPercent}%`}
-                />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader
-          actions={
-            <Select
-              aria-label="Filter upcoming meetings by status"
-              fieldClassName="w-full min-[761px]:w-[190px]"
-              id="mentor-meeting-status-filter"
-              onChange={(event) =>
-                setMeetingStatusFilter(
-                  event.target.value as MeetingStatus | "ALL",
-                )
-              }
-              value={meetingStatusFilter}
-            >
-              <option value="ALL">All statuses</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="CANCELED">Canceled</option>
-              <option value="COMPLETED">Completed</option>
-            </Select>
-          }
-          description="Review the next scheduled sessions across your assigned groups."
-          title="Upcoming meetings"
-        />
-        <CardContent>
-          {meetingsQuery.isLoading ? (
-            <LoadingState className="min-h-40" title="Loading meetings" />
-          ) : meetingsQuery.error ? (
-            <EmptyState
-              className="min-h-40 border-red-200 bg-red-50"
-              description={getErrorMessage(meetingsQuery.error)}
-              icon={<CalendarClock size={22} />}
-              title="Meetings unavailable"
-            />
-          ) : filteredMeetings.length > 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3">
-              {filteredMeetings.map((meeting) => (
-                <MeetingCard key={meeting.id} meeting={meeting} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              className="min-h-40"
-              icon={<Users size={22} />}
-              title={
-                meetingStatusFilter === "ALL"
-                  ? "No upcoming meetings"
-                  : `No ${meetingStatusFilter.toLowerCase()} meetings`
-              }
-            />
-          )}
-        </CardContent>
-      </Card>
-    </>
+    <Card>
+      <CardHeader
+        actions={
+          <Select
+            aria-label="Filter upcoming meetings by status"
+            fieldClassName="w-full min-[761px]:w-[190px]"
+            id="mentor-meeting-status-filter"
+            onChange={(event) =>
+              setMeetingStatusFilter(
+                event.target.value as MeetingStatus | "ALL",
+              )
+            }
+            value={meetingStatusFilter}
+          >
+            <option value="ALL">All statuses</option>
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="CANCELED">Canceled</option>
+            <option value="COMPLETED">Completed</option>
+          </Select>
+        }
+        description="Scheduled meetings are shown by default. Use the filter to view other statuses."
+        title="Upcoming meetings"
+      />
+      <CardContent>
+        {meetingsQuery.isLoading ? (
+          <LoadingState className="min-h-40" title="Loading meetings" />
+        ) : meetingsQuery.error ? (
+          <EmptyState
+            className="min-h-40 border-red-200 bg-red-50"
+            description={getErrorMessage(meetingsQuery.error)}
+            icon={<CalendarClock size={22} />}
+            title="Meetings unavailable"
+          />
+        ) : filteredMeetings.length > 0 ? (
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-3">
+            {filteredMeetings.map((meeting) => (
+              <MeetingCard key={meeting.id} meeting={meeting} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            className="min-h-40"
+            icon={<Users size={22} />}
+            title={
+              meetingStatusFilter === "ALL"
+                ? "No upcoming meetings"
+                : `No ${meetingStatusFilter.toLowerCase()} meetings`
+            }
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -150,7 +150,6 @@ export function ProblemDetailModal({
     return (
       <ResponsiveDialog
         className="min-[761px]:max-w-[680px]"
-        closeOnBackdrop={false}
         onClose={onClose}
         title="Loading problem details"
       >
@@ -163,7 +162,6 @@ export function ProblemDetailModal({
     return (
       <ResponsiveDialog
         className="min-[761px]:max-w-[480px]"
-        closeOnBackdrop={false}
         footer={<Button onClick={onClose}>Close</Button>}
         onClose={onClose}
         title="Error loading problem"

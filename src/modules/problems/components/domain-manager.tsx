@@ -272,7 +272,6 @@ export function DomainManager() {
         <ResponsiveDialog
           bodyClassName="p-0"
           className="min-[761px]:max-w-[580px]"
-          closeOnBackdrop={false}
           description="Define domain metadata used to classify official topics and proposals."
           footer={
             <>

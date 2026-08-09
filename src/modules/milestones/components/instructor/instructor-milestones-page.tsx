@@ -249,7 +249,6 @@ function MilestoneForm({ filters, milestone, onClose }: MilestoneFormProps) {
     <ResponsiveDialog
       className="min-[761px]:max-w-[720px]"
       closeLabel="Close milestone form"
-      closeOnBackdrop={false}
       description="Manage the instructor timeline used by assigned project groups."
       footer={
         <>

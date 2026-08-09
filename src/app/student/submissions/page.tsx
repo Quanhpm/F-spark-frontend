@@ -18,7 +18,6 @@ export default async function StudentSubmissionsRoute({
   return (
     <StudentSubmissionsPage
       initialGroupId={parseId(params.groupId)}
-      initialMilestoneId={parseId(params.milestoneId)}
     />
   );
 }

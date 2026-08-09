@@ -57,7 +57,6 @@ export function ConfirmDialog({
         !children && !error && "hidden",
       )}
       className="min-[761px]:max-w-[520px] [&>footer]:border-t-0 [&>header]:border-b-0"
-      closeOnBackdrop={false}
       description={description}
       footer={
         <>

@@ -1,4 +1,4 @@
-import { AlertTriangle, ExternalLink, Upload } from "lucide-react";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 
 import {
   Badge,
@@ -19,7 +19,6 @@ type StudentMilestoneTimelineProps = {
   error: unknown;
   isLoading: boolean;
   milestones: CourseMilestoneDto[];
-  onSubmit: (milestone: CourseMilestoneDto) => void;
   submissionsByMilestone: Map<EntityId, MilestoneSubmissionDto>;
 };
 
@@ -66,7 +65,6 @@ export function StudentMilestoneTimeline({
   error,
   isLoading,
   milestones,
-  onSubmit,
   submissionsByMilestone,
 }: StudentMilestoneTimelineProps) {
   if (isLoading) {
@@ -97,11 +95,6 @@ export function StudentMilestoneTimeline({
     <div className="grid gap-3">
       {milestones.map((milestone) => {
         const submission = submissionsByMilestone.get(milestone.id);
-        const isClosed =
-          milestone.status === "ARCHIVED" ||
-          milestone.status === "CLOSED" ||
-          milestone.status === "INACTIVE";
-
         return (
           <div
             className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 rounded-xl border border-border bg-surface p-4 max-[860px]:grid-cols-1"
@@ -166,14 +159,6 @@ export function StudentMilestoneTimeline({
                   File
                 </Button>
               )}
-              <Button
-                disabled={isClosed}
-                icon={<Upload size={15} />}
-                onClick={() => onSubmit(milestone)}
-                size="sm"
-              >
-                {submission ? "Resubmit" : "Submit"}
-              </Button>
             </div>
           </div>
         );

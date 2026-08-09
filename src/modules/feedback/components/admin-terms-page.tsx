@@ -108,7 +108,6 @@ function CreateTermModal({ onClose }: CreateTermModalProps) {
       bodyClassName="grid gap-4"
       className="min-[761px]:max-w-[510px]"
       closeLabel="Close create term dialog"
-      closeOnBackdrop={false}
       description="Create an open term that students can select when creating a group."
       footer={
         <>
@@ -178,7 +177,6 @@ function CloseTermModal({ onClose, term }: CloseTermModalProps) {
       bodyClassName="grid gap-3 text-sm leading-relaxed text-foreground"
       className="min-[761px]:max-w-[510px]"
       closeLabel="Close confirmation dialog"
-      closeOnBackdrop={false}
       description={
         <>Close {term.code} and finalize the current term snapshot.</>
       }

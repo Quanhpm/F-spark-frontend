@@ -1,34 +1,25 @@
 "use client";
 
-import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
-import { CalendarClock, Send, Upload } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { CalendarClock } from "lucide-react";
 
 import {
   Badge,
-  Button,
   Card,
   CardContent,
   CardHeader,
   EmptyState,
-  ResponsiveDialog,
   Select,
-  TextInput,
 } from "@/shared/components";
-import { ApiError } from "@/shared/lib";
-import type {
-  CourseMilestoneStatus,
-  EntityId,
-} from "@/shared/types";
+import type { EntityId } from "@/shared/types";
 import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 
 import {
   useAverageGrade,
   useGroupMilestoneSubmissions,
   useGroupMilestones,
-  useSubmitMilestone,
-  useUpdateMilestoneSubmission,
 } from "../../hooks";
-import type { CourseMilestoneDto, MilestoneSubmissionDto } from "../../types";
+import type { MilestoneSubmissionDto } from "../../types";
 import { StudentMilestoneTimeline } from "./student-milestone-timeline";
 
 export type StudentMilestoneGroupOption = {
@@ -44,44 +35,7 @@ export type StudentMilestoneGroupOption = {
 type StudentMilestoneSubmissionsPanelProps = {
   groups: StudentMilestoneGroupOption[];
   initialGroupId?: EntityId | null;
-  initialMilestoneId?: EntityId | null;
 };
-
-type SubmissionModalProps = {
-  existingSubmission?: MilestoneSubmissionDto;
-  groupId: EntityId;
-  milestone: CourseMilestoneDto;
-  onClose: () => void;
-};
-
-function getErrorMessage(error: unknown) {
-  return error instanceof ApiError || error instanceof Error
-    ? error.message
-    : "Something went wrong. Please try again.";
-}
-
-function optional(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "No deadline";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Invalid date";
-
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function getMilestoneStatusTone(status: CourseMilestoneStatus) {
-  if (status === "ACTIVE") return "success";
-  if (status === "CLOSED") return "warning";
-  if (status === "ARCHIVED") return "danger";
-  return "neutral";
-}
 
 function getAverageValue(
   value: { averageGrade: number | null; average: number | null } | undefined,
@@ -115,143 +69,10 @@ function getLatestSubmissionByMilestone(submissions: MilestoneSubmissionDto[]) {
   return latestByMilestone;
 }
 
-function SubmissionModal({
-  existingSubmission,
-  groupId,
-  milestone,
-  onClose,
-}: SubmissionModalProps) {
-  const formId = useId();
-  const submitMutation = useSubmitMilestone();
-  const updateMutation = useUpdateMilestoneSubmission();
-  const [fileUrl, setFileUrl] = useState(existingSubmission?.fileUrl ?? "");
-  const [comments, setComments] = useState(existingSubmission?.comments ?? "");
-  const [error, setError] = useState("");
-
-  const isPending = submitMutation.isPending || updateMutation.isPending;
-  const mutationError = submitMutation.error ?? updateMutation.error;
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-
-    if (!fileUrl.trim()) {
-      setError("Deliverable URL is required.");
-      return;
-    }
-
-    if (fileUrl.trim().length > 1000) {
-      setError("Deliverable URL cannot exceed 1,000 characters.");
-      return;
-    }
-
-    if (existingSubmission) {
-      updateMutation.mutate(
-        {
-          payload: {
-            comments: optional(comments),
-            fileUrl: fileUrl.trim(),
-            version: existingSubmission.version ?? undefined,
-          },
-          submissionId: existingSubmission.id,
-        },
-        { onSuccess: onClose },
-      );
-      return;
-    }
-
-    submitMutation.mutate(
-      {
-        payload: {
-          comments: optional(comments),
-          fileUrl: fileUrl.trim(),
-          groupId,
-          milestoneId: milestone.id,
-        },
-      },
-      { onSuccess: onClose },
-    );
-  }
-
-  return (
-    <ResponsiveDialog
-      className="min-[761px]:max-w-[620px]"
-      closeLabel="Close submission form"
-      closeOnBackdrop={false}
-      description={milestone.title}
-      footer={
-        <>
-          <Button onClick={onClose} variant="secondary">
-            Cancel
-          </Button>
-          <Button
-            disabled={isPending}
-            form={formId}
-            icon={<Send size={16} />}
-            type="submit"
-          >
-            {isPending
-              ? "Submitting..."
-              : existingSubmission
-                ? "Resubmit"
-                : "Submit"}
-          </Button>
-        </>
-      }
-      mobileMode="fullscreen"
-      onClose={onClose}
-      title={existingSubmission ? "Resubmit deliverable" : "Submit deliverable"}
-    >
-      <form className="grid min-w-0 gap-5" id={formId} onSubmit={handleSubmit}>
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-background p-4 text-sm text-muted">
-          <Badge tone={getMilestoneStatusTone(milestone.status)}>
-            {milestone.status}
-          </Badge>
-          <span>Deadline {formatDateTime(milestone.deadlineAt)}</span>
-          <span>Weight {milestone.weight ?? "N/A"}%</span>
-          <span>Max {milestone.maxScore ?? "N/A"}</span>
-        </div>
-
-        <TextInput
-          icon={<Upload size={16} />}
-          label="Deliverable URL"
-          onChange={(event) => setFileUrl(event.target.value)}
-          placeholder="https://drive.google.com/..."
-          required
-          value={fileUrl}
-        />
-        {fileUrl && (
-          <p className="-mt-3 m-0 break-all text-xs leading-5 text-muted">
-            {fileUrl}
-          </p>
-        )}
-
-        <label className="grid gap-[7px]">
-          <span className="text-[13px] font-medium text-foreground">
-            Comments
-          </span>
-          <textarea
-            className="min-h-28 min-w-0 rounded-xl border border-border bg-surface px-3.5 py-3 text-base text-foreground outline-0 transition-[border-color,box-shadow] focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] min-[761px]:text-sm"
-            onChange={(event) => setComments(event.target.value)}
-            placeholder="Notes for the instructor"
-            value={comments}
-          />
-        </label>
-
-        {(error || mutationError) && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error || getErrorMessage(mutationError)}
-          </div>
-        )}
-      </form>
-    </ResponsiveDialog>
-  );
-}
 
 export function StudentMilestoneSubmissionsPanel({
   groups,
   initialGroupId,
-  initialMilestoneId,
 }: StudentMilestoneSubmissionsPanelProps) {
   const storedActiveGroupId = useActiveGroupStore(
     (state) => state.activeGroupId,
@@ -259,9 +80,6 @@ export function StudentMilestoneSubmissionsPanel({
   const setActiveGroupId = useActiveGroupStore(
     (state) => state.setActiveGroupId,
   );
-  const [activeMilestone, setActiveMilestone] =
-    useState<CourseMilestoneDto | null>(null);
-
   const activeGroup = resolveActiveGroup(
     groups,
     initialGroupId ?? storedActiveGroupId ?? null,
@@ -283,11 +101,6 @@ export function StudentMilestoneSubmissionsPanel({
     storedActiveGroupId,
   ]);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    setActiveMilestone(null);
-  }, [effectiveGroupId]);
-
   const milestonesQuery = useGroupMilestones(effectiveGroupId);
   const submissionsQuery = useGroupMilestoneSubmissions(effectiveGroupId);
   const averageGradeQuery = useAverageGrade(effectiveGroupId);
@@ -306,20 +119,12 @@ export function StudentMilestoneSubmissionsPanel({
   );
   const averageGrade = getAverageValue(averageGradeQuery.data?.data);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (!initialMilestoneId) return;
-    const milestone = milestones.find((item) => item.id === initialMilestoneId);
-    if (milestone) setActiveMilestone(milestone);
-  }, [initialMilestoneId, milestones]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   if (groups.length === 0) {
     return (
       <EmptyState
         icon={<CalendarClock size={22} />}
         title="No group timeline"
-        description="Join or create a group before submitting milestone deliverables."
+        description="Join or create a group before viewing milestone progress."
       />
     );
   }
@@ -337,8 +142,8 @@ export function StudentMilestoneSubmissionsPanel({
                   : `Average ${averageGrade.toFixed(2)}`}
             </Badge>
           }
-          description="Submit or resubmit deliverable URLs for your group's instructor milestones."
-          title="Milestone submissions"
+          description="Review deliverables, grades, and instructor feedback for your group's milestones."
+          title="Milestone progress"
         />
         <CardContent className="grid gap-5">
           <div className="grid grid-cols-[minmax(240px,360px)_minmax(0,1fr)] gap-4 max-[760px]:grid-cols-1">
@@ -346,7 +151,6 @@ export function StudentMilestoneSubmissionsPanel({
               label="Group"
               onChange={(event) => {
                 setActiveGroupId(Number(event.target.value));
-                setActiveMilestone(null);
               }}
               value={String(effectiveGroupId ?? "")}
             >
@@ -375,20 +179,10 @@ export function StudentMilestoneSubmissionsPanel({
             error={milestonesQuery.error ?? submissionsQuery.error}
             isLoading={milestonesQuery.isLoading || submissionsQuery.isLoading}
             milestones={milestones}
-            onSubmit={setActiveMilestone}
             submissionsByMilestone={submissionsByMilestone}
           />
         </CardContent>
       </Card>
-
-      {activeMilestone && effectiveGroupId && (
-        <SubmissionModal
-          existingSubmission={submissionsByMilestone.get(activeMilestone.id)}
-          groupId={effectiveGroupId}
-          milestone={activeMilestone}
-          onClose={() => setActiveMilestone(null)}
-        />
-      )}
     </div>
   );
 }

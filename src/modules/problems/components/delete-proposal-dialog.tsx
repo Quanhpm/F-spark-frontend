@@ -46,7 +46,6 @@ export function DeleteProposalDialog({
     <ResponsiveDialog
       bodyClassName="grid flex-none gap-4"
       className="min-[761px]:max-w-[520px] [&>footer]:border-t-0 [&>header]:border-b-0"
-      closeOnBackdrop={false}
       description="This permanently removes the pending proposal before instructor review."
       footer={
         <>

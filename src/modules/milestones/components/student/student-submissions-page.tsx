@@ -17,12 +17,10 @@ function getErrorMessage(error: unknown) {
 
 type StudentSubmissionsPageProps = {
   initialGroupId?: number | null;
-  initialMilestoneId?: number | null;
 };
 
 export function StudentSubmissionsPage({
   initialGroupId,
-  initialMilestoneId,
 }: StudentSubmissionsPageProps = {}) {
   const groupsQuery = useMyGroups();
   const groups = useMemo(
@@ -33,7 +31,7 @@ export function StudentSubmissionsPage({
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
-        description="Submit and track milestone deliverables for your project groups."
+        description="Review milestone deliverables, grades, and instructor feedback for your project groups."
         eyebrow="Student"
         title="Submissions"
       />
@@ -51,7 +49,6 @@ export function StudentSubmissionsPage({
         <StudentMilestoneSubmissionsPanel
           groups={groups}
           initialGroupId={initialGroupId}
-          initialMilestoneId={initialMilestoneId}
         />
       )}
     </div>

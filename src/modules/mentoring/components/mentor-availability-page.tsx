@@ -499,7 +499,6 @@ function ConfirmDialog({
         !formError && "hidden",
       )}
       className="min-[761px]:max-w-[500px] [&>footer]:border-t-0 [&>header]:border-b-0"
-      closeOnBackdrop={false}
       description={action.description}
       footer={
         <>
@@ -581,7 +580,6 @@ function SlotFormModal({
     <ResponsiveDialog
       className="min-[761px]:max-w-[620px]"
       closeLabel="Close slot form"
-      closeOnBackdrop={false}
       description="Publish a Google Meet slot that assigned groups can book."
       footer={
         <>
