@@ -10,11 +10,27 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
+  Select,
   TextInput,
   Button,
 } from "@/shared/components";
 import { useInstructorMilestoneDashboard } from "../hooks";
-import { CheckCircle2, AlertTriangle, ArrowRight, Users, ClipboardList } from "lucide-react";
+import {
+  ArrowRight,
+  Award,
+  CalendarClock,
+  CheckCircle2,
+  Users,
+} from "lucide-react";
+
+function formatDeadline(value: string | null) {
+  if (!value) return "No deadline";
+
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
 
 export function InstructorDashboardPage() {
   const [term, setTerm] = useState("SU24");
@@ -27,17 +43,20 @@ export function InstructorDashboardPage() {
 
   const milestoneStatuses = dashboardResponse?.data ?? [];
 
-  // Derived metrics
-  const totalSubmissions = milestoneStatuses.length;
-  const submittedCount = milestoneStatuses.filter((m) => m.submitted).length;
+  const totalMilestones = milestoneStatuses.length;
+  const assignedGroupCount = new Set(
+    milestoneStatuses.map((milestone) => milestone.groupId),
+  ).size;
   const gradedCount = milestoneStatuses.filter((m) => m.graded).length;
-  const lateCount = milestoneStatuses.filter((m) => m.late).length;
+  const gradeCompleteCount = milestoneStatuses.filter(
+    (m) => m.gradeComplete,
+  ).length;
 
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
         title="Instructor Dashboard"
-        description="Monitor thesis milestones submissions, grading progress, and track assigned groups."
+        description="Monitor thesis milestones, grading progress, and assigned groups."
         eyebrow="Instructor"
       />
 
@@ -47,14 +66,14 @@ export function InstructorDashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-                Submissions Tracked
+                Assigned Groups
               </span>
               <strong className="text-2xl leading-none font-bold text-foreground">
-                {totalSubmissions}
+                {assignedGroupCount}
               </strong>
             </div>
             <span className="grid size-11 place-items-center rounded-xl bg-brand-primary/5 text-brand-primary">
-              <ClipboardList size={20} />
+              <Users size={20} />
             </span>
           </div>
         </Card>
@@ -63,14 +82,14 @@ export function InstructorDashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-                Submitted
+                Milestones
               </span>
               <strong className="text-2xl leading-none font-bold text-foreground">
-                {submittedCount}
+                {totalMilestones}
               </strong>
             </div>
             <span className="grid size-11 place-items-center rounded-xl bg-brand-secondary/10 text-brand-secondary">
-              <Users size={20} />
+              <CalendarClock size={20} />
             </span>
           </div>
         </Card>
@@ -79,10 +98,10 @@ export function InstructorDashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-                Graded
+                Graded Milestones
               </span>
               <strong className="text-2xl leading-none font-bold text-foreground">
-                {gradedCount}
+                {gradedCount}/{totalMilestones}
               </strong>
             </div>
             <span className="grid size-11 place-items-center rounded-xl bg-brand-primary/10 text-brand-primary">
@@ -91,18 +110,18 @@ export function InstructorDashboardPage() {
           </div>
         </Card>
 
-        <Card className="border-l-4 border-l-red-300" isPadded>
+        <Card className="border-l-4 border-l-brand-secondary" isPadded>
           <div className="flex items-center justify-between gap-4">
             <div className="grid gap-1">
               <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-                Late Submissions
+                Grade Complete
               </span>
               <strong className="text-2xl leading-none font-bold text-foreground">
-                {lateCount}
+                {gradeCompleteCount}/{totalMilestones}
               </strong>
             </div>
-            <span className="grid size-11 place-items-center rounded-xl bg-red-50 text-red-700">
-              <AlertTriangle size={20} />
+            <span className="grid size-11 place-items-center rounded-xl bg-brand-secondary/10 text-brand-secondary">
+              <Award size={20} />
             </span>
           </div>
         </Card>
@@ -112,7 +131,7 @@ export function InstructorDashboardPage() {
       <Card>
         <CardHeader
           title="Milestone Monitor"
-          description="Filter milestone submissions by term and course code."
+          description="Filter milestone grading progress by term and course code."
         />
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
@@ -121,11 +140,15 @@ export function InstructorDashboardPage() {
               value={term}
               onChange={(e) => setTerm(e.target.value.toUpperCase())}
             />
-            <TextInput
+            <Select
               label="Course Code"
               value={courseCode}
-              onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-            />
+              onChange={(event) => setCourseCode(event.target.value)}
+            >
+              <option value="EXE101">EXE101</option>
+              <option value="EXE201">EXE201</option>
+              <option value="EXE401">EXE401</option>
+            </Select>
           </div>
         </CardContent>
 
@@ -140,8 +163,8 @@ export function InstructorDashboardPage() {
                 <tr className="border-b border-border bg-surface">
                   <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Group</th>
                   <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Milestone</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Submitted</th>
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Graded</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Deadline</th>
+                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Grade status</th>
                   <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted">Contributions</th>
                   <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted text-right">Actions</th>
                 </tr>
@@ -156,34 +179,30 @@ export function InstructorDashboardPage() {
                     <td className="px-5 py-4 font-semibold text-foreground">
                       {m.milestoneTitle}
                     </td>
-                    <td className="px-5 py-4">
-                      {m.submitted ? (
-                        <Badge tone="brand" size="sm">
-                          {m.submissionStatus || "SUBMITTED"}
-                        </Badge>
-                      ) : (
-                        <Badge tone="neutral" size="sm">
-                          Pending
-                        </Badge>
-                      )}
-                      {m.late && (
-                        <Badge tone="danger" size="sm" className="ml-1.5">
-                          LATE
-                        </Badge>
-                      )}
+                    <td className="px-5 py-4 text-sm text-muted">
+                      {formatDeadline(m.deadlineAt)}
                     </td>
                     <td className="px-5 py-4">
-                      <Badge tone={m.graded ? "success" : "warning"} size="sm">
-                        {m.graded ? "Graded" : "Ungraded"}
+                      <Badge
+                        tone={m.gradeComplete ? "success" : m.graded ? "warning" : "neutral"}
+                        size="sm"
+                      >
+                        {m.gradeComplete
+                          ? "Complete"
+                          : m.graded
+                            ? "Graded"
+                            : "Not graded"}
                       </Badge>
                     </td>
                     <td className="px-5 py-4">
                       <Badge tone={m.contributionsComplete ? "success" : "neutral"} size="sm">
-                        {m.contributionsComplete ? "Submitted" : "Pending"}
+                        {m.contributionsComplete ? "Complete" : "Pending"}
                       </Badge>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <Link href="/instructor/grading">
+                      <Link
+                        href={`/instructor/grading?groupId=${m.groupId}&milestoneId=${m.milestoneId}`}
+                      >
                         <Button size="sm" variant="ghost" className="h-8 text-xs font-bold text-brand-primary gap-1">
                           <span>Grade matrix</span>
                           <ArrowRight size={13} />
