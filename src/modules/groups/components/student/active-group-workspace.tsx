@@ -281,6 +281,7 @@ export function ActiveGroupWorkspace({
         isLeader={isLeader}
         onRemoveMember={requestRemoveMember}
         onTransferLeadership={requestTransferLeadership}
+        sessionEmail={sessionEmail}
       />
 
       {isLeader && (
