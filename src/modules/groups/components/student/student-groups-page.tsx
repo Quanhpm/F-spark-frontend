@@ -83,12 +83,16 @@ function buildPendingRequestMap(requests: GroupJoinRequestDto[]) {
 
 type StudentGroupsPageProps = {
   initialGroupId?: number | null;
+  initialSection?: GroupsSection;
 };
 
-export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
+export function StudentGroupsPage({
+  initialGroupId,
+  initialSection = "workspace",
+}: StudentGroupsPageProps) {
   const sessionEmail = useAuthStore((state) => state.session?.user.email);
   const [activeSection, setActiveSection] =
-    useState<GroupsSection>("workspace");
+    useState<GroupsSection>(initialSection);
   const [search, setSearch] = useState("");
   const [discoverPage, setDiscoverPage] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -117,7 +121,7 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
   );
   const activeGroupSummary = resolveActiveGroup(
     myGroups,
-    storedActiveGroupId ?? initialGroupId ?? null,
+    initialGroupId ?? storedActiveGroupId ?? null,
   );
   const effectiveGroupId = activeGroupSummary?.id ?? null;
   const activeGroupQuery = useGroup(effectiveGroupId);
@@ -143,7 +147,11 @@ export function StudentGroupsPage({ initialGroupId }: StudentGroupsPageProps) {
   ).length;
 
   useEffect(() => {
-    if (storedActiveGroupId === null && initialGroupId && activeGroupSummary) {
+    if (
+      initialGroupId &&
+      activeGroupSummary?.id === initialGroupId &&
+      storedActiveGroupId !== initialGroupId
+    ) {
       setActiveGroupId(activeGroupSummary.id);
     }
   }, [

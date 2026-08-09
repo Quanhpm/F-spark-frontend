@@ -17,7 +17,15 @@ import { useMyGroups, useGroupDetails } from "@/modules/projects/hooks";
 import { useGroupGradeMatrix } from "../hooks";
 import { ContributionEditor } from "./contribution-editor";
 
-export function StudentGradesPage() {
+type StudentGradesPageProps = {
+  initialGroupId?: number | null;
+  initialMilestoneId?: number | null;
+};
+
+export function StudentGradesPage({
+  initialGroupId,
+  initialMilestoneId,
+}: StudentGradesPageProps = {}) {
   const session = useAuthStore((state) => state.session);
 
   // Student Group queries
@@ -26,7 +34,13 @@ export function StudentGradesPage() {
   const storedActiveGroupId = useActiveGroupStore(
     (state) => state.activeGroupId,
   );
-  const activeGroup = resolveActiveGroup(myGroups ?? [], storedActiveGroupId);
+  const setActiveGroupId = useActiveGroupStore(
+    (state) => state.setActiveGroupId,
+  );
+  const activeGroup = resolveActiveGroup(
+    myGroups ?? [],
+    initialGroupId ?? storedActiveGroupId ?? null,
+  );
 
   const activeGroupId = activeGroup?.id;
   const { data: groupDetailsResponse, isLoading: isGroupDetailsLoading } = useGroupDetails(activeGroupId || 0);
@@ -53,6 +67,32 @@ export function StudentGradesPage() {
     setEditingMilestoneId(null);
     setEditingMilestoneTitle("");
   }, [activeGroupId]);
+
+  useEffect(() => {
+    if (
+      initialGroupId &&
+      activeGroupId === initialGroupId &&
+      storedActiveGroupId !== initialGroupId
+    ) {
+      setActiveGroupId(initialGroupId);
+    }
+  }, [
+    activeGroupId,
+    initialGroupId,
+    setActiveGroupId,
+    storedActiveGroupId,
+  ]);
+
+  useEffect(() => {
+    if (!initialMilestoneId || !matrix) return;
+    const milestone = matrix.milestones.find(
+      (item) => item.milestoneId === initialMilestoneId,
+    );
+    if (milestone) {
+      setEditingMilestoneId(milestone.milestoneId);
+      setEditingMilestoneTitle(milestone.title);
+    }
+  }, [initialMilestoneId, matrix]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const isLoading = isMyGroupsLoading || isGroupDetailsLoading || isMatrixLoading;

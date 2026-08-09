@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarClock,
   CheckCircle2,
@@ -479,11 +479,25 @@ function MentorGroupsTable({
   );
 }
 
-export function MentorGroupsPage() {
+export function MentorGroupsPage({
+  initialGroupId,
+}: {
+  initialGroupId?: number | null;
+} = {}) {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mentorGroupsQuery = useMentorGroups();
-  const groups = mentorGroupsQuery.data?.data ?? [];
+  const groups = useMemo(
+    () => mentorGroupsQuery.data?.data ?? [],
+    [mentorGroupsQuery.data?.data],
+  );
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (initialGroupId && groups.some((group) => group.id === initialGroupId)) {
+      setSelectedGroupId(initialGroupId);
+    }
+  }, [groups, initialGroupId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   const closeGroupDetail = useCallback(() => {
     setSelectedGroupId(null);
     detailTriggerRef.current?.focus();

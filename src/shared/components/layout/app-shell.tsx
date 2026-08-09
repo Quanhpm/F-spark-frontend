@@ -29,7 +29,10 @@ import {
   useAuthStore,
   useLogout,
 } from "@/modules/auth";
-import { NotificationBell } from "@/modules/notifications";
+import {
+  NotificationBell,
+  NotificationCenterProvider,
+} from "@/modules/notifications";
 import { cn } from "@/shared/lib";
 import type { UserRole } from "@/shared/types";
 
@@ -55,6 +58,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/admin/imports", icon: Database, label: "Imports" },
     { href: "/admin/problems", icon: BookOpen, label: "Problem Bank" },
     { href: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
+    { href: "/admin/notifications", icon: Bell, label: "Notifications" },
     { href: "/admin/terms", icon: CalendarClock, label: "Terms" },
     { href: "/admin/groups", icon: Users, label: "Groups" },
     { href: "/admin/tv-display", icon: MonitorUp, label: "TV Display" },
@@ -79,6 +83,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
       label: "Availability",
     },
     { href: "/mentor/feedback", icon: MessageSquare, label: "Feedback" },
+    { href: "/mentor/notifications", icon: Bell, label: "Notifications" },
     { href: "/mentor/profile", icon: UserRound, label: "Profile" },
   ],
   INSTRUCTOR: [
@@ -100,6 +105,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     },
     { href: "/instructor/problems", icon: BookOpen, label: "Problems" },
     { href: "/instructor/grading", icon: ClipboardList, label: "Grading" },
+    { href: "/instructor/notifications", icon: Bell, label: "Notifications" },
     { href: "/instructor/profile", icon: UserRound, label: "Profile" },
   ],
 };
@@ -222,7 +228,8 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
   }
 
   return (
-    <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
+    <NotificationCenterProvider>
+      <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
       <aside className="sticky top-0 grid h-svh grid-rows-[auto_1fr_auto] gap-6 border-r border-border bg-surface px-4 py-[22px] max-[960px]:hidden">
         <Link
           className="inline-flex min-w-0 items-center px-2"
@@ -404,6 +411,7 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
           </aside>
         </div>
       )}
-    </div>
+      </div>
+    </NotificationCenterProvider>
   );
 }

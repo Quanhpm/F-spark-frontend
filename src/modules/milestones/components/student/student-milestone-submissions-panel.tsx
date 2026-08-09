@@ -44,6 +44,7 @@ export type StudentMilestoneGroupOption = {
 type StudentMilestoneSubmissionsPanelProps = {
   groups: StudentMilestoneGroupOption[];
   initialGroupId?: EntityId | null;
+  initialMilestoneId?: EntityId | null;
 };
 
 type SubmissionModalProps = {
@@ -250,6 +251,7 @@ function SubmissionModal({
 export function StudentMilestoneSubmissionsPanel({
   groups,
   initialGroupId,
+  initialMilestoneId,
 }: StudentMilestoneSubmissionsPanelProps) {
   const storedActiveGroupId = useActiveGroupStore(
     (state) => state.activeGroupId,
@@ -262,15 +264,29 @@ export function StudentMilestoneSubmissionsPanel({
 
   const activeGroup = resolveActiveGroup(
     groups,
-    storedActiveGroupId ?? initialGroupId ?? null,
+    initialGroupId ?? storedActiveGroupId ?? null,
   );
   const effectiveGroupId = activeGroup?.id ?? null;
+
+  useEffect(() => {
+    if (
+      initialGroupId &&
+      activeGroup?.id === initialGroupId &&
+      storedActiveGroupId !== initialGroupId
+    ) {
+      setActiveGroupId(initialGroupId);
+    }
+  }, [
+    activeGroup?.id,
+    initialGroupId,
+    setActiveGroupId,
+    storedActiveGroupId,
+  ]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setActiveMilestone(null);
   }, [effectiveGroupId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const milestonesQuery = useGroupMilestones(effectiveGroupId);
   const submissionsQuery = useGroupMilestoneSubmissions(effectiveGroupId);
@@ -289,6 +305,14 @@ export function StudentMilestoneSubmissionsPanel({
     [submissionsQuery.data?.data],
   );
   const averageGrade = getAverageValue(averageGradeQuery.data?.data);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!initialMilestoneId) return;
+    const milestone = milestones.find((item) => item.id === initialMilestoneId);
+    if (milestone) setActiveMilestone(milestone);
+  }, [initialMilestoneId, milestones]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (groups.length === 0) {
     return (

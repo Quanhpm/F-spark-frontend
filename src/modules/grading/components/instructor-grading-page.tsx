@@ -53,7 +53,6 @@ function GradeModal({
       setFeedback(column.groupGrade.feedback ?? "");
     }
   }, [column]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const gradeMutation = useGradeGroup(milestoneId, groupId);
 
@@ -167,7 +166,15 @@ function GradeModal({
   );
 }
 
-export function InstructorGradingPage() {
+type InstructorGradingPageProps = {
+  initialGroupId?: number | null;
+  initialMilestoneId?: number | null;
+};
+
+export function InstructorGradingPage({
+  initialGroupId,
+  initialMilestoneId,
+}: InstructorGradingPageProps = {}) {
   const [term, setTerm] = useState("SU24");
   const [courseCode, setCourseCode] = useState("EXE101");
 
@@ -232,6 +239,21 @@ export function InstructorGradingPage() {
     });
     return list;
   }, [milestoneStatuses]);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!initialGroupId || !initialMilestoneId) return;
+    const group = groupedData.find((item) => item.groupId === initialGroupId);
+    const status = group?.milestones[initialMilestoneId];
+    if (!group || !status) return;
+    setActiveGradeModal({
+      groupId: group.groupId,
+      groupName: group.groupName,
+      milestoneId: initialMilestoneId,
+      milestoneTitle: status.milestoneTitle,
+    });
+  }, [groupedData, initialGroupId, initialMilestoneId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleExportCsv = () => {
     exportMutation.mutate({ term, courseCode });

@@ -22,7 +22,15 @@ import { TaskPriorityBadge } from "./task-priority-badge";
 import { TaskDetailPanel } from "./task-detail-panel";
 import { ChevronRight, ListTodo, Kanban } from "lucide-react";
 
-export function StudentTasksPage() {
+type StudentTasksPageProps = {
+  initialGroupId?: number | null;
+  initialTaskId?: number | null;
+};
+
+export function StudentTasksPage({
+  initialGroupId,
+  initialTaskId,
+}: StudentTasksPageProps = {}) {
   const [activeTab, setActiveTab] = useState<"list" | "board">("list");
   
   // My Tasks list filters
@@ -51,7 +59,10 @@ export function StudentTasksPage() {
     () => myGroupsResponse?.data || [],
     [myGroupsResponse?.data],
   );
-  const activeGroup = resolveActiveGroup(myGroups, storedActiveGroupId);
+  const activeGroup = resolveActiveGroup(
+    myGroups,
+    initialGroupId ?? storedActiveGroupId ?? null,
+  );
 
   // Queries
   const myTasksFilters = {
@@ -73,6 +84,23 @@ export function StudentTasksPage() {
     setDetailTaskId(null);
     setDetailGroupId(null);
   }, [activeGroup?.id]);
+
+  useEffect(() => {
+    if (!initialGroupId || !initialTaskId || activeGroup?.id !== initialGroupId) {
+      return;
+    }
+    if (storedActiveGroupId !== initialGroupId) {
+      setActiveGroupId(initialGroupId);
+    }
+    setDetailGroupId(initialGroupId);
+    setDetailTaskId(initialTaskId);
+  }, [
+    activeGroup?.id,
+    initialGroupId,
+    initialTaskId,
+    setActiveGroupId,
+    storedActiveGroupId,
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Refetch list when tab switches to "list"

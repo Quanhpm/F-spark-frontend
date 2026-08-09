@@ -15,7 +15,15 @@ function getErrorMessage(error: unknown) {
     : "Something went wrong. Please try again.";
 }
 
-export function StudentSubmissionsPage() {
+type StudentSubmissionsPageProps = {
+  initialGroupId?: number | null;
+  initialMilestoneId?: number | null;
+};
+
+export function StudentSubmissionsPage({
+  initialGroupId,
+  initialMilestoneId,
+}: StudentSubmissionsPageProps = {}) {
   const groupsQuery = useMyGroups();
   const groups = useMemo(
     () => groupsQuery.data?.data ?? [],
@@ -40,7 +48,11 @@ export function StudentSubmissionsPage() {
           title="Unable to load submissions"
         />
       ) : (
-        <StudentMilestoneSubmissionsPanel groups={groups} />
+        <StudentMilestoneSubmissionsPanel
+          groups={groups}
+          initialGroupId={initialGroupId}
+          initialMilestoneId={initialMilestoneId}
+        />
       )}
     </div>
   );

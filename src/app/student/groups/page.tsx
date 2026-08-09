@@ -12,15 +12,24 @@ function parseGroupId(value: string | string[] | undefined) {
   return Number.isInteger(groupId) && groupId > 0 ? groupId : null;
 }
 
+function parseSection(value: string | string[] | undefined) {
+  const normalized = Array.isArray(value) ? value[0] : value;
+  return normalized === "discover" || normalized === "invitations"
+    ? normalized
+    : "workspace";
+}
+
 export default async function StudentGroupsRoute({
   searchParams,
 }: StudentGroupsRouteProps) {
   const params = await searchParams;
   const initialGroupId = parseGroupId(params.groupId);
+  const initialSection = parseSection(params.section);
   return (
     <StudentGroupsPage
       initialGroupId={initialGroupId}
-      key={initialGroupId ?? "default"}
+      initialSection={initialSection}
+      key={`${initialGroupId ?? "default"}-${initialSection}`}
     />
   );
 }
