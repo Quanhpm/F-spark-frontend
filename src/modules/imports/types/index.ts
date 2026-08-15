@@ -22,17 +22,19 @@ export type ImportRowErrorDto = {
 export type ImportResponse = {
   batchId: number;
   targetType: ImportTargetType;
+  status: ImportBatchStatus;
+  fileName: string;
+  fileType: ImportFileType;
   totalRows: number;
   successRows: number;
   failedRows: number;
-  createdAccounts: CreatedAccountDto[];
-  errors: ImportRowErrorDto[];
+  startedAt: ISODateTimeString;
+  finishedAt: ISODateTimeString | null;
   createdGroups: number | null;
   skippedGroups: number | null;
   leaderFallbackWarnings: number | null;
   assignedMentors: number | null;
   mentorAssignmentWarnings: number | null;
-  tempPasswords: Record<string, string>;
 };
 
 export type ImportBatch = {
@@ -51,3 +53,12 @@ export type ImportBatch = {
 export type ImportUploadTarget = "students" | "mentors" | "problem-bank";
 
 export type ImportTemplateTarget = "students" | "mentors" | "problem-bank";
+
+export type ImportBatchErrorsQuery = {
+  errorCode?: ImportErrorCode | "";
+  fieldName?: string;
+  page?: number;
+  rowNumber?: number;
+  search?: string;
+  size?: number;
+};

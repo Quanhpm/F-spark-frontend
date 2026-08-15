@@ -47,7 +47,7 @@ export type ImportTargetType = "STUDENT" | "MENTOR" | "PROBLEM_BANK";
 
 export type ImportFileType = "CSV" | "XLSX";
 
-export type ImportBatchStatus = "COMPLETED" | "FAILED";
+export type ImportBatchStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED";
 
 // OpenAPI additions verified on 2026-07-11. These values are shared API
 // contracts; feature DTOs remain in their respective modules.

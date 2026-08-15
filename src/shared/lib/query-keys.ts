@@ -19,8 +19,8 @@ export const queryKeys = {
   imports: {
     all: ["imports"] as const,
     batch: (id: number) => [...queryKeys.imports.all, "batch", id] as const,
-    batchErrors: (id: number) =>
-      [...queryKeys.imports.batch(id), "errors"] as const,
+    batchErrors: (id: number, filters?: QueryFilters) =>
+      [...queryKeys.imports.batch(id), "errors", filters ?? {}] as const,
   },
   backups: {
     all: ["backups"] as const,

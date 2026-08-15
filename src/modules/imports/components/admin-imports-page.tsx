@@ -6,7 +6,6 @@ import {
   Database,
   Download,
   FileSpreadsheet,
-  KeyRound,
   Search,
   Upload,
 } from "lucide-react";
@@ -26,6 +25,7 @@ import {
   TextInput,
 } from "@/shared/components";
 import { ApiError, cn } from "@/shared/lib";
+import type { ImportErrorCode } from "@/shared/types";
 
 import {
   useDownloadMentorImportTemplate,
@@ -41,6 +41,7 @@ import {
 } from "../hooks/use-import-batch";
 import type {
   ImportBatch,
+  ImportBatchErrorsQuery,
   ImportResponse,
   ImportRowErrorDto,
   ImportTemplateTarget,
@@ -58,6 +59,13 @@ type Metric = {
   label: string;
   tone?: "neutral" | "brand" | "warning" | "success" | "danger";
   value: ReactNode;
+};
+
+type ErrorFilterForm = {
+  errorCode: "" | ImportErrorCode;
+  fieldName: string;
+  rowNumber: string;
+  search: string;
 };
 
 const UPLOAD_TARGETS: UploadTargetOption[] = [
@@ -80,19 +88,43 @@ const UPLOAD_TARGETS: UploadTargetOption[] = [
   },
 ];
 
+const IMPORT_ERROR_CODES: ImportErrorCode[] = [
+  "MISSING_REQUIRED_FIELD",
+  "INVALID_FORMAT",
+  "DUPLICATE_CODE",
+  "DUPLICATE_EMAIL",
+  "INVALID_VALUE",
+  "UNKNOWN_ERROR",
+  "UNSUPPORTED_COLUMN",
+  "DUPLICATED_IN_FILE",
+  "ALREADY_EXISTS",
+  "INVALID_EMAIL",
+  "INVALID_GENDER",
+  "INVALID_EXPERIENCE",
+  "INVALID_PHONE",
+  "INVALID_DATE",
+  "ACCOUNT_CREATION_FAILED",
+  "SYSTEM_ERROR",
+  "LEADER_FALLBACK_WARNING",
+  "GROUP_SKIPPED",
+  "MENTOR_ASSIGNMENT_WARNING",
+];
+
+const ERROR_PAGE_SIZE = 20;
+const EMPTY_ERROR_FILTERS: ErrorFilterForm = {
+  errorCode: "",
+  fieldName: "",
+  rowNumber: "",
+  search: "",
+};
+
 const pageClassName = "grid min-w-0 gap-6";
 const twoColumnClassName =
-  "grid grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] gap-6 max-[1120px]:grid-cols-[minmax(0,1fr)]";
+  "grid items-start grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] gap-6 max-[1120px]:grid-cols-[minmax(0,1fr)]";
 const uploadGridClassName =
   "grid grid-cols-[minmax(180px,240px)_minmax(0,1fr)_auto] items-end gap-3 max-[860px]:grid-cols-[minmax(0,1fr)]";
 const lookupGridClassName =
   "grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]";
-const sectionClassName = "grid min-w-0 gap-4";
-const sectionHeaderClassName =
-  "flex min-w-0 items-center justify-between gap-3 max-[640px]:grid max-[640px]:[&>button]:w-full";
-const sectionTitleClassName =
-  "m-0 text-[15px] leading-snug font-bold text-foreground";
-const sectionDescriptionClassName = "m-0 text-[13px] leading-normal text-muted";
 const metricGridClassName =
   "grid grid-cols-3 gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]";
 const metricCardClassName =
@@ -100,22 +132,8 @@ const metricCardClassName =
 const metricLabelClassName = "text-xs font-bold text-muted uppercase";
 const metricValueClassName =
   "min-w-0 text-2xl leading-tight font-bold text-foreground";
-const tableWrapClassName =
-  "w-full overflow-x-auto rounded-xl border border-border max-[760px]:hidden";
-const mobileListClassName = "hidden min-w-0 gap-3 max-[760px]:grid";
-const mobileCardClassName =
-  "grid min-w-0 gap-3 rounded-xl border border-border bg-background p-4";
-const tableClassName =
-  "w-full min-w-[720px] border-collapse bg-surface [&_tbody_tr:last-child_td]:border-b-0";
-const tableHeadCellClassName =
-  "border-b border-border bg-background px-4 py-3 text-left align-middle text-xs font-bold text-muted uppercase";
-const tableCellClassName =
-  "border-b border-border px-4 py-3 text-left align-middle text-sm text-foreground";
-const mutedCellClassName = cn(tableCellClassName, "text-muted");
-const monoCellClassName = cn(
-  tableCellClassName,
-  "font-mono text-[13px] text-foreground",
-);
+const compactFilterFieldClassName =
+  "h-10 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-0 placeholder:text-[#a3a3a3] transition-[border-color,box-shadow] duration-[160ms] focus:border-brand-secondary focus:shadow-[0_0_0_4px_rgba(237,161,47,0.12)]";
 const statusPanelClassName =
   "grid min-w-0 gap-4 rounded-xl border border-border bg-background p-4";
 const errorPanelClassName =
@@ -155,7 +173,13 @@ function formatUploadTarget(target: ImportUploadTarget) {
 }
 
 function getBatchStatusTone(status: ImportBatch["status"]) {
-  return status === "COMPLETED" ? "success" : "danger";
+  if (status === "COMPLETED") return "success";
+  if (status === "QUEUED" || status === "RUNNING") return "warning";
+  return "danger";
+}
+
+function isActiveImportStatus(status: ImportBatch["status"] | undefined) {
+  return status === "QUEUED" || status === "RUNNING";
 }
 
 function getTargetTone(target: string) {
@@ -184,6 +208,24 @@ function getBatchId(value: string) {
   }
 
   return parsed;
+}
+
+function buildErrorQuery(
+  filters: ErrorFilterForm,
+  page: number,
+): ImportBatchErrorsQuery {
+  const rowNumber = Number(filters.rowNumber);
+
+  return {
+    errorCode: filters.errorCode || undefined,
+    fieldName: filters.fieldName.trim() || undefined,
+    page,
+    rowNumber: Number.isInteger(rowNumber) && rowNumber > 0
+      ? rowNumber
+      : undefined,
+    search: filters.search.trim() || undefined,
+    size: ERROR_PAGE_SIZE,
+  };
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -217,170 +259,6 @@ function MetricGrid({ metrics }: { metrics: Metric[] }) {
   );
 }
 
-function DetailSection({
-  actions,
-  children,
-  description,
-  title,
-}: {
-  actions?: ReactNode;
-  children: ReactNode;
-  description?: string;
-  title: string;
-}) {
-  return (
-    <section className={sectionClassName}>
-      <header className={sectionHeaderClassName}>
-        <div className="grid min-w-0 gap-1">
-          <h3 className={sectionTitleClassName}>{title}</h3>
-          {description && (
-            <p className={sectionDescriptionClassName}>{description}</p>
-          )}
-        </div>
-        {actions}
-      </header>
-      {children}
-    </section>
-  );
-}
-
-function CreatedAccountsTable({
-  accounts,
-}: {
-  accounts: ImportResponse["createdAccounts"];
-}) {
-  if (accounts.length === 0) {
-    return (
-      <EmptyState
-        className="min-h-44"
-        description="No account credentials were returned for this import."
-        icon={<KeyRound size={22} />}
-        title="No created accounts"
-      />
-    );
-  }
-
-  return (
-    <>
-      <div className={tableWrapClassName}>
-        <table className={tableClassName}>
-        <thead>
-          <tr>
-            <th className={tableHeadCellClassName}>Email</th>
-            <th className={tableHeadCellClassName}>Code</th>
-            <th className={tableHeadCellClassName}>Temporary password</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accounts.map((account) => (
-            <tr key={`${account.email}-${account.code}`}>
-              <td className={tableCellClassName}>{account.email}</td>
-              <td className={mutedCellClassName}>{account.code}</td>
-              <td className={monoCellClassName}>
-                {account.temporaryPassword || "-"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        </table>
-      </div>
-      <div className={mobileListClassName}>
-        {accounts.map((account) => (
-          <article
-            className={mobileCardClassName}
-            key={`${account.email}-${account.code}`}
-          >
-            <div className="grid min-w-0 gap-1">
-              <span className="text-[11px] font-bold text-muted uppercase">
-                Email
-              </span>
-              <strong className="break-all text-sm text-foreground">
-                {account.email}
-              </strong>
-            </div>
-            <div className="grid min-w-0 grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-              <div className="grid min-w-0 gap-1">
-                <span className="text-[11px] font-bold text-muted uppercase">
-                  Code
-                </span>
-                <span className="break-all text-sm text-foreground">
-                  {account.code}
-                </span>
-              </div>
-              <div className="grid min-w-0 gap-1">
-                <span className="text-[11px] font-bold text-muted uppercase">
-                  Temporary password
-                </span>
-                <code className="break-all text-[13px] text-foreground">
-                  {account.temporaryPassword || "-"}
-                </code>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function TempPasswordsTable({
-  passwords,
-}: {
-  passwords: Record<string, string>;
-}) {
-  const entries = Object.entries(passwords);
-
-  if (entries.length === 0) return null;
-
-  return (
-    <DetailSection
-      description="Credential map returned by the backend for newly created accounts."
-      title="Temporary passwords"
-    >
-      <div className={tableWrapClassName}>
-        <table className={tableClassName}>
-          <thead>
-            <tr>
-              <th className={tableHeadCellClassName}>Email</th>
-              <th className={tableHeadCellClassName}>Temporary password</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map(([email, password]) => (
-              <tr key={email}>
-                <td className={tableCellClassName}>{email}</td>
-                <td className={monoCellClassName}>{password}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className={mobileListClassName}>
-        {entries.map(([email, password]) => (
-          <article className={mobileCardClassName} key={email}>
-            <div className="grid min-w-0 gap-1">
-              <span className="text-[11px] font-bold text-muted uppercase">
-                Email
-              </span>
-              <strong className="break-all text-sm text-foreground">
-                {email}
-              </strong>
-            </div>
-            <div className="grid min-w-0 gap-1">
-              <span className="text-[11px] font-bold text-muted uppercase">
-                Temporary password
-              </span>
-              <code className="break-all text-[13px] text-foreground">
-                {password}
-              </code>
-            </div>
-          </article>
-        ))}
-      </div>
-    </DetailSection>
-  );
-}
-
 function ImportErrorsTable({
   errors,
 }: {
@@ -398,60 +276,34 @@ function ImportErrorsTable({
   }
 
   return (
-    <>
-      <div className={tableWrapClassName}>
-        <table className={tableClassName}>
-        <thead>
-          <tr>
-            <th className={tableHeadCellClassName}>Row</th>
-            <th className={tableHeadCellClassName}>Field</th>
-            <th className={tableHeadCellClassName}>Code</th>
-            <th className={tableHeadCellClassName}>Message</th>
-          </tr>
-        </thead>
-        <tbody>
-          {errors.map((error, index) => (
-            <tr
-              key={`${error.rowNumber}-${error.fieldName ?? "row"}-${error.errorCode}-${index}`}
-            >
-              <td className={tableCellClassName}>{error.rowNumber}</td>
-              <td className={mutedCellClassName}>{error.fieldName ?? "-"}</td>
-              <td className={tableCellClassName}>
-                <Badge tone="danger">{error.errorCode}</Badge>
-              </td>
-              <td className={tableCellClassName}>{error.errorMessage}</td>
-            </tr>
-          ))}
-        </tbody>
-        </table>
+    <div className="overflow-hidden rounded-xl border border-border bg-background">
+      <div className="grid grid-cols-[72px_minmax(76px,0.55fr)_minmax(120px,0.8fr)_minmax(0,1.5fr)] gap-3 border-b border-border bg-surface px-4 py-2.5 text-xs font-bold text-muted uppercase max-[640px]:hidden">
+        <span>Row</span>
+        <span>Field</span>
+        <span>Code</span>
+        <span>Message</span>
       </div>
-      <div className={mobileListClassName}>
-        {errors.map((error, index) => (
-          <article
-            className={mobileCardClassName}
-            key={`${error.rowNumber}-${error.fieldName ?? "row"}-${error.errorCode}-${index}`}
+      {errors.map((error, index) => (
+        <div
+          className="grid min-w-0 grid-cols-[72px_minmax(76px,0.55fr)_minmax(120px,0.8fr)_minmax(0,1.5fr)] items-center gap-3 border-b border-border px-4 py-3 last:border-b-0 hover:bg-surface max-[640px]:grid-cols-1 max-[640px]:gap-2"
+          key={`${error.rowNumber}-${error.fieldName ?? "row"}-${error.errorCode}-${index}`}
+        >
+          <span className="w-fit rounded-full bg-surface-warm px-2.5 py-1 text-xs font-bold text-brand-primary">
+            Row {error.rowNumber}
+          </span>
+          <span className="min-w-0 truncate text-sm text-muted">
+            {error.fieldName ?? "row"}
+          </span>
+          <Badge tone="danger">{error.errorCode}</Badge>
+          <p
+            className="m-0 min-w-0 truncate rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"
+            title={error.errorMessage}
           >
-            <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-              <strong className="text-sm text-foreground">
-                Row {error.rowNumber}
-              </strong>
-              <Badge tone="danger">{error.errorCode}</Badge>
-            </div>
-            <div className="grid min-w-0 gap-1">
-              <span className="text-[11px] font-bold text-muted uppercase">
-                Field
-              </span>
-              <span className="break-all text-sm text-foreground">
-                {error.fieldName ?? "-"}
-              </span>
-            </div>
-            <p className="m-0 break-words text-sm leading-relaxed text-red-700">
-              {error.errorMessage}
-            </p>
-          </article>
-        ))}
-      </div>
-    </>
+            {error.errorMessage}
+          </p>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -501,14 +353,17 @@ function ImportResultCard({
             Inspect batch
           </Button>
         }
-        description="Latest upload response returned by the import API."
-        title="Import result"
+        description="Latest background import job returned by the import API."
+        title="Import job"
       />
       <CardContent className="grid gap-6">
         <div className="flex flex-wrap items-center gap-2.5">
           <Badge tone="brand">Batch #{result.batchId}</Badge>
           <Badge tone={getTargetTone(result.targetType)}>
             {formatTarget(result.targetType)}
+          </Badge>
+          <Badge tone={getBatchStatusTone(result.status)}>
+            {result.status}
           </Badge>
         </div>
 
@@ -533,21 +388,21 @@ function ImportResultCard({
 
         {optionalMetrics.length > 0 && <MetricGrid metrics={optionalMetrics} />}
 
-        <DetailSection
-          description="Accounts created during this import, including temporary passwords."
-          title="Created accounts"
-        >
-          <CreatedAccountsTable accounts={result.createdAccounts} />
-        </DetailSection>
-
-        <TempPasswordsTable passwords={result.tempPasswords ?? {}} />
-
-        <DetailSection
-          description="Validation and persistence issues reported by row."
-          title="Import errors"
-        >
-          <ImportErrorsTable errors={result.errors} />
-        </DetailSection>
+        <div className="rounded-xl border border-border bg-surface p-4 text-sm leading-relaxed text-muted">
+          Import is queued as a background job now. This response returns fast;
+          the status panel keeps polling until processing finishes.
+          {result.failedRows > 0 && (
+            <Button
+              className="mt-3 w-fit"
+              icon={<AlertCircle size={16} />}
+              onClick={() => onInspectBatch(result.batchId)}
+              size="sm"
+              variant="secondary"
+            >
+              Inspect {formatNumber(result.failedRows)} failed rows
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -638,6 +493,11 @@ export function AdminImportsPage() {
   const [activeErrorBatchId, setActiveErrorBatchId] = useState<number | null>(
     null,
   );
+  const [errorFiltersDraft, setErrorFiltersDraft] =
+    useState<ErrorFilterForm>(EMPTY_ERROR_FILTERS);
+  const [errorFilters, setErrorFilters] =
+    useState<ErrorFilterForm>(EMPTY_ERROR_FILTERS);
+  const [errorPage, setErrorPage] = useState(0);
 
   const importStudentsMutation = useImportStudents();
   const importMentorsMutation = useImportMentors();
@@ -646,8 +506,36 @@ export function AdminImportsPage() {
   const downloadMentorTemplateMutation = useDownloadMentorImportTemplate();
   const downloadProblemBankTemplateMutation =
     useDownloadProblemBankImportTemplate();
-  const batchQuery = useImportBatch(activeBatchId);
-  const batchErrorsQuery = useImportBatchErrors(activeErrorBatchId);
+  const batchQuery = useImportBatch(activeBatchId, true);
+  const batchErrorQuery = buildErrorQuery(errorFilters, errorPage);
+  const activeBatch = batchQuery.data?.data;
+  const completedErrorBatchId =
+    activeBatch &&
+    !isActiveImportStatus(activeBatch.status) &&
+    activeBatch.failedRows > 0
+      ? activeBatch.id
+      : null;
+  const effectiveErrorBatchId = activeErrorBatchId ?? completedErrorBatchId;
+  const batchErrorsQuery = useImportBatchErrors(
+    effectiveErrorBatchId,
+    batchErrorQuery,
+  );
+  const batchErrorsPage = batchErrorsQuery.data?.data;
+  const isImportJobActive = isActiveImportStatus(activeBatch?.status);
+  const displayedResult =
+    lastResult && activeBatch?.id === lastResult.batchId
+      ? {
+          ...lastResult,
+          status: activeBatch.status,
+          fileName: activeBatch.fileName,
+          fileType: activeBatch.fileType,
+          totalRows: activeBatch.totalRows,
+          successRows: activeBatch.successRows,
+          failedRows: activeBatch.failedRows,
+          startedAt: activeBatch.startedAt,
+          finishedAt: activeBatch.finishedAt,
+        }
+      : lastResult;
 
   const selectedTarget = UPLOAD_TARGETS.find(
     (option) => option.value === uploadTarget,
@@ -682,6 +570,7 @@ export function AdminImportsPage() {
       setActiveBatchId(response.data.batchId);
       setBatchIdInput(String(response.data.batchId));
       setActiveErrorBatchId(null);
+      setErrorPage(0);
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -719,7 +608,8 @@ export function AdminImportsPage() {
     setBatchIdError("");
     setBatchIdInput(String(batchId));
     setActiveBatchId(batchId);
-    setActiveErrorBatchId(null);
+    setActiveErrorBatchId(batchId);
+    setErrorPage(0);
   }
 
   function handleBatchLookup(event: FormEvent<HTMLFormElement>) {
@@ -735,6 +625,7 @@ export function AdminImportsPage() {
 
     setActiveBatchId(batchId);
     setActiveErrorBatchId(null);
+    setErrorPage(0);
   }
 
   function handleViewBatchErrors() {
@@ -749,6 +640,19 @@ export function AdminImportsPage() {
 
     setBatchIdInput(String(batchId));
     setActiveErrorBatchId(batchId);
+    setErrorPage(0);
+  }
+
+  function handleApplyErrorFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorFilters(errorFiltersDraft);
+    setErrorPage(0);
+  }
+
+  function handleResetErrorFilters() {
+    setErrorFiltersDraft(EMPTY_ERROR_FILTERS);
+    setErrorFilters(EMPTY_ERROR_FILTERS);
+    setErrorPage(0);
   }
 
   return (
@@ -782,7 +686,7 @@ export function AdminImportsPage() {
             </Button>
           </div>
         }
-        description="Upload roster and problem-bank spreadsheets, then review created accounts, row errors, and batch status."
+        description="Upload roster and problem-bank spreadsheets, then review background job status and paginated row errors."
         eyebrow="Admin"
         title="Imports"
       />
@@ -790,7 +694,7 @@ export function AdminImportsPage() {
       {downloadError && <div className={errorPanelClassName}>{downloadError}</div>}
 
       <div className={twoColumnClassName}>
-        <div className="grid min-w-0 gap-6">
+        <div className="grid min-w-0 content-start gap-6">
           <Card>
             <CardHeader
               description="Choose the import target and submit a CSV or XLSX file."
@@ -836,15 +740,22 @@ export function AdminImportsPage() {
 
                 <Button
                   className="max-[480px]:w-full"
-                  disabled={isUploading}
+                  disabled={isUploading || isImportJobActive}
                   icon={<Upload size={16} />}
                   type="submit"
                 >
-                  {isUploading
-                    ? "Importing..."
+                  {isUploading || isImportJobActive
+                    ? "Import job running..."
                     : `Import ${formatUploadTarget(uploadTarget)}`}
                 </Button>
               </form>
+
+              {isImportJobActive && (
+                <p className="mt-3 mb-0 text-sm text-muted">
+                  An import job is already {activeBatch?.status.toLowerCase()}.
+                  Please wait until it finishes before uploading another file.
+                </p>
+              )}
 
               {selectedFile && (
                 <p className="mt-3 mb-0 text-sm text-muted">
@@ -863,18 +774,19 @@ export function AdminImportsPage() {
             </CardContent>
           </Card>
 
-          {lastResult ? (
+          {displayedResult ? (
             <ImportResultCard
               onInspectBatch={inspectBatch}
-              result={lastResult}
+              result={displayedResult}
             />
           ) : (
             <Card>
               <CardContent>
                 <EmptyState
-                  description="Import results will appear here after a successful upload."
+                  className="min-h-36 p-5 min-[761px]:min-h-40 min-[761px]:p-6"
+                  description="Import job details will appear here after a successful upload."
                   icon={<FileSpreadsheet size={22} />}
-                  title="No import result yet"
+                  title="No import job yet"
                 />
               </CardContent>
             </Card>
@@ -922,7 +834,7 @@ export function AdminImportsPage() {
 
               {batchQuery.isLoading ? (
                 <LoadingState
-                  className="min-h-48"
+                  className="min-h-32"
                   title="Loading batch status"
                 />
               ) : batchQuery.isError ? (
@@ -935,11 +847,12 @@ export function AdminImportsPage() {
                   onViewErrors={(batchId) => {
                     setBatchIdInput(String(batchId));
                     setActiveErrorBatchId(batchId);
+                    setErrorPage(0);
                   }}
                 />
               ) : (
                 <EmptyState
-                  className="min-h-48"
+                  className="min-h-32 p-5 min-[761px]:min-h-36 min-[761px]:p-6"
                   description="Enter a batch ID to load status information."
                   icon={<Database size={22} />}
                   title="No batch selected"
@@ -947,36 +860,152 @@ export function AdminImportsPage() {
               )}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader
-              description="Errors are loaded from GET /api/imports/{batchId}/errors."
-              title="Batch errors"
-            />
-            <CardContent>
-              {batchErrorsQuery.isLoading ? (
-                <LoadingState
-                  className="min-h-48"
-                  title="Loading batch errors"
-                />
-              ) : batchErrorsQuery.isError ? (
-                <div className={errorPanelClassName}>
-                  {getErrorMessage(batchErrorsQuery.error)}
-                </div>
-              ) : batchErrorsQuery.data?.data ? (
-                <ImportErrorsTable errors={batchErrorsQuery.data.data} />
-              ) : (
-                <EmptyState
-                  className="min-h-48"
-                  description="Select a batch and view errors to inspect row-level failures."
-                  icon={<AlertCircle size={22} />}
-                  title="No batch errors loaded"
-                />
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
+
+      <Card>
+        <CardHeader
+          description="Errors are loaded page-by-page from GET /api/imports/{batchId}/errors."
+          title="Batch errors"
+        />
+        <CardContent className="grid gap-4">
+          <form
+            className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3"
+            onSubmit={handleApplyErrorFilters}
+          >
+            <input
+              aria-label="Search batch errors"
+              className={cn(compactFilterFieldClassName, "min-w-64 flex-1")}
+              onChange={(event) =>
+                setErrorFiltersDraft((current) => ({
+                  ...current,
+                  search: event.target.value,
+                }))
+              }
+              placeholder="Message, code, field"
+              value={errorFiltersDraft.search}
+            />
+            <input
+              aria-label="Filter by row number"
+              className={cn(compactFilterFieldClassName, "w-28")}
+              min="1"
+              onChange={(event) =>
+                setErrorFiltersDraft((current) => ({
+                  ...current,
+                  rowNumber: event.target.value,
+                }))
+              }
+              placeholder="Any row"
+              type="number"
+              value={errorFiltersDraft.rowNumber}
+            />
+            <input
+              aria-label="Filter by field"
+              className={cn(compactFilterFieldClassName, "w-36")}
+              onChange={(event) =>
+                setErrorFiltersDraft((current) => ({
+                  ...current,
+                  fieldName: event.target.value,
+                }))
+              }
+              placeholder="Field"
+              value={errorFiltersDraft.fieldName}
+            />
+            <select
+              aria-label="Filter by error code"
+              className={cn(compactFilterFieldClassName, "min-w-52")}
+              onChange={(event) =>
+                setErrorFiltersDraft((current) => ({
+                  ...current,
+                  errorCode: event.target.value as "" | ImportErrorCode,
+                }))
+              }
+              value={errorFiltersDraft.errorCode}
+            >
+              <option value="">All codes</option>
+              {IMPORT_ERROR_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+            <Button
+              disabled={!effectiveErrorBatchId || batchErrorsQuery.isFetching}
+              icon={<Search size={16} />}
+              size="sm"
+              type="submit"
+              variant="secondary"
+            >
+              Filter
+            </Button>
+            <Button
+              disabled={!effectiveErrorBatchId || batchErrorsQuery.isFetching}
+              onClick={handleResetErrorFilters}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              Reset
+            </Button>
+          </form>
+
+          {batchErrorsQuery.isLoading ? (
+            <LoadingState className="min-h-32" title="Loading batch errors" />
+          ) : batchErrorsQuery.isError ? (
+            <div className={errorPanelClassName}>
+              {getErrorMessage(batchErrorsQuery.error)}
+            </div>
+          ) : batchErrorsPage ? (
+            <>
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-muted">
+                <span>
+                  {formatNumber(batchErrorsPage.totalElements)} errors · page{" "}
+                  {batchErrorsPage.page + 1} of{" "}
+                  {Math.max(batchErrorsPage.totalPages, 1)}
+                </span>
+                {batchErrorsQuery.isFetching && (
+                  <span className="font-medium text-brand-primary">
+                    Refreshing...
+                  </span>
+                )}
+              </div>
+              <ImportErrorsTable errors={batchErrorsPage.content} />
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Button
+                  disabled={
+                    batchErrorsQuery.isFetching ||
+                    !batchErrorsPage.hasPrevious
+                  }
+                  onClick={() =>
+                    setErrorPage((current) => Math.max(current - 1, 0))
+                  }
+                  type="button"
+                  variant="secondary"
+                >
+                  Previous
+                </Button>
+                <Button
+                  disabled={
+                    batchErrorsQuery.isFetching || !batchErrorsPage.hasNext
+                  }
+                  onClick={() => setErrorPage((current) => current + 1)}
+                  type="button"
+                  variant="secondary"
+                >
+                  Next
+                </Button>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              className="min-h-32 p-5 min-[761px]:min-h-36 min-[761px]:p-6"
+              description="Select a batch and view errors to inspect row-level failures."
+              icon={<AlertCircle size={22} />}
+              title="No batch errors loaded"
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { apiDownload, apiGet, apiUpload } from "@/shared/lib";
-import type { ApiResponse } from "@/shared/types";
+import type { ApiResponse, PageResponse } from "@/shared/types";
 
 import type {
   ImportBatch,
+  ImportBatchErrorsQuery,
   ImportResponse,
   ImportRowErrorDto,
   ImportTemplateTarget,
@@ -42,9 +43,13 @@ export function getImportBatch(batchId: number) {
   return apiGet<ApiResponse<ImportBatch>>(`/api/imports/${batchId}`);
 }
 
-export function getImportBatchErrors(batchId: number) {
-  return apiGet<ApiResponse<ImportRowErrorDto[]>>(
+export function getImportBatchErrors(
+  batchId: number,
+  query: ImportBatchErrorsQuery = {},
+) {
+  return apiGet<ApiResponse<PageResponse<ImportRowErrorDto>>>(
     `/api/imports/${batchId}/errors`,
+    { query },
   );
 }
 
