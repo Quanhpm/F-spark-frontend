@@ -78,7 +78,7 @@ export type UpsertMilestoneContributionsRequest = {
 };
 
 export type ExportGradesQuery = {
-  term: string;
-  courseCode: string;
+  term?: string;
+  courseCode?: string;
   groupId?: number;
 };

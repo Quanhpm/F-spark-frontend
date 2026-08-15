@@ -55,6 +55,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/users", icon: Users, label: "Users" },
     { href: "/admin/imports", icon: Database, label: "Imports" },
+    { href: "/admin/backups", icon: Database, label: "Backups" },
     { href: "/admin/problems", icon: BookOpen, label: "Problem Bank" },
     { href: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/admin/notifications", icon: Bell, label: "Notifications" },

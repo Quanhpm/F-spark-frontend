@@ -46,6 +46,11 @@ export function DateTimeInput({
           htmlFor={inputId}
         >
           {label}
+          {props.required && (
+            <span aria-hidden="true" className="ml-1 text-red-600">
+              *
+            </span>
+          )}
         </label>
       )}
       <span

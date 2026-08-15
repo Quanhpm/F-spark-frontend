@@ -260,6 +260,14 @@ export function ActiveGroupWorkspace({
               <InfoItem label="Required GPA" value={group.requiredGpa} />
               <InfoItem label="Target grade" value={group.targetGrade} />
               <InfoItem label="Leader" value={group.leader?.fullName} />
+              <InfoItem
+                label="Instructor"
+                value={
+                  group.instructorName
+                    ? `${group.instructorName}${group.instructorCode ? ` (${group.instructorCode})` : ""}`
+                    : "Not assigned"
+                }
+              />
               <InfoItem label="Mentor" value={group.mentor?.fullName} />
             </div>
             <div className="rounded-xl border border-border bg-background p-4">

@@ -1,9 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { Search, UserRoundPlus } from "lucide-react";
+import { FormEvent, useEffect, useState } from "react";
+import { ChevronDown, Loader2, Search, UserRoundPlus, X } from "lucide-react";
 
-import { useAssignGroupInstructor, useGroups } from "@/modules/groups";
+import {
+  useAssignGroupInstructor,
+  useAssignGroupMentor,
+  useGroups,
+} from "@/modules/groups";
 import {
   Badge,
   Button,
@@ -12,18 +16,19 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
-  Select,
   TextInput,
 } from "@/shared/components";
 import { ApiError, cn } from "@/shared/lib";
+import type { UserRole } from "@/shared/types";
 
 import { useAdminUsers } from "../hooks/use-admin-users";
+import type { AdminUserSummaryDto } from "../types";
 
-const INSTRUCTOR_PAGE_SIZE = 50;
+const PEOPLE_SEARCH_PAGE_SIZE = 20;
 const GROUP_PAGE_SIZE = 10;
 const pageClassName = "grid min-w-0 gap-6";
 const filterClassName =
-  "grid grid-cols-[minmax(220px,1fr)_minmax(220px,1fr)_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]";
+  "grid grid-cols-[minmax(220px,1fr)_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]";
 const tableWrapClassName = "w-full overflow-x-auto max-[760px]:hidden";
 const mobileListClassName =
   "hidden min-w-0 gap-3 p-4 max-[760px]:grid max-[480px]:p-3";
@@ -38,7 +43,6 @@ const skeletonLineClassName = "h-3 animate-pulse rounded-full bg-border";
 
 type AppliedFilters = {
   groupSearch: string;
-  instructorSearch: string;
 };
 
 type RowFeedback = {
@@ -54,13 +58,186 @@ function optional(value: string) {
 function getLoadErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
-    : "Unable to load groups or active instructors. Please try again.";
+    : "Unable to load groups or active instructors/mentors. Please try again.";
 }
 
 function getMutationErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
-    : "Unable to assign the instructor. Please try again.";
+    : "Unable to assign the person. Please try again.";
+}
+
+function getUserDisplayName(user: AdminUserSummaryDto) {
+  return user.fullName ?? user.email;
+}
+
+function getRoleLabel(role: Extract<UserRole, "INSTRUCTOR" | "MENTOR">) {
+  return role === "INSTRUCTOR" ? "instructor" : "mentor";
+}
+
+type UserSearchComboboxProps = {
+  ariaLabel: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+  placeholder: string;
+  role: Extract<UserRole, "INSTRUCTOR" | "MENTOR">;
+  value: string;
+};
+
+function UserSearchCombobox({
+  ariaLabel,
+  disabled = false,
+  onChange,
+  placeholder,
+  role,
+  value,
+}: UserSearchComboboxProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<AdminUserSummaryDto | null>(
+    null,
+  );
+  const roleLabel = getRoleLabel(role);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
+  const usersQuery = useAdminUsers(
+    {
+      page: 0,
+      role,
+      search: optional(debouncedSearch),
+      size: PEOPLE_SEARCH_PAGE_SIZE,
+      status: "ACTIVE",
+    },
+    { enabled: isOpen && !disabled },
+  );
+  const users = usersQuery.data?.data.content ?? [];
+  const effectiveSelectedUser =
+    selectedUser && value === String(selectedUser.id) ? selectedUser : null;
+
+  function handleSelect(user: AdminUserSummaryDto) {
+    setSelectedUser(user);
+    onChange(String(user.id));
+    setSearch("");
+    setIsOpen(false);
+  }
+
+  function handleClear() {
+    setSelectedUser(null);
+    onChange("");
+    setSearch("");
+  }
+
+  return (
+    <div
+      className="relative min-w-0"
+      onBlur={(event) => {
+        const nextTarget = event.relatedTarget;
+        if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <div
+        className={cn(
+          "flex min-h-11 min-w-0 items-center rounded-xl border border-border bg-surface text-sm transition-[border-color,box-shadow]",
+          isOpen && "border-brand-secondary shadow-[0_0_0_4px_rgba(237,161,47,0.12)]",
+          disabled && "cursor-not-allowed opacity-60",
+        )}
+      >
+        <button
+          aria-expanded={isOpen}
+          aria-label={ariaLabel}
+          className="flex min-h-11 min-w-0 flex-1 items-center justify-between gap-2 px-3 text-left text-foreground outline-none"
+          disabled={disabled}
+          onClick={() => setIsOpen((current) => !current)}
+          type="button"
+        >
+          <span
+            className={cn(
+              "min-w-0 truncate",
+              !selectedUser && !value && "text-muted",
+            )}
+          >
+            {effectiveSelectedUser
+              ? `${getUserDisplayName(effectiveSelectedUser)} (${effectiveSelectedUser.code ?? "-"})`
+              : value
+                ? `Selected #${value}`
+                : placeholder}
+          </span>
+          <ChevronDown className="shrink-0 text-muted" size={16} />
+        </button>
+        {value && !disabled && (
+          <button
+            aria-label={`Clear selected ${roleLabel}`}
+            className="mr-2 inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-background hover:text-foreground"
+            onClick={handleClear}
+            type="button"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-40 mt-2 grid max-h-80 w-full min-w-[280px] overflow-hidden rounded-xl border border-border bg-surface shadow-xl">
+          <div className="border-b border-border p-2">
+            <TextInput
+              autoFocus
+              className="text-sm"
+              icon={<Search size={15} />}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={`Search ${roleLabel} by name, code, email`}
+              shellClassName="h-10"
+              value={search}
+            />
+          </div>
+          <div className="max-h-60 overflow-y-auto p-1">
+            {usersQuery.isLoading ? (
+              <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted">
+                <Loader2 className="animate-spin" size={16} />
+                Searching active {roleLabel}s...
+              </div>
+            ) : usersQuery.isError ? (
+              <div className="px-3 py-3 text-sm text-red-700">
+                Unable to load active {roleLabel}s.
+              </div>
+            ) : users.length === 0 ? (
+              <div className="px-3 py-3 text-sm text-muted">
+                No active {roleLabel}s found.
+              </div>
+            ) : (
+              users.map((user) => (
+                <button
+                  className={cn(
+                    "grid w-full min-w-0 gap-1 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-background",
+                    value === String(user.id) && "bg-background",
+                  )}
+                  key={user.id}
+                  onClick={() => handleSelect(user)}
+                  type="button"
+                >
+                  <span className="min-w-0 truncate font-semibold text-foreground">
+                    {getUserDisplayName(user)}
+                  </span>
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    {user.code ?? "No code"} · {user.email}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AssignmentResultsSkeleton({ rowCount }: { rowCount: number }) {
@@ -156,14 +333,14 @@ function AssignmentResultsSkeleton({ rowCount }: { rowCount: number }) {
 
 export function AdminGroupInstructorPage() {
   const [groupSearchInput, setGroupSearchInput] = useState("");
-  const [instructorSearchInput, setInstructorSearchInput] = useState("");
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>({
     groupSearch: "",
-    instructorSearch: "",
   });
   const [groupPage, setGroupPage] = useState(0);
-  const [instructorPage, setInstructorPage] = useState(0);
   const [selectedInstructorIds, setSelectedInstructorIds] = useState<
+    Record<number, string>
+  >({});
+  const [selectedMentorIds, setSelectedMentorIds] = useState<
     Record<number, string>
   >({});
   const [assigningGroupId, setAssigningGroupId] = useState<number | null>(null);
@@ -174,25 +351,18 @@ export function AdminGroupInstructorPage() {
   const groupsQuery = useGroups({
     search: optional(appliedFilters.groupSearch),
   });
-  const instructorsQuery = useAdminUsers({
-    page: instructorPage,
-    role: "INSTRUCTOR",
-    search: optional(appliedFilters.instructorSearch),
-    size: INSTRUCTOR_PAGE_SIZE,
-    status: "ACTIVE",
-  });
   const assignInstructorMutation = useAssignGroupInstructor();
+  const assignMentorMutation = useAssignGroupMentor();
   const groups = groupsQuery.data?.data ?? [];
   const groupTotalPages = Math.ceil(groups.length / GROUP_PAGE_SIZE);
   const paginatedGroups = groups.slice(
     groupPage * GROUP_PAGE_SIZE,
     (groupPage + 1) * GROUP_PAGE_SIZE,
   );
-  const instructorPageData = instructorsQuery.data?.data;
-  const instructors = instructorPageData?.content ?? [];
 
   function clearSelections() {
     setSelectedInstructorIds({});
+    setSelectedMentorIds({});
     setRowFeedback({});
   }
 
@@ -200,29 +370,20 @@ export function AdminGroupInstructorPage() {
     event.preventDefault();
     setAppliedFilters({
       groupSearch: groupSearchInput.trim(),
-      instructorSearch: instructorSearchInput.trim(),
     });
     setGroupPage(0);
-    setInstructorPage(0);
     clearSelections();
   }
 
   function handleResetFilters() {
     setGroupSearchInput("");
-    setInstructorSearchInput("");
-    setAppliedFilters({ groupSearch: "", instructorSearch: "" });
+    setAppliedFilters({ groupSearch: "" });
     setGroupPage(0);
-    setInstructorPage(0);
     clearSelections();
   }
 
   function handleGroupPageChange(nextPage: number) {
     setGroupPage(nextPage);
-    clearSelections();
-  }
-
-  function handleInstructorPageChange(nextPage: number) {
-    setInstructorPage(nextPage);
     clearSelections();
   }
 
@@ -232,7 +393,7 @@ export function AdminGroupInstructorPage() {
 
   async function handleAssign(
     groupId: number,
-    currentInstructorId: number | null,
+    currentInstructorAccountId: number | null,
   ) {
     const instructorId = Number(selectedInstructorIds[groupId]);
 
@@ -244,7 +405,7 @@ export function AdminGroupInstructorPage() {
       return;
     }
 
-    if (instructorId === currentInstructorId) {
+    if (instructorId === currentInstructorAccountId) {
       setFeedback(groupId, {
         message: "This instructor is already assigned to the group.",
         tone: "error",
@@ -276,12 +437,58 @@ export function AdminGroupInstructorPage() {
     }
   }
 
+  async function handleAssignMentor(
+    groupId: number,
+    currentMentorAccountId: number | null,
+  ) {
+    const mentorId = Number(selectedMentorIds[groupId]);
+
+    if (!Number.isInteger(mentorId) || mentorId < 1) {
+      setFeedback(groupId, {
+        message: "Choose an active mentor before assigning the group.",
+        tone: "error",
+      });
+      return;
+    }
+
+    if (mentorId === currentMentorAccountId) {
+      setFeedback(groupId, {
+        message: "This mentor is already assigned to the group.",
+        tone: "error",
+      });
+      return;
+    }
+
+    setAssigningGroupId(groupId);
+    setRowFeedback((current) => ({ ...current, [groupId]: undefined }));
+
+    try {
+      await assignMentorMutation.mutateAsync({
+        groupId,
+        payload: { mentorId },
+      });
+      setSelectedMentorIds((current) => ({ ...current, [groupId]: "" }));
+      await groupsQuery.refetch();
+      setFeedback(groupId, {
+        message: "Mentor assignment saved.",
+        tone: "success",
+      });
+    } catch (mutationError) {
+      setFeedback(groupId, {
+        message: getMutationErrorMessage(mutationError),
+        tone: "error",
+      });
+    } finally {
+      setAssigningGroupId(null);
+    }
+  }
+
   return (
     <div className={pageClassName}>
       <PageHeader
-        description="Review the current assignment and choose an active Instructor account for each group."
+        description="Review the current assignment and choose active Instructor or Mentor accounts for each group."
         eyebrow="Admin"
-        title="Assign instructors"
+        title="Assign instructors & mentors"
       />
 
       <Card>
@@ -294,13 +501,6 @@ export function AdminGroupInstructorPage() {
               placeholder="Group name, term, or course"
               value={groupSearchInput}
             />
-            <TextInput
-              icon={<Search size={16} />}
-              label="Search active instructors"
-              onChange={(event) => setInstructorSearchInput(event.target.value)}
-              placeholder="Name, code, or email"
-              value={instructorSearchInput}
-            />
             <div className="flex flex-wrap gap-2 max-[480px]:grid max-[480px]:grid-cols-1 max-[480px]:[&>button]:w-full">
               <Button type="submit">Apply filters</Button>
               <Button onClick={handleResetFilters} variant="secondary">
@@ -309,60 +509,21 @@ export function AdminGroupInstructorPage() {
             </div>
           </form>
 
-          {instructorPageData && instructorPageData.totalElements > 0 && (
-            <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-t border-border pt-4 max-[480px]:grid">
-              <span className="text-sm text-muted">
-                Instructor page {instructorPageData.page + 1} of{" "}
-                {instructorPageData.totalPages} ({instructorPageData.totalElements}{" "}
-                active accounts)
-              </span>
-              <div className="flex gap-2 max-[480px]:grid max-[480px]:w-full max-[480px]:grid-cols-2 max-[480px]:[&>button]:w-full">
-                <Button
-                  disabled={
-                    assigningGroupId !== null || !instructorPageData.hasPrevious
-                  }
-                  onClick={() =>
-                    handleInstructorPageChange(Math.max(0, instructorPage - 1))
-                  }
-                  size="sm"
-                  variant="secondary"
-                >
-                  Previous
-                </Button>
-                <Button
-                  disabled={
-                    assigningGroupId !== null || !instructorPageData.hasNext
-                  }
-                  onClick={() => handleInstructorPageChange(instructorPage + 1)}
-                  size="sm"
-                  variant="secondary"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {!instructorsQuery.isLoading &&
-            !instructorsQuery.isError &&
-            instructors.length === 0 && (
-              <div className="flex min-w-0 items-start gap-3 rounded-xl border border-border bg-background p-3 text-sm text-muted">
-                <UserRoundPlus className="shrink-0" size={18} />
-                <span className="break-words">
-                  No active instructors match the current instructor filter.
-                </span>
-              </div>
-            )}
+          <div className="flex min-w-0 items-start gap-3 rounded-xl border border-border bg-background p-3 text-sm text-muted">
+            <UserRoundPlus className="mt-0.5 shrink-0" size={18} />
+            <span className="break-words">
+              Search Mentor and Instructor directly inside each assignment row.
+              Results are filtered by active accounts only.
+            </span>
+          </div>
         </CardContent>
       </Card>
 
-      {groupsQuery.isLoading || instructorsQuery.isLoading ? (
-        <LoadingState title="Loading groups and active instructors" />
-      ) : groupsQuery.isError || instructorsQuery.isError ? (
+      {groupsQuery.isLoading ? (
+        <LoadingState title="Loading groups" />
+      ) : groupsQuery.isError ? (
         <EmptyState
-          description={getLoadErrorMessage(
-            groupsQuery.error ?? instructorsQuery.error,
-          )}
+          description={getLoadErrorMessage(groupsQuery.error)}
           title="Assignment data unavailable"
         />
       ) : groups.length === 0 ? (
@@ -389,9 +550,17 @@ export function AdminGroupInstructorPage() {
               <tbody>
                 {paginatedGroups.map((group) => {
                   const selectedInstructorId = selectedInstructorIds[group.id] ?? "";
+                  const selectedMentorId = selectedMentorIds[group.id] ?? "";
+                  const currentInstructorAccountId =
+                    group.instructorAccountId ?? group.instructorId;
+                  const currentMentorAccountId =
+                    group.mentorAccountId ?? group.mentorId;
                   const isSameInstructor =
                     Boolean(selectedInstructorId) &&
-                    Number(selectedInstructorId) === group.instructorId;
+                    Number(selectedInstructorId) === currentInstructorAccountId;
+                  const isSameMentor =
+                    Boolean(selectedMentorId) &&
+                    Number(selectedMentorId) === currentMentorAccountId;
                   const isCurrentRowPending = assigningGroupId === group.id;
                   const feedback = rowFeedback[group.id];
 
@@ -412,11 +581,44 @@ export function AdminGroupInstructorPage() {
                         </div>
                       </td>
                       <td className={tableCellClassName}>
-                        {group.mentorName ? (
-                          <Badge tone="neutral">{group.mentorName}</Badge>
-                        ) : (
-                          <span className="text-muted">Unassigned</span>
-                        )}
+                        <div className="grid gap-2">
+                          {group.mentorName ? (
+                            <Badge tone="neutral">{group.mentorName}</Badge>
+                          ) : (
+                            <span className="text-muted">Unassigned</span>
+                          )}
+                          <UserSearchCombobox
+                            ariaLabel={`New mentor for ${group.name}`}
+                            disabled={assigningGroupId !== null}
+                            onChange={(event) => {
+                              setSelectedMentorIds((current) => ({
+                                ...current,
+                                [group.id]: event,
+                              }));
+                              setRowFeedback((current) => ({
+                                ...current,
+                                [group.id]: undefined,
+                              }));
+                            }}
+                            placeholder="Search active mentor"
+                            role="MENTOR"
+                            value={selectedMentorId}
+                          />
+                          <Button
+                            disabled={
+                              assigningGroupId !== null ||
+                              !selectedMentorId ||
+                              isSameMentor
+                            }
+                            onClick={() =>
+                              handleAssignMentor(group.id, currentMentorAccountId)
+                            }
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Assign mentor
+                          </Button>
+                        </div>
                       </td>
                       <td className={tableCellClassName}>
                         {group.instructorName || group.instructorCode ? (
@@ -434,33 +636,23 @@ export function AdminGroupInstructorPage() {
                       </td>
                       <td className={cn(tableCellClassName, "min-w-[280px]")}>
                         <div className="grid gap-2">
-                          <Select
-                            aria-label={`New instructor for ${group.name}`}
-                            disabled={
-                              assigningGroupId !== null || instructors.length === 0
-                            }
+                          <UserSearchCombobox
+                            ariaLabel={`New instructor for ${group.name}`}
+                            disabled={assigningGroupId !== null}
                             onChange={(event) => {
-                              const value = event.target.value;
                               setSelectedInstructorIds((current) => ({
                                 ...current,
-                                [group.id]: value,
+                                [group.id]: event,
                               }));
                               setRowFeedback((current) => ({
                                 ...current,
                                 [group.id]: undefined,
                               }));
                             }}
+                            placeholder="Search active instructor"
+                            role="INSTRUCTOR"
                             value={selectedInstructorId}
-                          >
-                            <option value="">Choose active instructor</option>
-                            {instructors.map((instructor) => (
-                              <option key={instructor.id} value={instructor.id}>
-                                {instructor.fullName ?? instructor.email} ({
-                                  instructor.code ?? "-"
-                                })
-                              </option>
-                            ))}
-                          </Select>
+                          />
                           {feedback && (
                             <span
                               className={cn(
@@ -483,7 +675,7 @@ export function AdminGroupInstructorPage() {
                             isSameInstructor
                           }
                           onClick={() =>
-                            handleAssign(group.id, group.instructorId)
+                            handleAssign(group.id, currentInstructorAccountId)
                           }
                           size="sm"
                         >
@@ -500,9 +692,17 @@ export function AdminGroupInstructorPage() {
             {paginatedGroups.map((group) => {
               const selectedInstructorId =
                 selectedInstructorIds[group.id] ?? "";
+              const selectedMentorId = selectedMentorIds[group.id] ?? "";
+              const currentInstructorAccountId =
+                group.instructorAccountId ?? group.instructorId;
+              const currentMentorAccountId =
+                group.mentorAccountId ?? group.mentorId;
               const isSameInstructor =
                 Boolean(selectedInstructorId) &&
-                Number(selectedInstructorId) === group.instructorId;
+                Number(selectedInstructorId) === currentInstructorAccountId;
+              const isSameMentor =
+                Boolean(selectedMentorId) &&
+                Number(selectedMentorId) === currentMentorAccountId;
               const isCurrentRowPending = assigningGroupId === group.id;
               const feedback = rowFeedback[group.id];
 
@@ -539,6 +739,40 @@ export function AdminGroupInstructorPage() {
                     </div>
                   </dl>
 
+                  <div className="grid min-w-0 gap-3 border-t border-border pt-3">
+                    <UserSearchCombobox
+                      ariaLabel={`New mentor for ${group.name}`}
+                      disabled={assigningGroupId !== null}
+                      onChange={(event) => {
+                        setSelectedMentorIds((current) => ({
+                          ...current,
+                          [group.id]: event,
+                        }));
+                        setRowFeedback((current) => ({
+                          ...current,
+                          [group.id]: undefined,
+                        }));
+                      }}
+                      placeholder="Search active mentor"
+                      role="MENTOR"
+                      value={selectedMentorId}
+                    />
+                    <Button
+                      className="w-full"
+                      disabled={
+                        assigningGroupId !== null ||
+                        !selectedMentorId ||
+                        isSameMentor
+                      }
+                      onClick={() =>
+                        handleAssignMentor(group.id, currentMentorAccountId)
+                      }
+                      variant="secondary"
+                    >
+                      Assign mentor
+                    </Button>
+                  </div>
+
                   <div className="grid min-w-0 gap-1 border-t border-border pt-3">
                     <span className="text-[11px] font-bold text-muted uppercase">
                       Current instructor
@@ -552,33 +786,23 @@ export function AdminGroupInstructorPage() {
                   </div>
 
                   <div className="grid min-w-0 gap-3 border-t border-border pt-3">
-                    <Select
-                      aria-label={`New instructor for ${group.name}`}
-                      disabled={
-                        assigningGroupId !== null || instructors.length === 0
-                      }
+                    <UserSearchCombobox
+                      ariaLabel={`New instructor for ${group.name}`}
+                      disabled={assigningGroupId !== null}
                       onChange={(event) => {
-                        const value = event.target.value;
                         setSelectedInstructorIds((current) => ({
                           ...current,
-                          [group.id]: value,
+                          [group.id]: event,
                         }));
                         setRowFeedback((current) => ({
                           ...current,
                           [group.id]: undefined,
                         }));
                       }}
+                      placeholder="Search active instructor"
+                      role="INSTRUCTOR"
                       value={selectedInstructorId}
-                    >
-                      <option value="">Choose active instructor</option>
-                      {instructors.map((instructor) => (
-                        <option key={instructor.id} value={instructor.id}>
-                          {instructor.fullName ?? instructor.email} ({
-                            instructor.code ?? "-"
-                          })
-                        </option>
-                      ))}
-                    </Select>
+                    />
                     {feedback && (
                       <span
                         className={cn(
@@ -600,7 +824,7 @@ export function AdminGroupInstructorPage() {
                         isSameInstructor
                       }
                       onClick={() =>
-                        handleAssign(group.id, group.instructorId)
+                        handleAssign(group.id, currentInstructorAccountId)
                       }
                     >
                       {isCurrentRowPending ? "Saving..." : "Assign instructor"}

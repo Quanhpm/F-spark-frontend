@@ -40,10 +40,7 @@ function isEntityId(value: EntityId | null | undefined): value is EntityId {
 }
 
 export function useCourseMilestones(query: CourseMilestonesQuery) {
-  const enabled = Boolean(query.term && query.courseCode);
-
   return useQuery({
-    enabled,
     queryFn: () => listCourseMilestones(query),
     queryKey: queryKeys.milestones.list(query),
   });

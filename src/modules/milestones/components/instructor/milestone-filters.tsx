@@ -1,10 +1,4 @@
-import {
-  Button,
-  Card,
-  CardContent,
-  Select,
-  TextInput,
-} from "@/shared/components";
+import { Button, Card, CardContent, Select } from "@/shared/components";
 
 type MilestoneFiltersProps = {
   courseCode: string;
@@ -27,24 +21,24 @@ export function MilestoneFilters({
     <Card>
       <CardContent className="grid gap-5">
         <div className="grid grid-cols-[repeat(2,minmax(180px,240px))_minmax(0,1fr)] items-end gap-3 max-[760px]:grid-cols-1">
-          <TextInput
+          <Select
             label="Term"
-            list="milestone-term-options"
             onChange={(event) => onTermChange(event.target.value)}
-            placeholder="Summer2026"
             value={term}
-          />
-          <datalist id="milestone-term-options">
+          >
+            <option value="">All terms</option>
             {termOptions.map((item) => (
-              <option key={item} value={item} />
+              <option key={item} value={item}>
+                {item}
+              </option>
             ))}
-          </datalist>
+          </Select>
           <Select
             label="Course code"
             onChange={(event) => onCourseCodeChange(event.target.value)}
             value={courseCode}
           >
-            <option value="">Select course</option>
+            <option value="">All courses</option>
             {courseOptions.map((item) => (
               <option key={item} value={item}>
                 {item}

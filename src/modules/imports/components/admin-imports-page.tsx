@@ -29,6 +29,7 @@ import { ApiError, cn } from "@/shared/lib";
 
 import {
   useDownloadMentorImportTemplate,
+  useDownloadProblemBankImportTemplate,
   useDownloadStudentImportTemplate,
   useImportMentors,
   useImportProblemBank,
@@ -42,13 +43,14 @@ import type {
   ImportBatch,
   ImportResponse,
   ImportRowErrorDto,
+  ImportTemplateTarget,
   ImportUploadTarget,
 } from "../types";
 
 type UploadTargetOption = {
   description: string;
   label: string;
-  template?: "students" | "mentors";
+  template?: ImportTemplateTarget;
   value: ImportUploadTarget;
 };
 
@@ -77,13 +79,6 @@ const UPLOAD_TARGETS: UploadTargetOption[] = [
     value: "problem-bank",
   },
 ];
-
-const TEMPLATE_HEADERS: Record<"students" | "mentors", string> = {
-  mentors:
-    "Mentor ID,Mentor Name,Email,Mobile,Company,Title/Position,Domain Expertise,Experience years,password",
-  students:
-    "MSSV,Họ & Tên,Email (email trên FAP của SV),Ngành,Mã lớp & GV FAP EXE101,password",
-};
 
 const pageClassName = "grid min-w-0 gap-6";
 const twoColumnClassName =
@@ -200,23 +195,6 @@ function downloadBlob(blob: Blob, fileName: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-}
-
-async function prepareCsvForSpreadsheet(blob: Blob, target: "students" | "mentors") {
-  const text = await blob.text();
-  const normalizedText = text.replace(/^\uFEFF/, "");
-  const lines = normalizedText.split(/\r?\n/);
-
-  if (lines[0]?.trim().toLowerCase() === "sep=,") {
-    lines.shift();
-  }
-
-  lines[0] = TEMPLATE_HEADERS[target];
-  const csvText = `sep=,\r\n${lines.join("\r\n")}`;
-
-  return new Blob(["\uFEFF", csvText], {
-    type: "text/csv;charset=utf-8",
-  });
 }
 
 function MetricGrid({ metrics }: { metrics: Metric[] }) {
@@ -666,6 +644,8 @@ export function AdminImportsPage() {
   const importProblemBankMutation = useImportProblemBank();
   const downloadStudentTemplateMutation = useDownloadStudentImportTemplate();
   const downloadMentorTemplateMutation = useDownloadMentorImportTemplate();
+  const downloadProblemBankTemplateMutation =
+    useDownloadProblemBankImportTemplate();
   const batchQuery = useImportBatch(activeBatchId);
   const batchErrorsQuery = useImportBatchErrors(activeErrorBatchId);
 
@@ -678,7 +658,8 @@ export function AdminImportsPage() {
     importProblemBankMutation.isPending;
   const isDownloading =
     downloadStudentTemplateMutation.isPending ||
-    downloadMentorTemplateMutation.isPending;
+    downloadMentorTemplateMutation.isPending ||
+    downloadProblemBankTemplateMutation.isPending;
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -710,21 +691,24 @@ export function AdminImportsPage() {
     }
   }
 
-  async function handleDownloadTemplate(target: "students" | "mentors") {
+  async function handleDownloadTemplate(target: ImportTemplateTarget) {
     setDownloadError("");
 
     try {
       const blob =
         target === "students"
           ? await downloadStudentTemplateMutation.mutateAsync()
-          : await downloadMentorTemplateMutation.mutateAsync();
-      const csvBlob = await prepareCsvForSpreadsheet(blob, target);
+          : target === "mentors"
+            ? await downloadMentorTemplateMutation.mutateAsync()
+            : await downloadProblemBankTemplateMutation.mutateAsync();
 
       downloadBlob(
-        csvBlob,
+        blob,
         target === "students"
-          ? "student-import-template.csv"
-          : "mentor-import-template.csv",
+          ? "SU26_EXE101_Group_List_template.xlsx"
+          : target === "mentors"
+            ? "mentor_ID_matrix_template.xlsx"
+            : "Guideline_EXE101_problem_bank_template.xlsx",
       );
     } catch (error) {
       setDownloadError(getErrorMessage(error));
@@ -787,6 +771,14 @@ export function AdminImportsPage() {
               variant="secondary"
             >
               Mentor template
+            </Button>
+            <Button
+              disabled={isDownloading}
+              icon={<Download size={16} />}
+              onClick={() => handleDownloadTemplate("problem-bank")}
+              variant="secondary"
+            >
+              Problem bank template
             </Button>
           </div>
         }

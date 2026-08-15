@@ -19,6 +19,7 @@ import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-reac
 import { useExportGradesCsv, useGradeGroup, useGroupGradeMatrix } from "../hooks";
 import { useInstructorMilestoneDashboard } from "@/modules/dashboards";
 import type { DashboardMilestoneStatusDto } from "@/modules/dashboards";
+import { useInstructorGroups } from "@/modules/groups";
 
 type GradeModalProps = {
   groupId: number;
@@ -192,12 +193,33 @@ type InstructorGradingPageProps = {
   initialMilestoneId?: number | null;
 };
 
+const defaultCourseCodes = ["EXE101", "EXE201", "EXE401"] as const;
+
+function buildCourseOptions(courses: string[]) {
+  const values = new Set<string>(defaultCourseCodes);
+  courses.forEach((course) => {
+    const trimmed = course.trim();
+    if (trimmed) values.add(trimmed);
+  });
+
+  return Array.from(values);
+}
+
+function formatMatrixScore(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+
+  return new Intl.NumberFormat("en", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(value);
+}
+
 export function InstructorGradingPage({
   initialGroupId,
   initialMilestoneId,
 }: InstructorGradingPageProps = {}) {
-  const [term, setTerm] = useState("SU24");
-  const [courseCode, setCourseCode] = useState("EXE101");
+  const [term, setTerm] = useState("");
+  const [courseCode, setCourseCode] = useState("");
 
   const [activeGradeModal, setActiveGradeModal] = useState<{
     groupId: number;
@@ -206,10 +228,31 @@ export function InstructorGradingPage({
     milestoneTitle: string;
   } | null>(null);
 
-  const { data: dashboardResponse, isLoading } = useInstructorMilestoneDashboard({
-    term,
-    courseCode,
-  });
+  const instructorGroupsQuery = useInstructorGroups();
+  const assignedGroups = useMemo(
+    () => instructorGroupsQuery.data?.data ?? [],
+    [instructorGroupsQuery.data?.data],
+  );
+  const termOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(assignedGroups.map((group) => group.term).filter(Boolean)),
+      ).sort(),
+    [assignedGroups],
+  );
+  const courseOptions = useMemo(
+    () =>
+      buildCourseOptions(
+        assignedGroups.map((group) => group.courseCode).filter(Boolean),
+      ),
+    [assignedGroups],
+  );
+
+  const { data: dashboardResponse, isLoading } =
+    useInstructorMilestoneDashboard({
+      courseCode: courseCode.trim() || undefined,
+      term: term.trim() || undefined,
+    });
 
   const milestoneStatuses = useMemo(
     () => dashboardResponse?.data ?? [],
@@ -261,6 +304,31 @@ export function InstructorGradingPage({
     return list;
   }, [milestoneStatuses]);
 
+  const matrixSummary = useMemo(() => {
+    let gradedCount = 0;
+    let ungradedCount = 0;
+
+    groupedData.forEach((row) => {
+      milestonesList.forEach((milestone) => {
+        const status = row.milestones[milestone.milestoneId];
+        if (!status) return;
+
+        if (status.graded) {
+          gradedCount += 1;
+        } else {
+          ungradedCount += 1;
+        }
+      });
+    });
+
+    return {
+      gradedCount,
+      groupCount: groupedData.length,
+      milestoneCount: milestonesList.length,
+      ungradedCount,
+    };
+  }, [groupedData, milestonesList]);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!initialGroupId || !initialMilestoneId) return;
@@ -277,7 +345,10 @@ export function InstructorGradingPage({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleExportCsv = () => {
-    exportMutation.mutate({ term, courseCode });
+    exportMutation.mutate({
+      courseCode: courseCode.trim() || undefined,
+      term: term.trim() || undefined,
+    });
   };
 
   return (
@@ -301,23 +372,33 @@ export function InstructorGradingPage({
       <Card>
         <CardHeader
           title="Filter and Export"
-          description="Choose a term and course to see the groups."
+          description="Leave filters empty to show all assigned groups and milestones."
         />
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-            <TextInput
+            <Select
               label="Academic Term"
               value={term}
-              onChange={(e) => setTerm(e.target.value.toUpperCase())}
-            />
+              onChange={(e) => setTerm(e.target.value)}
+            >
+              <option value="">All terms</option>
+              {termOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </Select>
             <Select
               label="Course Code"
               value={courseCode}
               onChange={(event) => setCourseCode(event.target.value)}
             >
-              <option value="EXE101">EXE101</option>
-              <option value="EXE201">EXE201</option>
-              <option value="EXE401">EXE401</option>
+              <option value="">All courses</option>
+              {courseOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </Select>
           </div>
         </CardContent>
@@ -327,57 +408,103 @@ export function InstructorGradingPage({
             <LoadingState title="Loading grading matrix..." />
           </CardContent>
         ) : groupedData.length > 0 ? (
-          <div className="overflow-x-auto border-t border-border">
-            <table className="w-full border-collapse text-left">
+          <>
+            <CardContent className="border-t border-border">
+              <div className="grid grid-cols-4 gap-3 max-[860px]:grid-cols-2 max-[520px]:grid-cols-1">
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted">
+                    Groups
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-foreground">
+                    {matrixSummary.groupCount}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted">
+                    Milestones
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-foreground">
+                    {matrixSummary.milestoneCount}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-green-200 bg-green-50/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-green-800">
+                    Graded cells
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-green-900">
+                    {matrixSummary.gradedCount}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-yellow-200 bg-yellow-50/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-yellow-800">
+                    Ungraded cells
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-yellow-900">
+                    {matrixSummary.ungradedCount}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+
+            <div className="max-h-[70vh] overflow-auto border-t border-border">
+            <table className="w-full min-w-[900px] border-separate border-spacing-0 text-left">
               <thead>
-                <tr className="border-b border-border bg-surface">
-                  <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted w-48">Group</th>
+                <tr>
+                  <th className="sticky top-0 left-0 z-30 w-52 border-b border-r border-border bg-background px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted shadow-[8px_0_12px_-12px_rgba(15,23,42,0.45)]">
+                    Group
+                  </th>
                   {milestonesList.map((m) => (
-                    <th className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-muted min-w-44" key={m.milestoneId}>
+                    <th className="sticky top-0 z-20 min-w-44 border-b border-border bg-background px-4 py-3 text-xs font-bold uppercase tracking-wider text-muted" key={m.milestoneId}>
                       {m.milestoneTitle}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border text-sm">
+              <tbody className="text-sm">
                 {groupedData.map((row) => (
-                  <tr className="hover:bg-neutral-50/50 transition-colors" key={row.groupId}>
-                    <td className="px-5 py-4 font-bold text-foreground">
-                      <div>{row.groupName}</div>
-                      <div className="text-xs text-muted font-normal mt-0.5">{row.groupNo}</div>
+                  <tr className="group odd:bg-surface even:bg-background hover:bg-brand-primary/5" key={row.groupId}>
+                    <td className="sticky left-0 z-10 border-r border-b border-border bg-inherit px-4 py-3 font-bold text-foreground shadow-[8px_0_12px_-12px_rgba(15,23,42,0.45)]">
+                      <div className="max-w-44 break-words">{row.groupName}</div>
+                      <div className="mt-1 text-xs font-normal text-muted">{row.groupNo}</div>
                     </td>
 
                     {milestonesList.map((m) => {
                       const status = row.milestones[m.milestoneId];
                       if (!status) {
                         return (
-                          <td className="px-5 py-4 text-muted text-xs italic" key={m.milestoneId}>
-                            No timeline setup
+                          <td className="border-b border-border px-4 py-3 text-xs text-muted" key={m.milestoneId}>
+                            <span className="inline-flex rounded-full border border-border bg-background px-2 py-1 italic">
+                              No timeline setup
+                            </span>
                           </td>
                         );
                       }
+                      const scoreLabel =
+                        status.graded && status.score !== null
+                          ? `${formatMatrixScore(status.score)}${
+                              status.maxScoreSnapshot !== null
+                                ? `/${formatMatrixScore(status.maxScoreSnapshot)}`
+                                : ""
+                            }`
+                          : null;
 
                       return (
-                        <td className="px-5 py-4" key={m.milestoneId}>
-                          <div className="flex flex-col gap-2">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {status.submitted ? (
-                                <Badge tone="brand" size="sm" icon={<FileText size={12} />}>
-                                  Submitted
-                                </Badge>
-                              ) : (
-                                <Badge tone="neutral" size="sm">
-                                  Not Submitted
-                                </Badge>
-                              )}
-
+                        <td className="border-b border-border px-4 py-3 align-top" key={m.milestoneId}>
+                          <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2 shadow-sm transition-colors group-hover:border-orange-200 group-hover:bg-orange-50/40">
+                            <div className="flex min-w-0 flex-wrap items-center gap-1">
                               {status.graded ? (
-                                <Badge tone="success" size="sm" icon={<CheckCircle size={12} />}>
+                                <Badge tone="success" size="sm" icon={<CheckCircle size={12} />} className="justify-start">
                                   Graded
                                 </Badge>
                               ) : (
-                                <Badge tone="warning" size="sm" icon={<AlertCircle size={12} />}>
+                                <Badge tone="warning" size="sm" icon={<AlertCircle size={12} />} className="justify-start">
                                   Ungraded
+                                </Badge>
+                              )}
+
+                              {status.submitted && (
+                                <Badge tone="brand" size="sm" icon={<FileText size={12} />} className="justify-start">
+                                  Submitted
                                 </Badge>
                               )}
 
@@ -387,6 +514,15 @@ export function InstructorGradingPage({
                                 </Badge>
                               )}
                             </div>
+
+                            {scoreLabel && (
+                              <div
+                                className="shrink-0 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1 text-sm font-extrabold text-green-900"
+                                title="Group score"
+                              >
+                                {scoreLabel}
+                              </div>
+                            )}
 
                             <Button
                               size="sm"
@@ -399,9 +535,9 @@ export function InstructorGradingPage({
                                   milestoneTitle: m.milestoneTitle,
                                 })
                               }
-                              className="h-8 text-xs font-bold self-start mt-0.5"
+                              className="h-8 shrink-0 !border-orange-500 !bg-orange-500 px-3 text-xs font-bold !text-white shadow-sm hover:!border-orange-600 hover:!bg-orange-600"
                             >
-                              <Edit3 className="size-3 mr-1" />
+                              <Edit3 className="size-3" />
                               <span>Grade</span>
                             </Button>
                           </div>
@@ -413,6 +549,7 @@ export function InstructorGradingPage({
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <CardContent>
             <EmptyState

@@ -7,7 +7,6 @@ export function useInstructorMilestoneDashboard(
   query: InstructorMilestoneDashboardQuery,
 ) {
   return useQuery({
-    enabled: Boolean(query.term && query.courseCode),
     queryFn: () => getInstructorMilestoneDashboard(query),
     queryKey: queryKeys.dashboard.instructorMilestones(
       query.term,

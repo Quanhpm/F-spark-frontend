@@ -78,12 +78,14 @@ export function GroupDetailModal({
           courseCode: group.courseCode,
           groupNo: group.groupNo,
           id: group.id,
+          instructorAccountId: group.instructorAccountId,
           instructorCode: group.instructorCode,
           instructorId: group.instructorId,
           instructorName: group.instructorName,
           isLock: group.isLock,
           leaderName: group.leader?.fullName ?? null,
           memberCount: group.members.length,
+          mentorAccountId: group.mentorAccountId,
           mentorCode: group.mentor?.mentorCode ?? null,
           mentorId: group.mentor?.id ?? null,
           mentorName: group.mentor?.fullName ?? null,
@@ -145,6 +147,14 @@ export function GroupDetailModal({
                 <InfoItem label="Group No" value={group.groupNo} />
                 <InfoItem label="Members" value={group.members.length} />
                 <InfoItem label="Leader" value={group.leader?.fullName} />
+                <InfoItem
+                  label="Instructor"
+                  value={
+                    group.instructorName
+                      ? `${group.instructorName}${group.instructorCode ? ` (${group.instructorCode})` : ""}`
+                      : "Not assigned"
+                  }
+                />
                 <InfoItem label="Mentor" value={group.mentor?.fullName} />
                 <InfoItem label="Required GPA" value={group.requiredGpa} />
                 <InfoItem label="Target grade" value={group.targetGrade} />

@@ -183,13 +183,15 @@ export type DashboardMilestoneStatusDto = {
   late: boolean;
   submissionStatus: "SUBMITTED" | "RESUBMITTED" | "GRADED" | null;
   graded: boolean;
+  score: number | null;
+  maxScoreSnapshot: number | null;
   contributionsComplete: boolean;
   gradeComplete: boolean;
 };
 
 export type InstructorMilestoneDashboardQuery = {
-  term: string;
-  courseCode: string;
+  term?: string;
+  courseCode?: string;
   groupId?: number;
 };
 

@@ -2,7 +2,6 @@
 
 import {
   type FormEvent,
-  useEffect,
   useId,
   useMemo,
   useState,
@@ -51,31 +50,6 @@ const milestoneStatuses: CourseMilestoneStatus[] = [
 ];
 
 const defaultCourseCodes = ["EXE101", "EXE201", "EXE401"] as const;
-const TERM_SEARCH_MIN_LENGTH = 2;
-const TERM_SEARCH_DEBOUNCE_MS = 350;
-
-function useDebouncedTermSearch(value: string) {
-  const [debouncedValue, setDebouncedValue] = useState("");
-
-  useEffect(() => {
-    const normalizedValue = value.trim();
-    const timeoutId = window.setTimeout(
-      () =>
-        setDebouncedValue(
-          normalizedValue.length >= TERM_SEARCH_MIN_LENGTH
-            ? normalizedValue
-            : "",
-        ),
-      normalizedValue.length >= TERM_SEARCH_MIN_LENGTH
-        ? TERM_SEARCH_DEBOUNCE_MS
-        : 0,
-    );
-
-    return () => window.clearTimeout(timeoutId);
-  }, [value]);
-
-  return debouncedValue;
-}
 
 function getErrorMessage(error: unknown) {
   return error instanceof ApiError || error instanceof Error
@@ -388,18 +362,15 @@ export function InstructorMilestonesPage() {
   const [activeMilestone, setActiveMilestone] =
     useState<CourseMilestoneDto | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const debouncedTerm = useDebouncedTermSearch(term);
 
   const allInstructorGroupsQuery = useInstructorGroups();
   const allAssignedGroups = useMemo(
     () => allInstructorGroupsQuery.data?.data ?? [],
     [allInstructorGroupsQuery.data?.data],
   );
-  const isTermSettled = term.trim() === debouncedTerm;
-  const activeTerm = isTermSettled ? debouncedTerm : "";
   const milestonesQuery = useCourseMilestones({
     courseCode: courseCode.trim(),
-    term: activeTerm,
+    term: term.trim(),
   });
   const deleteMutation = useDeleteCourseMilestone();
 
@@ -423,7 +394,7 @@ export function InstructorMilestonesPage() {
     [allAssignedGroups],
   );
 
-  const hasRequiredFilters = Boolean(activeTerm && courseCode.trim());
+  const hasActiveFilters = Boolean(term.trim() || courseCode.trim());
 
   function handleArchive(milestone: CourseMilestoneDto) {
     const confirmed = window.confirm(
@@ -464,13 +435,13 @@ export function InstructorMilestonesPage() {
       <MilestoneList
         courseCode={courseCode}
         error={milestonesQuery.error}
-        hasRequiredFilters={hasRequiredFilters}
+        hasActiveFilters={hasActiveFilters}
         isArchiving={deleteMutation.isPending}
-        isLoading={!isTermSettled || milestonesQuery.isLoading}
+        isLoading={milestonesQuery.isLoading}
         milestones={milestones}
         onArchive={handleArchive}
         onEdit={setActiveMilestone}
-        term={activeTerm}
+        term={term.trim()}
       />
 
       {isCreating && (

@@ -22,6 +22,14 @@ export const queryKeys = {
     batchErrors: (id: number) =>
       [...queryKeys.imports.batch(id), "errors"] as const,
   },
+  backups: {
+    all: ["backups"] as const,
+    lists: () => [...queryKeys.backups.all, "list"] as const,
+    list: (filters?: QueryFilters) =>
+      [...queryKeys.backups.lists(), filters ?? {}] as const,
+    detail: (id: number) => [...queryKeys.backups.all, "detail", id] as const,
+    schedule: () => [...queryKeys.backups.all, "schedule"] as const,
+  },
   groups: {
     all: ["groups"] as const,
     lists: () => [...queryKeys.groups.all, "list"] as const,
@@ -99,7 +107,7 @@ export const queryKeys = {
     mentorGroups: () => [...queryKeys.dashboard.all, "mentor", "groups"] as const,
     mentorMeetings: () =>
       [...queryKeys.dashboard.all, "mentor", "meetings"] as const,
-    instructorMilestones: (term: string, courseCode: string, groupId?: number) =>
+    instructorMilestones: (term?: string, courseCode?: string, groupId?: number) =>
       [...queryKeys.dashboard.all, "instructor", "milestones", { term, courseCode, groupId }] as const,
     studentMilestones: (groupId: number) =>
       [...queryKeys.dashboard.all, "student", "milestones", groupId] as const,

@@ -6,7 +6,6 @@ import { useCallback, useRef, useState } from "react";
 import { cn } from "@/shared/lib";
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-const GOOGLE_HOSTED_DOMAIN = process.env.NEXT_PUBLIC_GOOGLE_HOSTED_DOMAIN;
 
 type GoogleSignInButtonProps = {
   disabled?: boolean;
@@ -44,7 +43,6 @@ export function GoogleSignInButton({
           window.__fsparkGoogleCredentialHandler?.(response),
         auto_select: false,
         cancel_on_tap_outside: true,
-        hd: GOOGLE_HOSTED_DOMAIN || undefined,
         ux_mode: "popup",
         use_fedcm_for_button: false,
       });

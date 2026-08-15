@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
 
 import {
   Badge,
@@ -17,7 +17,7 @@ import type { CourseMilestoneDto } from "../../types";
 type MilestoneListProps = {
   courseCode: string;
   error: unknown;
-  hasRequiredFilters: boolean;
+  hasActiveFilters: boolean;
   isArchiving: boolean;
   isLoading: boolean;
   milestones: CourseMilestoneDto[];
@@ -57,7 +57,7 @@ function getStatusTone(status: CourseMilestoneStatus) {
 export function MilestoneList({
   courseCode,
   error,
-  hasRequiredFilters,
+  hasActiveFilters,
   isArchiving,
   isLoading,
   milestones,
@@ -69,23 +69,17 @@ export function MilestoneList({
     <Card>
       <CardHeader
         actions={
-          hasRequiredFilters && (
+          hasActiveFilters && (
             <Badge tone="brand">
-              {term.trim()} / {courseCode.trim()}
+              {term.trim() || "All terms"} / {courseCode.trim() || "All courses"}
             </Badge>
           )
         }
-        description="Milestones load from the selected term and course code."
+        description="Milestones load from all assigned scopes unless filters are selected."
         title="Timeline milestones"
       />
       <CardContent>
-        {!hasRequiredFilters ? (
-          <EmptyState
-            description="Milestones load after both filters are set."
-            icon={<CalendarClock size={22} />}
-            title="Select a term and course"
-          />
-        ) : isLoading ? (
+        {isLoading ? (
           <LoadingState title="Loading milestones" />
         ) : error ? (
           <EmptyState
@@ -96,7 +90,7 @@ export function MilestoneList({
           />
         ) : milestones.length === 0 ? (
           <EmptyState
-            description="Create the first timeline item for this term and course."
+            description="Create the first timeline item for one of your assigned term/course scopes."
             title="No milestones yet"
           />
         ) : (

@@ -14,6 +14,15 @@ export type AssignGroupInstructorVariables = {
   payload: AssignInstructorRequest;
 };
 
+export type AssignMentorRequest = {
+  mentorId: number;
+};
+
+export type AssignGroupMentorVariables = {
+  groupId: number;
+  payload: AssignMentorRequest;
+};
+
 export type InstructorGroupSummaryDto = GroupSummaryDto;
 
 export type InstructorAssignedGroupDetailDto = GroupDetailDto;

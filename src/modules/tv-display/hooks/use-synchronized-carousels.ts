@@ -12,7 +12,7 @@ type UseSynchronizedCarouselsOptions = {
   recruitmentCount: number;
 };
 
-const AUTO_ADVANCE_MS = 2_000;
+const AUTO_ADVANCE_MS = 30_000;
 
 export function useSynchronizedCarousels({
   dialogOpen,
@@ -66,7 +66,7 @@ export function useSynchronizedCarousels({
     );
   const carouselsPaused = dialogOpen || !isDocumentVisible;
   const canAdvanceTogether =
-    !carouselsPaused && canProjectsAdvance && canRecruitmentsAdvance;
+    !carouselsPaused && (canProjectsAdvance || canRecruitmentsAdvance);
 
   useEffect(() => {
     if (!canAdvanceTogether) return;

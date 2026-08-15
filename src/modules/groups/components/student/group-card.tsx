@@ -65,6 +65,14 @@ export function GroupCard({
           </dd>
         </div>
         <div className="flex justify-between gap-3">
+          <dt className="text-muted">Instructor</dt>
+          <dd className="m-0 min-w-0 break-words text-right font-medium text-foreground">
+            {group.instructorName
+              ? `${group.instructorName}${group.instructorCode ? ` (${group.instructorCode})` : ""}`
+              : "Not assigned"}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-3">
           <dt className="text-muted">GPA</dt>
           <dd className="m-0 font-medium text-foreground">
             {formatNullable(group.requiredGpa)}

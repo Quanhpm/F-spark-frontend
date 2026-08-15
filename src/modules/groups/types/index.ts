@@ -80,9 +80,11 @@ export type GroupSummaryDto = {
   targetGrade: number | null;
   status: GroupStatus;
   mentorId: number | null;
+  mentorAccountId: number | null;
   mentorCode: string | null;
   mentorName: string | null;
   instructorId: number | null;
+  instructorAccountId: number | null;
   instructorCode: string | null;
   instructorName: string | null;
   isLock: boolean;
@@ -114,7 +116,9 @@ export type GroupDetailDto = {
   targetGrade: number | null;
   status: GroupStatus;
   mentor: MentorProfileDto | null;
+  mentorAccountId: number | null;
   instructorId: number | null;
+  instructorAccountId: number | null;
   instructorCode: string | null;
   instructorName: string | null;
   isLock: boolean;

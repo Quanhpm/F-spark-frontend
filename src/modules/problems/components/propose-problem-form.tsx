@@ -132,7 +132,7 @@ function ProposalEditor({
         onSubmit={handleSubmit}
       >
         <TextInput
-          label="Topic Title *"
+          label="Topic Title"
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Enter a descriptive topic title..."
           required
@@ -142,7 +142,10 @@ function ProposalEditor({
         <div className="grid grid-cols-2 gap-4 max-[560px]:grid-cols-1">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
-              Select Domain *
+              Select Domain{" "}
+              <span aria-hidden="true" className="text-red-600">
+                *
+              </span>
             </label>
             <Select
               onChange={(event) => setDomainCode(event.target.value)}
@@ -177,7 +180,10 @@ function ProposalEditor({
 
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
-            Problem Description / Statement *
+            Problem Description / Statement{" "}
+            <span aria-hidden="true" className="text-red-600">
+              *
+            </span>
           </label>
           <textarea
             className="min-h-[100px] w-full min-w-0 rounded-xl border border-border bg-surface p-3 text-base outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary min-[761px]:text-sm"

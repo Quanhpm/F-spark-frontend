@@ -3,6 +3,7 @@ import type { ApiResponse } from "@/shared/types";
 
 import type {
   AssignInstructorRequest,
+  AssignMentorRequest,
   InstructorAssignedGroupDetailDto,
   InstructorGroupsQuery,
   InstructorGroupSummaryDto,
@@ -21,6 +22,16 @@ export function assignGroupInstructor(
 ) {
   return apiPatch<ApiResponse<InstructorAssignedGroupDetailDto>>(
     `/api/groups/${groupId}/instructor`,
+    payload,
+  );
+}
+
+export function assignGroupMentor(
+  groupId: number,
+  payload: AssignMentorRequest,
+) {
+  return apiPatch<ApiResponse<InstructorAssignedGroupDetailDto>>(
+    `/api/groups/${groupId}/mentor`,
     payload,
   );
 }

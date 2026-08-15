@@ -141,7 +141,7 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
             <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
               <div className="col-span-2 max-[600px]:col-span-1">
                 <TextInput
-                  label="Topic Title *"
+                  label="Topic Title"
                   placeholder="Thesis topic title..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -161,7 +161,10 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
             <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
               <div>
                 <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
-                  Select Domain *
+                  Select Domain{" "}
+                  <span aria-hidden="true" className="text-red-600">
+                    *
+                  </span>
                 </label>
                 <Select
                   value={domainCode}
@@ -208,7 +211,10 @@ export function AdminProblemForm({ problemId, initialValues, onClose, onSuccess 
 
             <div>
               <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
-                Problem Description / Statement *
+                Problem Description / Statement{" "}
+                <span aria-hidden="true" className="text-red-600">
+                  *
+                </span>
               </label>
               <textarea
                 value={statement}

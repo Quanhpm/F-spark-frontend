@@ -23,6 +23,11 @@ export function Select({
       {label && (
         <span className="text-[13px] font-medium text-foreground">
           {label}
+          {props.required && (
+            <span aria-hidden="true" className="ml-1 text-red-600">
+              *
+            </span>
+          )}
         </span>
       )}
       <span

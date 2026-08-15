@@ -45,6 +45,22 @@ export function DomainManager() {
   const createDomainMutation = useCreateProblemDomain();
   const updateDomainMutation = useUpdateProblemDomain(editingDomain?.id || 0);
 
+  function resetDomainForm() {
+    setCode("");
+    setName("");
+    setDescription("");
+    setMacroDomain("");
+    setSubDomain("");
+    setTypicalExamples("");
+    setPrimaryDiscipline("");
+    setSupportingDisciplines("");
+    setBestSources("");
+    setStudentCapabilities("");
+    setPotentialOutputs("");
+    setNotes("");
+    setStatus("ACTIVE");
+  }
+
   // Set values when editing
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -63,26 +79,21 @@ export function DomainManager() {
       setNotes(editingDomain.notes || "");
       setStatus(editingDomain.status || "ACTIVE");
     } else {
-      setCode("");
-      setName("");
-      setDescription("");
-      setMacroDomain("");
-      setSubDomain("");
-      setTypicalExamples("");
-      setPrimaryDiscipline("");
-      setSupportingDisciplines("");
-      setBestSources("");
-      setStudentCapabilities("");
-      setPotentialOutputs("");
-      setNotes("");
-      setStatus("ACTIVE");
+      resetDomainForm();
     }
   }, [editingDomain]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleOpenAdd = () => {
+    resetDomainForm();
     setEditingDomain(null);
     setDomainModalOpen(true);
+  };
+
+  const closeDomainModal = () => {
+    setDomainModalOpen(false);
+    setEditingDomain(null);
+    resetDomainForm();
   };
 
   const handleOpenEdit = (domain: ProblemDomainDto) => {
@@ -116,14 +127,13 @@ export function DomainManager() {
     if (editingDomain) {
       updateDomainMutation.mutate(payload, {
         onSuccess: () => {
-          setDomainModalOpen(false);
-          setEditingDomain(null);
+          closeDomainModal();
         },
       });
     } else {
       createDomainMutation.mutate(payload, {
         onSuccess: () => {
-          setDomainModalOpen(false);
+          closeDomainModal();
         },
       });
     }
@@ -277,7 +287,7 @@ export function DomainManager() {
             <>
               <Button
                 disabled={isPending}
-                onClick={() => setDomainModalOpen(false)}
+                onClick={closeDomainModal}
                 variant="secondary"
               >
                 Cancel
@@ -288,7 +298,7 @@ export function DomainManager() {
             </>
           }
           mobileMode="fullscreen"
-          onClose={() => setDomainModalOpen(false)}
+          onClose={closeDomainModal}
           title={editingDomain ? "Edit Problem Domain" : "Create Problem Domain"}
         >
             <form
@@ -299,7 +309,7 @@ export function DomainManager() {
               <div className="grid grid-cols-3 gap-4 max-[600px]:grid-cols-1">
                 <div>
                   <TextInput
-                    label="Domain Code *"
+                    label="Domain Code"
                     placeholder="e.g. AI"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
@@ -309,7 +319,7 @@ export function DomainManager() {
                 </div>
                 <div className="col-span-2 max-[600px]:col-span-1">
                   <TextInput
-                    label="Domain Name *"
+                    label="Domain Name"
                     placeholder="e.g. Artificial Intelligence"
                     value={name}
                     onChange={(e) => setName(e.target.value)}

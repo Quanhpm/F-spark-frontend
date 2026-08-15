@@ -59,3 +59,7 @@ export function downloadStudentImportTemplate() {
 export function downloadMentorImportTemplate() {
   return downloadImportTemplate("mentors");
 }
+
+export function downloadProblemBankImportTemplate() {
+  return downloadImportTemplate("problem-bank");
+}

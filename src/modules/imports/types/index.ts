@@ -50,4 +50,4 @@ export type ImportBatch = {
 
 export type ImportUploadTarget = "students" | "mentors" | "problem-bank";
 
-export type ImportTemplateTarget = "students" | "mentors";
+export type ImportTemplateTarget = "students" | "mentors" | "problem-bank";

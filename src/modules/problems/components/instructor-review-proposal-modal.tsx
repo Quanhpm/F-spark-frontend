@@ -113,7 +113,12 @@ export function InstructorReviewProposalModal({
 
             <div>
               <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
-                Review Comment / Feedback {status === "REJECTED" && "*"}
+                Review Comment / Feedback{" "}
+                {status === "REJECTED" && (
+                  <span aria-hidden="true" className="text-red-600">
+                    *
+                  </span>
+                )}
               </label>
               <textarea
                 value={comment}

@@ -4,6 +4,7 @@ import { queryKeys } from "@/shared/lib";
 
 import {
   downloadMentorImportTemplate,
+  downloadProblemBankImportTemplate,
   downloadStudentImportTemplate,
   importMentors,
   importProblemBank,
@@ -47,5 +48,11 @@ export function useDownloadStudentImportTemplate() {
 export function useDownloadMentorImportTemplate() {
   return useMutation({
     mutationFn: downloadMentorImportTemplate,
+  });
+}
+
+export function useDownloadProblemBankImportTemplate() {
+  return useMutation({
+    mutationFn: downloadProblemBankImportTemplate,
   });
 }
