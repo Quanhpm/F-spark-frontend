@@ -116,13 +116,8 @@ function MilestoneForm({
   const updateMutation = useUpdateCourseMilestone();
   const [error, setError] = useState("");
   const termOptions = useMemo(
-    () => {
-      const assignedTerms = new Set(
-        scopePairs.map((item) => item.term.trim().toLowerCase()),
-      );
-      return availableTerms.filter((item) => assignedTerms.has(item.toLowerCase()));
-    },
-    [availableTerms, scopePairs],
+    () => availableTerms,
+    [availableTerms],
   );
   const [term, setTerm] = useState(() => {
     const requestedTerm = milestone?.term ?? filters.term;
@@ -292,12 +287,19 @@ function MilestoneForm({
                 ))}
               </Select>
               <Select
+                disabled={!term || courseOptions.length === 0}
                 label="Course code"
                 onChange={(event) => setCourseCode(event.target.value)}
                 required
                 value={courseCode}
               >
-                <option value="">Select course</option>
+                <option value="">
+                  {!term
+                    ? "Select term first"
+                    : courseOptions.length === 0
+                      ? "No assigned courses for this term"
+                      : "Select course"}
+                </option>
                 {courseOptions.map((item) => (
                   <option key={item} value={item}>
                     {item}
@@ -411,14 +413,6 @@ export function InstructorMilestonesPage() {
     () => (availableTermsQuery.data?.data ?? []).map((item) => item.code),
     [availableTermsQuery.data?.data],
   );
-  const milestoneScopePairs = useMemo(() => {
-    const openTerms = new Set(
-      availableTermCodes.map((termCode) => termCode.toLowerCase()),
-    );
-    return allAssignedGroups.filter((group) =>
-      openTerms.has(group.term.trim().toLowerCase()),
-    );
-  }, [allAssignedGroups, availableTermCodes]);
   const milestonesQuery = useCourseMilestones({
     courseCode: courseCode.trim(),
     term: term.trim(),
@@ -464,7 +458,9 @@ export function InstructorMilestonesPage() {
           <Button
             className="max-[480px]:w-full"
             disabled={
-              availableTermsQuery.isLoading || milestoneScopePairs.length === 0
+              availableTermsQuery.isLoading ||
+              availableTermCodes.length === 0 ||
+              allAssignedGroups.length === 0
             }
             icon={<Plus size={16} />}
             onClick={() => setIsCreating(true)}
@@ -504,10 +500,10 @@ export function InstructorMilestonesPage() {
         </p>
       )}
       {allAssignedGroups.length > 0 &&
-        milestoneScopePairs.length === 0 &&
+        availableTermCodes.length === 0 &&
         !availableTermsQuery.isLoading && (
           <p className="m-0 rounded-xl border border-border-warm bg-surface-warm px-4 py-3 text-sm text-muted">
-            No assigned groups belong to an OPEN term. Ask an admin to open the term before creating a milestone.
+            No OPEN terms are available. Ask an admin to open a term before creating a milestone.
           </p>
         )}
 
@@ -516,7 +512,7 @@ export function InstructorMilestonesPage() {
           availableTerms={availableTermCodes}
           filters={{ courseCode, term }}
           onClose={() => setIsCreating(false)}
-          scopePairs={milestoneScopePairs}
+          scopePairs={allAssignedGroups}
         />
       )}
       {activeMilestone && (
@@ -525,7 +521,7 @@ export function InstructorMilestonesPage() {
           filters={{ courseCode, term }}
           milestone={activeMilestone}
           onClose={() => setActiveMilestone(null)}
-          scopePairs={milestoneScopePairs}
+          scopePairs={allAssignedGroups}
         />
       )}
     </div>
