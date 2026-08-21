@@ -102,6 +102,7 @@ const DEFAULT_START_HOUR = 0;
 const DEFAULT_END_HOUR = 24;
 const HOUR_HEIGHT = 40;
 const MINUTE_IN_MS = 60_000;
+const MIN_SLOT_DURATION_MS = 60 * MINUTE_IN_MS;
 const MAX_SLOT_DURATION_MS = 12 * 60 * MINUTE_IN_MS;
 const BUSINESS_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
@@ -461,6 +462,10 @@ function validateSlotForm(form: SlotFormState) {
 
   if (endAt <= startAt) {
     return "End time must be after start time.";
+  }
+
+  if (endAt - startAt < MIN_SLOT_DURATION_MS) {
+    return "Availability slots must be at least 1 hour long.";
   }
 
   if (endAt - startAt > MAX_SLOT_DURATION_MS) {
