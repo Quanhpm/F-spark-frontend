@@ -243,7 +243,7 @@ function RecruitmentNeedsEditor({
                     key={role.code}
                     value={role.code}
                   >
-                    {role.displayNameVi || role.displayNameEn}
+                    {role.displayNameEn || role.displayNameVi}
                   </option>
                 ))}
               </Select>

@@ -11,10 +11,10 @@ import {
   LoadingState,
   PageHeader,
   Select,
-  TextInput,
   Button,
 } from "@/shared/components";
 import { useInstructorMilestoneDashboard } from "../hooks";
+import { useInstructorGroups } from "@/modules/groups";
 import {
   ArrowRight,
   Award,
@@ -33,8 +33,18 @@ function formatDeadline(value: string | null) {
 }
 
 export function InstructorDashboardPage() {
-  const [term, setTerm] = useState("SU24");
-  const [courseCode, setCourseCode] = useState("EXE101");
+  const [term, setTerm] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const instructorGroupsQuery = useInstructorGroups();
+  const assignedGroups = instructorGroupsQuery.data?.data ?? [];
+  const terms = Array.from(new Set(assignedGroups.map((group) => group.term))).sort();
+  const courses = Array.from(
+    new Set(
+      assignedGroups
+        .filter((group) => !term || group.term === term)
+        .map((group) => group.courseCode),
+    ),
+  ).sort();
 
   const { data: dashboardResponse, isLoading } = useInstructorMilestoneDashboard({
     term,
@@ -135,19 +145,28 @@ export function InstructorDashboardPage() {
         />
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
-            <TextInput
+            <Select
               label="Academic Term"
               value={term}
-              onChange={(e) => setTerm(e.target.value.toUpperCase())}
-            />
+              onChange={(e) => {
+                setTerm(e.target.value);
+                setCourseCode("");
+              }}
+            >
+              <option value="">All terms</option>
+              {terms.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </Select>
             <Select
               label="Course Code"
               value={courseCode}
               onChange={(event) => setCourseCode(event.target.value)}
             >
-              <option value="EXE101">EXE101</option>
-              <option value="EXE201">EXE201</option>
-              <option value="EXE401">EXE401</option>
+              <option value="">All courses</option>
+              {courses.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
             </Select>
           </div>
         </CardContent>

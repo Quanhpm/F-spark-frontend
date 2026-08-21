@@ -473,6 +473,7 @@ function UserFormModal({
                 label="Email"
                 onChange={(event) => updateField("email", event.target.value)}
                 placeholder="name@example.com"
+                required
                 type="email"
                 value={form.email}
               />
@@ -483,6 +484,7 @@ function UserFormModal({
                 onChange={(event) =>
                   updateField("role", event.target.value as UserRole)
                 }
+                required
                 value={form.role}
               >
                 <option value="STUDENT">Student</option>
@@ -498,6 +500,7 @@ function UserFormModal({
                     updateField("initialPassword", event.target.value)
                   }
                   placeholder="At least 6 characters"
+                  required
                   type="password"
                   value={form.initialPassword}
                 />
@@ -539,6 +542,7 @@ function UserFormModal({
                       updateField("studentCode", event.target.value)
                     }
                     placeholder="SE12345"
+                    required
                     value={form.studentCode}
                   />
                   <TextInput
@@ -547,6 +551,7 @@ function UserFormModal({
                       updateField("studentFullName", event.target.value)
                     }
                     placeholder="Nguyen Van A"
+                    required
                     value={form.studentFullName}
                   />
                   <TextInput
@@ -632,6 +637,7 @@ function UserFormModal({
                       updateField("mentorCode", event.target.value)
                     }
                     placeholder="MT001"
+                    required
                     value={form.mentorCode}
                   />
                   <TextInput
@@ -640,6 +646,7 @@ function UserFormModal({
                       updateField("mentorFullName", event.target.value)
                     }
                     placeholder="Tran Van B"
+                    required
                     value={form.mentorFullName}
                   />
                   <TextInput
@@ -707,6 +714,7 @@ function UserFormModal({
                       updateField("instructorCode", event.target.value)
                     }
                     placeholder="INS001"
+                    required
                     value={form.instructorCode}
                   />
                   <TextInput
@@ -716,6 +724,7 @@ function UserFormModal({
                       updateField("instructorFullName", event.target.value)
                     }
                     placeholder="Le Thi C"
+                    required
                     value={form.instructorFullName}
                   />
                   <TextInput

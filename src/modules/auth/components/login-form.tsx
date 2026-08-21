@@ -30,6 +30,10 @@ function getDefaultWorkspacePath(role: AuthUser["role"]) {
   return "/student/dashboard";
 }
 
+function getPostLoginPath(user: AuthUser) {
+  return user.mustChangePassword ? "/change-password" : getDefaultWorkspacePath(user.role);
+}
+
 const inputShellClassName =
   "flex h-[52px] min-w-0 items-center gap-3 rounded-xl border border-border bg-surface px-4 text-muted transition-[border-color,box-shadow] duration-[160ms] ease-in-out focus-within:border-brand-secondary focus-within:shadow-[0_0_0_4px_rgba(237,161,47,0.12)] max-[600px]:h-[50px] max-[380px]:gap-2.5 max-[380px]:px-3.5 [&>svg]:shrink-0";
 
@@ -72,7 +76,7 @@ export function LoginForm() {
         password,
       });
 
-      router.replace(getDefaultWorkspacePath(session.user.role));
+      router.replace(getPostLoginPath(session.user));
     } catch (error) {
       setFormMessage(
         error instanceof ApiError
@@ -87,7 +91,7 @@ export function LoginForm() {
 
     try {
       const session = await googleLoginMutation.mutateAsync(idToken);
-      router.replace(getDefaultWorkspacePath(session.user.role));
+      router.replace(getPostLoginPath(session.user));
     } catch (error) {
       setFormMessage(
         error instanceof ApiError

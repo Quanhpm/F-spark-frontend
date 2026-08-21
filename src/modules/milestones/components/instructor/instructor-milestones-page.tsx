@@ -40,6 +40,7 @@ type MilestoneFormProps = {
   };
   milestone?: CourseMilestoneDto;
   onClose: () => void;
+  scopePairs: Array<{ courseCode: string; term: string }>;
 };
 
 const milestoneStatuses: CourseMilestoneStatus[] = [
@@ -100,23 +101,27 @@ function buildCourseOptions(courses: string[]) {
   return Array.from(values);
 }
 
-function MilestoneForm({ filters, milestone, onClose }: MilestoneFormProps) {
+function MilestoneForm({ filters, milestone, onClose, scopePairs }: MilestoneFormProps) {
   const formId = useId();
   const isEditing = Boolean(milestone);
   const createMutation = useCreateCourseMilestone();
   const updateMutation = useUpdateCourseMilestone();
   const [error, setError] = useState("");
   const [term, setTerm] = useState(milestone?.term ?? filters.term);
-  const courseOptions = useMemo(
-    () =>
-      buildCourseOptions([
-        milestone?.courseCode ?? "",
-        filters.courseCode,
-      ]),
-    [filters.courseCode, milestone?.courseCode],
+  const termOptions = useMemo(
+    () => Array.from(new Set(scopePairs.map((item) => item.term))).sort(),
+    [scopePairs],
   );
   const [courseCode, setCourseCode] = useState(
     milestone?.courseCode ?? filters.courseCode,
+  );
+  const courseOptions = useMemo(
+    () => Array.from(new Set(
+      scopePairs
+        .filter((item) => item.term === term)
+        .map((item) => item.courseCode),
+    )).sort(),
+    [scopePairs, term],
   );
   const [title, setTitle] = useState(milestone?.title ?? "");
   const [description, setDescription] = useState(
@@ -246,13 +251,20 @@ function MilestoneForm({ filters, milestone, onClose }: MilestoneFormProps) {
         <form className="grid min-w-0 gap-5" id={formId} onSubmit={handleSubmit}>
           {!isEditing && (
             <div className="grid grid-cols-2 gap-4 max-[640px]:grid-cols-1">
-              <TextInput
+              <Select
                 label="Term"
-                onChange={(event) => setTerm(event.target.value)}
-                placeholder="Summer2026"
+                onChange={(event) => {
+                  setTerm(event.target.value);
+                  setCourseCode("");
+                }}
                 required
                 value={term}
-              />
+              >
+                <option value="">Select term</option>
+                {termOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </Select>
               <Select
                 label="Course code"
                 onChange={(event) => setCourseCode(event.target.value)}
@@ -412,6 +424,7 @@ export function InstructorMilestonesPage() {
         actions={
           <Button
             className="max-[480px]:w-full"
+            disabled={allAssignedGroups.length === 0}
             icon={<Plus size={16} />}
             onClick={() => setIsCreating(true)}
           >
@@ -444,10 +457,17 @@ export function InstructorMilestonesPage() {
         term={term.trim()}
       />
 
+      {allAssignedGroups.length === 0 && (
+        <p className="m-0 rounded-xl border border-border-warm bg-surface-warm px-4 py-3 text-sm text-muted">
+          Assign at least one group to this instructor before creating a milestone.
+        </p>
+      )}
+
       {isCreating && (
         <MilestoneForm
           filters={{ courseCode, term }}
           onClose={() => setIsCreating(false)}
+          scopePairs={allAssignedGroups}
         />
       )}
       {activeMilestone && (
@@ -455,6 +475,7 @@ export function InstructorMilestonesPage() {
           filters={{ courseCode, term }}
           milestone={activeMilestone}
           onClose={() => setActiveMilestone(null)}
+          scopePairs={allAssignedGroups}
         />
       )}
     </div>

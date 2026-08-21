@@ -132,6 +132,13 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
   }, [hasValidSession, isHydrated]);
 
   useEffect(() => {
+    if (!isHydrated || !hasValidSession || !session?.user.mustChangePassword) {
+      return;
+    }
+    window.location.replace("/change-password");
+  }, [hasValidSession, isHydrated, session?.user.mustChangePassword]);
+
+  useEffect(() => {
     if (!isNavigationOpen) return;
 
     const drawer = drawerRef.current;

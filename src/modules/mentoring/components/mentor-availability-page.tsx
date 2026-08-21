@@ -102,6 +102,8 @@ const DEFAULT_START_HOUR = 0;
 const DEFAULT_END_HOUR = 24;
 const HOUR_HEIGHT = 40;
 const MINUTE_IN_MS = 60_000;
+const MAX_SLOT_DURATION_MS = 12 * 60 * MINUTE_IN_MS;
+const BUSINESS_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
 const pageClassName = "grid min-w-0 gap-6";
 const errorPanelClassName =
@@ -217,6 +219,15 @@ function getDateKey(value: Date | string) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function getBusinessDateKey(value: Date | string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: BUSINESS_TIME_ZONE,
+    year: "numeric",
+  }).format(value instanceof Date ? value : new Date(value));
 }
 
 function isSameDay(left: Date, right: Date) {
@@ -446,6 +457,14 @@ function validateSlotForm(form: SlotFormState) {
 
   if (endAt <= startAt) {
     return "End time must be after start time.";
+  }
+
+  if (endAt - startAt > MAX_SLOT_DURATION_MS) {
+    return "Availability slots cannot be longer than 12 hours.";
+  }
+
+  if (getBusinessDateKey(new Date(startAt)) !== getBusinessDateKey(new Date(endAt))) {
+    return "Availability slots must start and end on the same day (Asia/Ho_Chi_Minh).";
   }
 
   if (!MEET_LINK_REGEX.test(form.meetLink.trim())) {
@@ -736,7 +755,8 @@ function getCalendarEventPositionStyle(
       MINUTE_IN_MS,
   );
   const top = ((eventStart - startHour * 60) / 60) * HOUR_HEIGHT;
-  const height = Math.max(38, (duration / 60) * HOUR_HEIGHT - 4);
+  const durationWithinDay = Math.min(duration, 24 * 60 - eventStart);
+  const height = Math.max(38, (durationWithinDay / 60) * HOUR_HEIGHT - 4);
   const laneWidth = 100 / laneCount;
 
   return {

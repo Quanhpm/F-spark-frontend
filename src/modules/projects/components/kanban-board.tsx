@@ -15,7 +15,7 @@ import {
   TextInput,
   Select,
 } from "@/shared/components";
-import { cn, getMinimumDateTimeLocal } from "@/shared/lib";
+import { ApiError, cn, getMinimumDateTimeLocal } from "@/shared/lib";
 import type { TaskPriority, TaskStatus, EntityId } from "@/shared/types";
 import { useCreateTaskBoard, useGroupBoard, useGroupDetails, useTaskBoards } from "../hooks";
 import { useCreateTask, useReorderTask } from "../hooks/use-task-mutations";
@@ -335,6 +335,13 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
         boardId: activeTaskBoardId,
       },
       {
+        onError: (error) => {
+          setTaskFormError(
+            error instanceof ApiError
+              ? error.message
+              : "Unable to create the task. Please try again.",
+          );
+        },
         onSuccess: () => {
           setAddTaskStatus(null);
           setNewTitle("");
@@ -744,7 +751,10 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                 label="Task Title"
                 placeholder="What needs to be done?"
                 value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
+                onChange={(e) => {
+                  setTaskFormError("");
+                  setNewTitle(e.target.value);
+                }}
                 required
               />
 
@@ -754,7 +764,10 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                 </label>
                 <textarea
                   value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
+                  onChange={(e) => {
+                    setTaskFormError("");
+                    setNewDesc(e.target.value);
+                  }}
                   placeholder="Task details, instructions, etc."
                   className="min-h-[80px] w-full min-w-0 rounded-xl border border-border bg-surface p-3 text-base outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary min-[761px]:text-sm"
                 />

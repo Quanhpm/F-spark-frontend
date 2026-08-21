@@ -129,11 +129,17 @@ export function DomainManager() {
         onSuccess: () => {
           closeDomainModal();
         },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Unable to update domain.");
+        },
       });
     } else {
       createDomainMutation.mutate(payload, {
         onSuccess: () => {
           closeDomainModal();
+        },
+        onError: (error) => {
+          toast.error(error instanceof Error ? error.message : "Unable to create domain.");
         },
       });
     }
@@ -312,7 +318,7 @@ export function DomainManager() {
                     label="Domain Code"
                     placeholder="e.g. AI"
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
                     required
                     disabled={!!editingDomain} // Code typically read-only on edit
                   />

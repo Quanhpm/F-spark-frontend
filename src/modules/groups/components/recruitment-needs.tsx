@@ -49,7 +49,7 @@ export function RecruitmentNeeds({ needs }: RecruitmentNeedsProps) {
           {needs.map((need) => {
             const role = rolesByCode.get(need.role);
             const displayName =
-              role?.displayNameVi || need.displayNameVi || role?.displayNameEn;
+              role?.displayNameEn || need.displayNameEn || role?.displayNameVi;
 
             return (
               <Badge
