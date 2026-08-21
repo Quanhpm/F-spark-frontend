@@ -788,6 +788,10 @@ function TimelineEventCard({
   startHour: number;
 }) {
   const { event } = positionedEvent;
+  const durationMinutes =
+    (new Date(event.endAt).getTime() - new Date(event.startAt).getTime()) /
+    MINUTE_IN_MS;
+  const isCompact = durationMinutes <= 75;
   const eventTitle =
     event.kind === "MEETING"
       ? `${event.meeting.groupNo} · ${event.meeting.groupName}`
@@ -797,7 +801,10 @@ function TimelineEventCard({
     <button
       aria-label={`${event.status}, ${eventTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
       className={cn(
-        "absolute grid min-h-9 min-w-0 cursor-pointer content-start gap-0.5 overflow-hidden rounded-lg border px-2 py-1.5 text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] hover:z-30 hover:shadow-card-interactive focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
+        "absolute min-h-9 min-w-0 cursor-pointer overflow-hidden rounded-lg border text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] hover:z-30 hover:shadow-card-interactive focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
+        isCompact
+          ? "block px-2 py-1.5"
+          : "grid content-start gap-0.5 px-2 py-1.5",
         getCalendarEventCardClassName(event.status),
       )}
       onClick={() => onSelect(event)}
@@ -808,12 +815,16 @@ function TimelineEventCard({
       <span className="truncate text-[11px] leading-tight font-bold">
         {formatTime(event.startAt)} – {formatTime(event.endAt)}
       </span>
-      <span className="truncate text-[11px] leading-tight font-medium">
-        {eventTitle}
-      </span>
-      <span className="truncate text-[10px] leading-tight opacity-75">
-        {event.status}
-      </span>
+      {!isCompact && (
+        <>
+          <span className="truncate text-[11px] leading-tight font-medium">
+            {eventTitle}
+          </span>
+          <span className="truncate text-[10px] leading-tight opacity-75">
+            {event.status}
+          </span>
+        </>
+      )}
     </button>
   );
 }
