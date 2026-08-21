@@ -237,10 +237,7 @@ export function GroupDetailDialog({
                 >
                   <div className="min-w-0">
                     <p className="m-0 break-words text-sm font-bold text-foreground">
-                      {need.displayNameVi}
-                    </p>
-                    <p className="mt-1 mb-0 text-xs text-muted">
-                      {need.displayNameEn}
+                      {need.displayNameEn || need.displayNameVi}
                     </p>
                   </div>
                   <Badge tone="warning">x{need.quantity}</Badge>

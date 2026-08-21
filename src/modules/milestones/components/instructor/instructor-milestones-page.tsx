@@ -8,6 +8,7 @@ import {
 } from "react";
 import { Plus, Save } from "lucide-react";
 
+import { useAvailableAcademicTerms } from "@/modules/feedback";
 import { useInstructorGroups } from "@/modules/groups";
 import {
   Button,
@@ -38,6 +39,7 @@ type MilestoneFormProps = {
     courseCode: string;
     term: string;
   };
+  availableTerms: string[];
   milestone?: CourseMilestoneDto;
   onClose: () => void;
   scopePairs: Array<{ courseCode: string; term: string }>;
@@ -101,24 +103,48 @@ function buildCourseOptions(courses: string[]) {
   return Array.from(values);
 }
 
-function MilestoneForm({ filters, milestone, onClose, scopePairs }: MilestoneFormProps) {
+function MilestoneForm({
+  availableTerms,
+  filters,
+  milestone,
+  onClose,
+  scopePairs,
+}: MilestoneFormProps) {
   const formId = useId();
   const isEditing = Boolean(milestone);
   const createMutation = useCreateCourseMilestone();
   const updateMutation = useUpdateCourseMilestone();
   const [error, setError] = useState("");
-  const [term, setTerm] = useState(milestone?.term ?? filters.term);
   const termOptions = useMemo(
-    () => Array.from(new Set(scopePairs.map((item) => item.term))).sort(),
-    [scopePairs],
+    () => {
+      const assignedTerms = new Set(
+        scopePairs.map((item) => item.term.trim().toLowerCase()),
+      );
+      return availableTerms.filter((item) => assignedTerms.has(item.toLowerCase()));
+    },
+    [availableTerms, scopePairs],
   );
-  const [courseCode, setCourseCode] = useState(
-    milestone?.courseCode ?? filters.courseCode,
-  );
+  const [term, setTerm] = useState(() => {
+    const requestedTerm = milestone?.term ?? filters.term;
+    return termOptions.some(
+      (item) => item.toLowerCase() === requestedTerm.trim().toLowerCase(),
+    )
+      ? requestedTerm
+      : "";
+  });
+  const [courseCode, setCourseCode] = useState(() => {
+    const requestedTerm = milestone?.term ?? filters.term;
+    const requestedCourse = milestone?.courseCode ?? filters.courseCode;
+    return termOptions.some(
+      (item) => item.toLowerCase() === requestedTerm.trim().toLowerCase(),
+    )
+      ? requestedCourse
+      : "";
+  });
   const courseOptions = useMemo(
     () => Array.from(new Set(
       scopePairs
-        .filter((item) => item.term === term)
+        .filter((item) => item.term.toLowerCase() === term.toLowerCase())
         .map((item) => item.courseCode),
     )).sort(),
     [scopePairs, term],
@@ -376,10 +402,23 @@ export function InstructorMilestonesPage() {
   const [isCreating, setIsCreating] = useState(false);
 
   const allInstructorGroupsQuery = useInstructorGroups();
+  const availableTermsQuery = useAvailableAcademicTerms();
   const allAssignedGroups = useMemo(
     () => allInstructorGroupsQuery.data?.data ?? [],
     [allInstructorGroupsQuery.data?.data],
   );
+  const availableTermCodes = useMemo(
+    () => (availableTermsQuery.data?.data ?? []).map((item) => item.code),
+    [availableTermsQuery.data?.data],
+  );
+  const milestoneScopePairs = useMemo(() => {
+    const openTerms = new Set(
+      availableTermCodes.map((termCode) => termCode.toLowerCase()),
+    );
+    return allAssignedGroups.filter((group) =>
+      openTerms.has(group.term.trim().toLowerCase()),
+    );
+  }, [allAssignedGroups, availableTermCodes]);
   const milestonesQuery = useCourseMilestones({
     courseCode: courseCode.trim(),
     term: term.trim(),
@@ -424,7 +463,9 @@ export function InstructorMilestonesPage() {
         actions={
           <Button
             className="max-[480px]:w-full"
-            disabled={allAssignedGroups.length === 0}
+            disabled={
+              availableTermsQuery.isLoading || milestoneScopePairs.length === 0
+            }
             icon={<Plus size={16} />}
             onClick={() => setIsCreating(true)}
           >
@@ -462,20 +503,29 @@ export function InstructorMilestonesPage() {
           Assign at least one group to this instructor before creating a milestone.
         </p>
       )}
+      {allAssignedGroups.length > 0 &&
+        milestoneScopePairs.length === 0 &&
+        !availableTermsQuery.isLoading && (
+          <p className="m-0 rounded-xl border border-border-warm bg-surface-warm px-4 py-3 text-sm text-muted">
+            No assigned groups belong to an OPEN term. Ask an admin to open the term before creating a milestone.
+          </p>
+        )}
 
       {isCreating && (
         <MilestoneForm
+          availableTerms={availableTermCodes}
           filters={{ courseCode, term }}
           onClose={() => setIsCreating(false)}
-          scopePairs={allAssignedGroups}
+          scopePairs={milestoneScopePairs}
         />
       )}
       {activeMilestone && (
         <MilestoneForm
+          availableTerms={availableTermCodes}
           filters={{ courseCode, term }}
           milestone={activeMilestone}
           onClose={() => setActiveMilestone(null)}
-          scopePairs={allAssignedGroups}
+          scopePairs={milestoneScopePairs}
         />
       )}
     </div>

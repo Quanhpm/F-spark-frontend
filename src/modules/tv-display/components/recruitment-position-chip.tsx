@@ -21,7 +21,7 @@ export function RecruitmentPositionChip({
         className="truncate text-sm font-bold"
         style={{ color: COLORS.brandPrimary }}
       >
-        {position.displayNameVi}
+        {position.displayNameEn || position.displayNameVi}
       </span>
       <strong
         className="shrink-0 rounded-full px-2.5 py-1 text-xs font-bold"
