@@ -32,6 +32,8 @@ type MeetingBookingSectionProps = {
   group: GroupDetailDto;
 };
 
+const MIN_BOOKABLE_SLOT_DURATION_MS = 60 * 60 * 1000;
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
@@ -55,6 +57,16 @@ function getErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
     : "Something went wrong. Please try again.";
+}
+
+function isBookableSlot(slot: MentorAvailabilitySlotDto) {
+  const duration =
+    new Date(slot.endAt).getTime() - new Date(slot.startAt).getTime();
+  return (
+    slot.status === "AVAILABLE" &&
+    Number.isFinite(duration) &&
+    duration >= MIN_BOOKABLE_SLOT_DURATION_MS
+  );
 }
 
 function groupSlotsByDate(slots: MentorAvailabilitySlotDto[]) {
@@ -211,11 +223,17 @@ export function MeetingBookingSection({
     useState<MentorAvailabilitySlotDto | null>(null);
 
   const slots = useMemo(
-    () => availabilityQuery.data?.data ?? [],
+    () =>
+      (availabilityQuery.data?.data ?? []).filter(
+        (slot) => slot.status === "AVAILABLE",
+      ),
     [availabilityQuery.data?.data],
   );
   const meetings = useMemo(
-    () => meetingsQuery.data?.data ?? [],
+    () =>
+      (meetingsQuery.data?.data ?? []).filter(
+        (meeting) => meeting.status !== "CANCELED",
+      ),
     [meetingsQuery.data?.data],
   );
   const groupedSlots = useMemo(() => groupSlotsByDate(slots), [slots]);
@@ -309,7 +327,7 @@ export function MeetingBookingSection({
                               </div>
                               <Badge tone="success">{slot.status}</Badge>
                             </div>
-                            {canBook && slot.status === "AVAILABLE" && (
+                            {canBook && isBookableSlot(slot) && (
                               <Button
                                 className="max-[480px]:min-h-11 max-[480px]:w-full"
                                 onClick={() => setSlotToBook(slot)}
@@ -317,6 +335,11 @@ export function MeetingBookingSection({
                               >
                                 Book slot
                               </Button>
+                            )}
+                            {canBook && !isBookableSlot(slot) && (
+                              <p className="m-0 text-xs font-medium text-muted">
+                                A minimum 1-hour slot is required to book.
+                              </p>
                             )}
                           </article>
                         ))}

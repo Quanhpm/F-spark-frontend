@@ -331,11 +331,15 @@ function createCalendarEvents(
   slots: MentorAvailabilitySlotDto[],
   meetings: MentorMeetingDto[],
 ) {
-  const meetingsBySlotId = new Map(
-    meetings.map((meeting) => [meeting.slotId, meeting]),
+  const visibleSlots = slots.filter((slot) => slot.status !== "CANCELED");
+  const visibleMeetings = meetings.filter(
+    (meeting) => meeting.status !== "CANCELED",
   );
-  const slotIds = new Set(slots.map((slot) => slot.id));
-  const events: AvailabilityCalendarEvent[] = slots.map((slot) => {
+  const meetingsBySlotId = new Map(
+    visibleMeetings.map((meeting) => [meeting.slotId, meeting]),
+  );
+  const slotIds = new Set(visibleSlots.map((slot) => slot.id));
+  const events: AvailabilityCalendarEvent[] = visibleSlots.map((slot) => {
     const meeting = meetingsBySlotId.get(slot.id);
 
     if (meeting) {
@@ -359,7 +363,7 @@ function createCalendarEvents(
     };
   });
 
-  meetings.forEach((meeting) => {
+  visibleMeetings.forEach((meeting) => {
     if (slotIds.has(meeting.slotId)) return;
 
     events.push({
@@ -757,13 +761,15 @@ function getCalendarEventPositionStyle(
   const top = ((eventStart - startHour * 60) / 60) * HOUR_HEIGHT;
   const durationWithinDay = Math.min(duration, 24 * 60 - eventStart);
   const height = Math.max(38, (durationWithinDay / 60) * HOUR_HEIGHT - 4);
-  const laneWidth = 100 / laneCount;
+  const overlapOffset = laneCount > 1 ? lane * 10 : 0;
+  const horizontalInset = 8 + (laneCount > 1 ? (laneCount - 1) * 10 : 0);
 
   return {
     height,
-    left: `calc(${lane * laneWidth}% + 4px)`,
+    left: `${4 + overlapOffset}px`,
     top: top + 2,
-    width: `calc(${laneWidth}% - 8px)`,
+    width: `calc(100% - ${horizontalInset}px)`,
+    zIndex: 10 + lane,
   };
 }
 
@@ -786,7 +792,7 @@ function TimelineEventCard({
     <button
       aria-label={`${event.status}, ${eventTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
       className={cn(
-        "absolute z-10 grid min-h-9 min-w-0 cursor-pointer content-start gap-0.5 overflow-hidden rounded-lg border px-2 py-1.5 text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] focus-visible:z-20 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
+        "absolute grid min-h-9 min-w-0 cursor-pointer content-start gap-0.5 overflow-hidden rounded-lg border px-2 py-1.5 text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] hover:z-30 hover:shadow-card-interactive focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
         getCalendarEventCardClassName(event.status),
       )}
       onClick={() => onSelect(event)}
@@ -1558,7 +1564,6 @@ export function MentorAvailabilityPage() {
               <option value="AVAILABLE">Available</option>
               <option value="SCHEDULED">Scheduled</option>
               <option value="COMPLETED">Completed</option>
-              <option value="CANCELED">Canceled</option>
             </Select>
             <Button
               icon={<Plus size={16} />}
