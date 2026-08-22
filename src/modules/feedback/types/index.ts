@@ -90,6 +90,14 @@ export type FeedbackTermDto = {
   status: AcademicTermStatus;
 };
 
+export type ArchiveTermStudentsResponseDto = {
+  termCode: string;
+  archivedStudents: number;
+  skippedPendingFeedbackStudents: number;
+  skippedActiveInOpenTerm: number;
+  alreadyInactiveStudents: number;
+};
+
 export type FeedbackGroupDto = {
   id: number;
   term: string;

@@ -6,12 +6,6 @@ import type {
   ISODateTimeString,
 } from "@/shared/types";
 
-export type CreatedAccountDto = {
-  email: string;
-  code: string;
-  temporaryPassword: string;
-};
-
 export type ImportRowErrorDto = {
   rowNumber: number;
   fieldName: string | null;

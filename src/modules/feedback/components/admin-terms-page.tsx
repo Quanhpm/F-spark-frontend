@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
-import { LockKeyhole, Plus } from "lucide-react";
+import { Archive, LockKeyhole, Plus } from "lucide-react";
 
 import {
   Badge,
@@ -18,10 +18,14 @@ import { ApiError, cn } from "@/shared/lib";
 
 import {
   useAcademicTerms,
+  useArchiveTermStudents,
   useCloseAcademicTerm,
   useCreateAcademicTerm,
 } from "../hooks";
-import type { AcademicTermResponseDto } from "../types";
+import type {
+  AcademicTermResponseDto,
+  ArchiveTermStudentsResponseDto,
+} from "../types";
 
 const pageClassName = "grid min-w-0 gap-6";
 const tableWrapClassName = "w-full overflow-x-auto max-[760px]:hidden";
@@ -219,10 +223,119 @@ function CloseTermModal({ onClose, term }: CloseTermModalProps) {
   );
 }
 
+type ArchiveTermModalProps = {
+  onClose: () => void;
+  term: AcademicTermResponseDto;
+};
+
+function ArchiveTermModal({ onClose, term }: ArchiveTermModalProps) {
+  const archiveMutation = useArchiveTermStudents();
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<ArchiveTermStudentsResponseDto | null>(null);
+
+  async function handleArchive() {
+    setError("");
+
+    try {
+      const response = await archiveMutation.mutateAsync(term.code);
+      setResult(response.data);
+    } catch (mutationError) {
+      setError(getCloseErrorMessage(mutationError));
+    }
+  }
+
+  return (
+    <ResponsiveDialog
+      bodyClassName="grid gap-4 text-sm leading-relaxed text-foreground"
+      className="min-[761px]:max-w-[560px]"
+      closeLabel="Close archive students dialog"
+      description={
+        result
+          ? `Student archive result for ${term.code}.`
+          : `Archive eligible students from ${term.code}.`
+      }
+      footer={
+        result ? (
+          <Button onClick={onClose}>Done</Button>
+        ) : (
+          <>
+            <Button disabled={archiveMutation.isPending} onClick={onClose} variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={archiveMutation.isPending}
+              icon={<Archive size={16} />}
+              onClick={handleArchive}
+              variant="danger"
+            >
+              {archiveMutation.isPending ? "Archiving..." : "Archive eligible students"}
+            </Button>
+          </>
+        )
+      }
+      onClose={onClose}
+      title={result ? "Student archive completed" : "Archive eligible students"}
+    >
+      {result ? (
+        <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
+          <ArchiveResultMetric label="Archived students" value={result.archivedStudents} tone="success" />
+          <ArchiveResultMetric label="Already inactive" value={result.alreadyInactiveStudents} />
+          <ArchiveResultMetric label="Kept for pending feedback" value={result.skippedPendingFeedbackStudents} tone="warning" />
+          <ArchiveResultMetric label="Kept for another open term" value={result.skippedActiveInOpenTerm} tone="warning" />
+        </div>
+      ) : (
+        <>
+          <p className="m-0">
+            Only students who have completed every feedback form for this term will be inactivated.
+          </p>
+          <ul className="m-0 grid gap-2 rounded-xl border border-border bg-background p-4 pl-8 text-muted">
+            <li>Students with pending feedback remain active so they can submit it.</li>
+            <li>Students assigned to another OPEN term remain active.</li>
+            <li>Groups, grades, submissions, and feedback history are preserved.</li>
+          </ul>
+          <p className="m-0 text-xs text-muted">
+            You can run this action again later to archive students who become eligible.
+          </p>
+        </>
+      )}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700">
+          {error}
+        </div>
+      )}
+    </ResponsiveDialog>
+  );
+}
+
+function ArchiveResultMetric({
+  label,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  tone?: "neutral" | "success" | "warning";
+  value: number;
+}) {
+  const toneClassName = {
+    neutral: "text-foreground",
+    success: "text-green-800",
+    warning: "text-yellow-800",
+  }[tone];
+
+  return (
+    <div className="grid gap-1 rounded-xl border border-border bg-background p-4">
+      <span className="text-xs font-bold text-muted uppercase">{label}</span>
+      <strong className={cn("text-2xl", toneClassName)}>{value}</strong>
+    </div>
+  );
+}
+
 export function AdminTermsPage() {
   const termsQuery = useAcademicTerms();
   const [isCreateTermOpen, setIsCreateTermOpen] = useState(false);
   const [termToClose, setTermToClose] =
+    useState<AcademicTermResponseDto | null>(null);
+  const [termToArchive, setTermToArchive] =
     useState<AcademicTermResponseDto | null>(null);
   const terms = termsQuery.data?.data ?? [];
 
@@ -314,7 +427,14 @@ export function AdminTermsPage() {
                             Close term
                           </Button>
                         ) : (
-                          <span className="text-sm text-muted">Closed</span>
+                          <Button
+                            icon={<Archive size={15} />}
+                            onClick={() => setTermToArchive(term)}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Archive students
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -384,6 +504,17 @@ export function AdminTermsPage() {
                       Close term
                     </Button>
                   )}
+                  {term.status === "CLOSED" && (
+                    <Button
+                      className="w-full"
+                      icon={<Archive size={15} />}
+                      onClick={() => setTermToArchive(term)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Archive students
+                    </Button>
+                  )}
                 </article>
               );
             })}
@@ -393,6 +524,9 @@ export function AdminTermsPage() {
 
       {termToClose && (
         <CloseTermModal onClose={() => setTermToClose(null)} term={termToClose} />
+      )}
+      {termToArchive && (
+        <ArchiveTermModal onClose={() => setTermToArchive(null)} term={termToArchive} />
       )}
       {isCreateTermOpen && (
         <CreateTermModal onClose={() => setIsCreateTermOpen(false)} />

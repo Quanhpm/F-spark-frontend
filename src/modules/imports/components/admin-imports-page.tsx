@@ -757,6 +757,13 @@ export function AdminImportsPage() {
                 </p>
               )}
 
+              {(uploadTarget === "students" || uploadTarget === "mentors") && (
+                <p className="mt-3 mb-0 text-sm text-muted">
+                  Imported accounts are not required to change their password.
+                  Google login can be used when the import file does not include a password.
+                </p>
+              )}
+
               {selectedFile && (
                 <p className="mt-3 mb-0 text-sm text-muted">
                   Selected file:{" "}

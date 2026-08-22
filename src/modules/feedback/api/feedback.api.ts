@@ -5,6 +5,7 @@ import type {
   AdminFeedbackQuery,
   AdminFeedbackResponseDto,
   AcademicTermResponseDto,
+  ArchiveTermStudentsResponseDto,
   CreateAcademicTermRequest,
   FeedbackReceivedSummaryDto,
   MyFeedbackQuery,
@@ -63,5 +64,11 @@ export function listAvailableAcademicTerms() {
 export function closeAcademicTerm(term: string) {
   return apiPatch<ApiResponse<AcademicTermResponseDto>>(
     `/api/admin/terms/${encodeURIComponent(term)}/close`,
+  );
+}
+
+export function archiveTermStudents(term: string) {
+  return apiPost<ApiResponse<ArchiveTermStudentsResponseDto>>(
+    `/api/admin/terms/${encodeURIComponent(term)}/archive-students`,
   );
 }
