@@ -231,37 +231,39 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
   return (
     <NotificationCenterProvider>
       <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
-      <aside className="sticky top-0 grid h-svh grid-rows-[auto_1fr_auto] gap-6 border-r border-border bg-surface px-4 py-[22px] max-[960px]:hidden">
-        <Link
-          className="inline-flex min-w-0 items-center px-2"
-          href={navItems[0].href}
-        >
-          <BrandLogo variant="sidebar" />
-        </Link>
+      <aside className="sticky top-0 flex h-svh flex-col justify-between gap-6 overflow-y-auto border-r border-border bg-surface px-4 py-[22px] max-[960px]:hidden">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Link
+            className="inline-flex min-w-0 items-center px-2"
+            href={navItems[0].href}
+          >
+            <BrandLogo variant="sidebar" />
+          </Link>
 
-        <nav className="grid min-w-0 content-start gap-1.5" aria-label="Workspace navigation">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+          <nav className="grid min-w-0 content-start gap-1.5" aria-label="Workspace navigation">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-            return (
-              <Link
-                className={cn(
-                  "flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-[11px] text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
-                  isActive && "bg-[#fff3ed] text-brand-primary",
-                )}
-                href={item.href}
-                key={item.href}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+              return (
+                <Link
+                  className={cn(
+                    "flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-[11px] text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
+                    isActive && "bg-[#fff3ed] text-brand-primary",
+                  )}
+                  href={item.href}
+                  key={item.href}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
 
-        <div className="grid min-w-0 gap-3">
+        <div className="grid min-w-0 gap-3 pt-2">
           <div className="grid min-w-0 gap-[3px] rounded-xl border border-border bg-background p-3">
             <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-medium text-foreground">
               {session.user.email}
@@ -342,53 +344,55 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
           <aside
             aria-label="Mobile workspace navigation"
             aria-modal="true"
-            className="relative grid h-dvh w-[min(86vw,340px)] grid-rows-[auto_1fr_auto] gap-4 overflow-y-auto border-r border-border bg-surface px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
+            className="relative flex h-dvh w-[min(86vw,340px)] flex-col justify-between gap-4 overflow-y-auto border-r border-border bg-surface px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
             id="mobile-workspace-navigation"
             ref={drawerRef}
             role="dialog"
           >
-            <div className="flex min-w-0 items-center justify-between gap-3">
-              <Link
-                className="inline-flex min-h-11 min-w-0 items-center px-1"
-                href={navItems[0].href}
-                onClick={() => setNavigationOpenedAtPath(null)}
-              >
-                <BrandLogo variant="sidebar" />
-              </Link>
-              <Button
-                aria-label="Close workspace navigation"
-                className="size-11 shrink-0 px-0"
-                icon={<X size={22} />}
-                onClick={() => setNavigationOpenedAtPath(null)}
-                variant="ghost"
-              >
-                <span className="sr-only">Close navigation</span>
-              </Button>
+            <div className="flex min-w-0 flex-col gap-4">
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <Link
+                  className="inline-flex min-h-11 min-w-0 items-center px-1"
+                  href={navItems[0].href}
+                  onClick={() => setNavigationOpenedAtPath(null)}
+                >
+                  <BrandLogo variant="sidebar" />
+                </Link>
+                <Button
+                  aria-label="Close workspace navigation"
+                  className="size-11 shrink-0 px-0"
+                  icon={<X size={22} />}
+                  onClick={() => setNavigationOpenedAtPath(null)}
+                  variant="ghost"
+                >
+                  <span className="sr-only">Close navigation</span>
+                </Button>
+              </div>
+
+              <nav className="grid min-w-0 content-start gap-1.5" aria-label="Mobile navigation links">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                  return (
+                    <Link
+                      aria-current={isActive ? "page" : undefined}
+                      className={cn(
+                        "flex min-h-11 min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
+                        isActive && "bg-[#fff3ed] text-brand-primary",
+                      )}
+                      href={item.href}
+                      key={item.href}
+                      onClick={() => setNavigationOpenedAtPath(null)}
+                    >
+                      <Icon className="shrink-0" size={19} />
+                      <span className="min-w-0 break-words">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
-
-            <nav className="grid min-w-0 content-start gap-1.5" aria-label="Mobile navigation links">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-                return (
-                  <Link
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "flex min-h-11 min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
-                      isActive && "bg-[#fff3ed] text-brand-primary",
-                    )}
-                    href={item.href}
-                    key={item.href}
-                    onClick={() => setNavigationOpenedAtPath(null)}
-                  >
-                    <Icon className="shrink-0" size={19} />
-                    <span className="min-w-0 break-words">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
 
             <div className="grid min-w-0 gap-3 border-t border-border pt-4">
               <div className="grid min-w-0 gap-1 rounded-xl border border-border bg-background p-3">

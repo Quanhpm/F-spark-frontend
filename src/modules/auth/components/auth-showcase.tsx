@@ -39,7 +39,7 @@ const columns: PreviewColumn[] = [
 export function AuthShowcase() {
   return (
     <aside
-      className="relative grid min-h-svh grid-rows-[auto_1fr_auto] overflow-hidden bg-surface-warm px-[34px] pt-[45px] pb-16 text-foreground max-[1180px]:px-11 max-[900px]:hidden"
+      className="relative grid min-h-svh grid-rows-[auto_1fr_auto] overflow-hidden bg-surface-warm px-[34px] pt-[45px] pb-16 text-foreground max-[1180px]:px-8 max-[1024px]:hidden"
       aria-label="F-Spark workspace preview"
     >
       <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(rgba(240,84,35,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(240,84,35,0.08)_1px,transparent_1px)] [background-size:35px_35px] [mask-image:linear-gradient(to_bottom,#000,transparent_95%)]" />

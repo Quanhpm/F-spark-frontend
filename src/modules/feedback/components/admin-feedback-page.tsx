@@ -24,7 +24,7 @@ import { FeedbackRating } from "./feedback-rating";
 const PAGE_SIZE = 20;
 const pageClassName = "grid min-w-0 gap-6";
 const filterClassName =
-  "grid grid-cols-[repeat(3,minmax(0,1fr))] items-end gap-3 max-[860px]:grid-cols-[minmax(0,1fr)]";
+  "grid grid-cols-[repeat(5,minmax(0,1fr))_auto] items-end gap-3 max-[1024px]:grid-cols-[repeat(3,minmax(0,1fr))] max-[640px]:grid-cols-[minmax(0,1fr)]";
 const tableWrapClassName = "w-full overflow-x-auto max-[760px]:hidden";
 const mobileListClassName =
   "hidden min-w-0 gap-3 p-4 max-[760px]:grid max-[480px]:p-3";
@@ -78,6 +78,16 @@ function getTargetName(item: AdminFeedbackResponseDto) {
 function getTargetCode(item: AdminFeedbackResponseDto) {
   if (item.targetType === "MENTOR") return item.mentor?.mentorCode ?? "-";
   return item.instructor?.instructorCode ?? "-";
+}
+
+function getTargetLabel(item: AdminFeedbackResponseDto) {
+  const roleLabel = item.targetType === "MENTOR" ? "Mentor" : "Instructor";
+  const name = getTargetName(item);
+  const code = getTargetCode(item);
+
+  return code && code !== "-"
+    ? `${roleLabel}: ${name} · ${code}`
+    : `${roleLabel}: ${name}`;
 }
 
 export function AdminFeedbackPage() {
@@ -188,7 +198,7 @@ export function AdminFeedbackPage() {
               <option value="PENDING">Pending</option>
               <option value="SUBMITTED">Submitted</option>
             </Select>
-            <div className="flex flex-wrap gap-2 max-[480px]:grid max-[480px]:grid-cols-1 max-[480px]:[&>button]:w-full">
+            <div className="flex shrink-0 items-center gap-2 max-[640px]:grid max-[640px]:w-full max-[640px]:grid-cols-2">
               <Button type="submit">Apply filters</Button>
               <Button onClick={resetFilters} variant="secondary">
                 Reset
@@ -248,13 +258,9 @@ export function AdminFeedbackPage() {
                       </div>
                     </td>
                     <td className={tableCellClassName}>
-                      <div className="grid gap-1">
-                        <Badge tone="neutral">
-                          {item.targetType}
-                        </Badge>
-                        <span className="font-medium">{getTargetName(item)}</span>
-                        <span className="text-xs text-muted">{getTargetCode(item)}</span>
-                      </div>
+                      <span className="font-medium text-foreground">
+                        {getTargetLabel(item)}
+                      </span>
                     </td>
                     <td className={tableCellClassName}>
                       <FeedbackRating value={item.rating} />
@@ -311,14 +317,8 @@ export function AdminFeedbackPage() {
                     <dt className="text-[11px] font-bold text-muted uppercase">
                       Target
                     </dt>
-                    <dd className="m-0 flex min-w-0 flex-wrap items-center gap-2">
-                      <Badge tone="neutral">{item.targetType}</Badge>
-                      <span className="break-words text-sm text-foreground">
-                        {getTargetName(item)}
-                      </span>
-                    </dd>
-                    <dd className="m-0 break-all text-xs text-muted">
-                      {getTargetCode(item)}
+                    <dd className="m-0 break-words text-sm font-medium text-foreground">
+                      {getTargetLabel(item)}
                     </dd>
                   </div>
                 </dl>

@@ -15,7 +15,6 @@ import { FormEvent, useState } from "react";
 import { useGoogleLogin } from "../hooks/use-google-login";
 import { useLogin } from "../hooks/use-login";
 import type { AuthUser } from "../types/auth.types";
-import { BrandLogo } from "./brand-logo";
 import { GoogleSignInButton } from "./google-sign-in-button";
 
 type FormErrors = {
@@ -106,8 +105,7 @@ export function LoginForm() {
 
   return (
     <section className="relative z-[2] grid min-h-svh min-w-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr_auto] bg-surface px-[34px] pt-[32px] pb-[22px] max-[1180px]:px-11 max-[600px]:min-h-dvh max-[600px]:px-0 max-[600px]:pt-[max(1.25rem,env(safe-area-inset-top))] max-[600px]:pr-[max(1rem,env(safe-area-inset-right))] max-[600px]:pb-[max(1.25rem,env(safe-area-inset-bottom))] max-[600px]:pl-[max(1rem,env(safe-area-inset-left))]">
-      <header className="flex w-full min-w-0 items-center justify-between">
-        <BrandLogo />
+      <header className="flex w-full min-w-0 items-center justify-end">
         <Link
           aria-label="Back"
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-[5px] rounded-xl text-[13px] font-medium text-muted transition-colors duration-[160ms] ease-in-out hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary max-[600px]:text-[0px] max-[600px]:[&>svg]:size-5"

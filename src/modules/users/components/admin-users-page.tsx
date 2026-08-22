@@ -20,6 +20,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Users,
 } from "lucide-react";
 import { FormEvent, useId, useMemo, useState } from "react";
 
@@ -220,6 +221,101 @@ function UserGroupMemberships({
         </div>
       ))}
     </div>
+  );
+}
+
+function UserGroupTrigger({
+  memberships,
+  onOpen,
+}: {
+  memberships: StudentGroupMembershipDto[] | null | undefined;
+  onOpen: () => void;
+}) {
+  if (!memberships?.length) {
+    return <span className="text-muted">-</span>;
+  }
+
+  const count = memberships.length;
+  const firstTitle = getGroupTitle(memberships[0]);
+
+  return (
+    <button
+      className="inline-flex max-w-[220px] cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground transition-all duration-150 hover:border-brand-primary hover:bg-surface hover:text-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+      onClick={onOpen}
+      title="Click to view all assigned groups"
+      type="button"
+    >
+      <Users className="size-3.5 shrink-0 text-brand-primary" />
+      <span className="truncate">{firstTitle}</span>
+      {count > 1 && (
+        <span className="shrink-0 rounded-full bg-brand-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-brand-primary">
+          +{count - 1}
+        </span>
+      )}
+    </button>
+  );
+}
+
+type UserGroupDetailsModalProps = {
+  onClose: () => void;
+  user: AdminUserSummaryDto;
+};
+
+function UserGroupDetailsModal({ onClose, user }: UserGroupDetailsModalProps) {
+  const memberships = user.groupMemberships ?? [];
+
+  return (
+    <ResponsiveDialog
+      className="min-[761px]:max-w-[580px]"
+      description={
+        <>
+          Group memberships and history for{" "}
+          <strong className="font-semibold text-foreground">
+            {getDisplayName(user)}
+          </strong>
+          {user.code ? ` (${user.code})` : ""}.
+        </>
+      }
+      footer={
+        <Button onClick={onClose} variant="secondary">
+          Close
+        </Button>
+      }
+      onClose={onClose}
+      title="Group memberships"
+    >
+      <div className="grid max-h-[60vh] gap-3 overflow-y-auto pr-1">
+        {memberships.length === 0 ? (
+          <EmptyState
+            description="This user is not currently assigned to any groups."
+            title="No group memberships"
+          />
+        ) : (
+          memberships.map((membership) => (
+            <div
+              className="grid gap-2 rounded-xl border border-border bg-surface p-3.5 shadow-sm"
+              key={`${membership.groupId}-${membership.joinedAt}`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <span className="font-bold text-foreground">
+                  {getGroupTitle(membership)}
+                </span>
+                <Badge tone="neutral">{membership.role}</Badge>
+              </div>
+              <div className="text-xs text-muted">
+                {getGroupMeta(membership)}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-2 text-xs text-muted">
+                <span>Joined:</span>
+                <span className="font-medium text-foreground">
+                  {formatDateTime(membership.joinedAt)}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </ResponsiveDialog>
   );
 }
 
@@ -933,6 +1029,8 @@ export function AdminUsersPage() {
   );
   const [resetUser, setResetUser] = useState<AdminUserSummaryDto | null>(null);
   const [deleteUser, setDeleteUser] = useState<AdminUserSummaryDto | null>(null);
+  const [viewingGroupsUser, setViewingGroupsUser] =
+    useState<AdminUserSummaryDto | null>(null);
 
   const query = useMemo(
     () => ({
@@ -1078,8 +1176,9 @@ export function AdminUsersPage() {
                       </td>
                       <td className={mutedTableCellClassName}>{user.code ?? "-"}</td>
                       <td className={tableCellClassName}>
-                        <UserGroupMemberships
+                        <UserGroupTrigger
                           memberships={user.groupMemberships}
+                          onOpen={() => setViewingGroupsUser(user)}
                         />
                       </td>
                       <td className={tableCellClassName}>
@@ -1168,12 +1267,13 @@ export function AdminUsersPage() {
                     </div>
                   </dl>
 
-                  <div className="grid min-w-0 gap-2 border-t border-border pt-3">
+                  <div className="flex min-w-0 items-center justify-between gap-2 border-t border-border pt-3">
                     <span className="text-[11px] font-bold tracking-[0.04em] text-muted uppercase">
                       Group membership
                     </span>
-                    <UserGroupMemberships
+                    <UserGroupTrigger
                       memberships={user.groupMemberships}
+                      onOpen={() => setViewingGroupsUser(user)}
                     />
                   </div>
 
@@ -1304,6 +1404,13 @@ export function AdminUsersPage() {
           onClose={() => setDeleteUser(null)}
           onConfirm={() => deleteUserMutation.mutateAsync(deleteUser.id)}
           user={deleteUser}
+        />
+      )}
+
+      {viewingGroupsUser && (
+        <UserGroupDetailsModal
+          onClose={() => setViewingGroupsUser(null)}
+          user={viewingGroupsUser}
         />
       )}
     </div>
