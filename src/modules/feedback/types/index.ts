@@ -90,6 +90,8 @@ export type FeedbackTermDto = {
   status: AcademicTermStatus;
 };
 
+export type AdminTermsQuery = PaginationQuery;
+
 export type ArchiveTermStudentsResponseDto = {
   termCode: string;
   archivedStudents: number;

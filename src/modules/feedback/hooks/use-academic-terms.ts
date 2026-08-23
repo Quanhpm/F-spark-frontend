@@ -6,15 +6,16 @@ import {
   archiveTermStudents,
   closeAcademicTerm,
   createAcademicTerm,
+  deleteEmptyAcademicTerm,
   listAcademicTerms,
   listAvailableAcademicTerms,
 } from "../api";
-import type { CreateAcademicTermRequest } from "../types";
+import type { AdminTermsQuery, CreateAcademicTermRequest } from "../types";
 
-export function useAcademicTerms() {
+export function useAcademicTerms(query: AdminTermsQuery = {}) {
   return useQuery({
-    queryFn: listAcademicTerms,
-    queryKey: queryKeys.terms.list(),
+    queryFn: () => listAcademicTerms(query),
+    queryKey: queryKeys.terms.list(query),
   });
 }
 
@@ -61,6 +62,20 @@ export function useArchiveTermStudents() {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.feedback.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.admin.all });
+    },
+  });
+}
+
+export function useDeleteEmptyAcademicTerm() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteEmptyAcademicTerm,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.terms.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedback.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.admin.all });
     },
   });

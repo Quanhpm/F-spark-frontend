@@ -144,7 +144,8 @@ export const queryKeys = {
   },
   terms: {
     all: ["terms"] as const,
-    list: () => [...queryKeys.terms.all, "list"] as const,
+    list: (filters?: QueryFilters) =>
+      [...queryKeys.terms.all, "list", filters ?? {}] as const,
     available: () => [...queryKeys.terms.all, "available"] as const,
   },
   milestones: {

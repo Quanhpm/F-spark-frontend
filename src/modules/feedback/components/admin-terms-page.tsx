@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
-import { Archive, LockKeyhole, Plus } from "lucide-react";
+import { Archive, LockKeyhole, Plus, Trash2 } from "lucide-react";
 
 import {
   Badge,
@@ -21,6 +21,7 @@ import {
   useArchiveTermStudents,
   useCloseAcademicTerm,
   useCreateAcademicTerm,
+  useDeleteEmptyAcademicTerm,
 } from "../hooks";
 import type {
   AcademicTermResponseDto,
@@ -38,6 +39,7 @@ const tableHeadCellClassName =
   "border-b border-border px-4 py-3 text-left text-xs font-bold tracking-[0.04em] text-muted uppercase";
 const tableCellClassName =
   "border-b border-border px-4 py-4 align-middle text-sm text-foreground";
+const TERM_PAGE_SIZE = 10;
 
 function getLoadErrorMessage(error: unknown) {
   return error instanceof ApiError
@@ -75,9 +77,10 @@ function getFeedbackProgress(term: AcademicTermResponseDto) {
 
 type CreateTermModalProps = {
   onClose: () => void;
+  onCreated: () => void;
 };
 
-function CreateTermModal({ onClose }: CreateTermModalProps) {
+function CreateTermModal({ onClose, onCreated }: CreateTermModalProps) {
   const createTermMutation = useCreateAcademicTerm();
   const formId = useId();
   const [code, setCode] = useState("");
@@ -101,6 +104,7 @@ function CreateTermModal({ onClose }: CreateTermModalProps) {
 
     try {
       await createTermMutation.mutateAsync({ code: normalizedCode });
+      onCreated();
       onClose();
     } catch (mutationError) {
       setError(getCreateErrorMessage(mutationError));
@@ -152,6 +156,64 @@ function CreateTermModal({ onClose }: CreateTermModalProps) {
           value={code}
         />
       </form>
+    </ResponsiveDialog>
+  );
+}
+
+type DeleteTermModalProps = {
+  onClose: () => void;
+  onDeleted: () => void;
+  term: AcademicTermResponseDto;
+};
+
+function DeleteTermModal({ onClose, onDeleted, term }: DeleteTermModalProps) {
+  const deleteMutation = useDeleteEmptyAcademicTerm();
+  const [error, setError] = useState("");
+
+  async function handleDelete() {
+    setError("");
+
+    try {
+      await deleteMutation.mutateAsync(term.code);
+      onDeleted();
+      onClose();
+    } catch (mutationError) {
+      setError(getCloseErrorMessage(mutationError));
+    }
+  }
+
+  return (
+    <ResponsiveDialog
+      bodyClassName="grid gap-3 text-sm leading-relaxed text-foreground"
+      className="min-[761px]:max-w-[510px]"
+      closeLabel="Close delete term dialog"
+      description={`Delete the empty term ${term.code}.`}
+      footer={
+        <>
+          <Button disabled={deleteMutation.isPending} onClick={onClose} variant="secondary">
+            Cancel
+          </Button>
+          <Button
+            disabled={deleteMutation.isPending}
+            icon={<Trash2 size={16} />}
+            onClick={handleDelete}
+            variant="danger"
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete term"}
+          </Button>
+        </>
+      }
+      onClose={onClose}
+      title="Delete academic term"
+    >
+      <p className="m-0">
+        This permanently removes the term. It is allowed only because this term has no groups or feedback history.
+      </p>
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700">
+          {error}
+        </div>
+      )}
     </ResponsiveDialog>
   );
 }
@@ -221,6 +283,10 @@ function CloseTermModal({ onClose, term }: CloseTermModalProps) {
       )}
     </ResponsiveDialog>
   );
+}
+
+function isEmptyTerm(term: AcademicTermResponseDto) {
+  return term.groupCount === 0 && term.totalExpectedFeedbacks === 0;
 }
 
 type ArchiveTermModalProps = {
@@ -331,13 +397,27 @@ function ArchiveResultMetric({
 }
 
 export function AdminTermsPage() {
-  const termsQuery = useAcademicTerms();
+  const [page, setPage] = useState(0);
+  const termsQuery = useAcademicTerms({ page, size: TERM_PAGE_SIZE });
   const [isCreateTermOpen, setIsCreateTermOpen] = useState(false);
   const [termToClose, setTermToClose] =
     useState<AcademicTermResponseDto | null>(null);
   const [termToArchive, setTermToArchive] =
     useState<AcademicTermResponseDto | null>(null);
-  const terms = termsQuery.data?.data ?? [];
+  const [termToDelete, setTermToDelete] =
+    useState<AcademicTermResponseDto | null>(null);
+  const termsPage = termsQuery.data?.data;
+  const terms = termsPage?.content ?? [];
+
+  function handleCreatedTerm() {
+    setPage(0);
+  }
+
+  function handleDeletedTerm() {
+    if (terms.length === 1 && page > 0) {
+      setPage((currentPage) => currentPage - 1);
+    }
+  }
 
   return (
     <div className={pageClassName}>
@@ -362,7 +442,7 @@ export function AdminTermsPage() {
           description={getLoadErrorMessage(termsQuery.error)}
           title="Terms unavailable"
         />
-      ) : terms.length === 0 ? (
+      ) : termsPage?.totalElements === 0 ? (
         <EmptyState
           description="No academic terms have been returned by the backend."
           title="No terms"
@@ -417,6 +497,7 @@ export function AdminTermsPage() {
                         </Badge>
                       </td>
                       <td className={tableCellClassName}>
+                        <div className="flex flex-wrap gap-2">
                         {term.status === "OPEN" ? (
                           <Button
                             icon={<LockKeyhole size={15} />}
@@ -436,6 +517,17 @@ export function AdminTermsPage() {
                             Archive students
                           </Button>
                         )}
+                        {isEmptyTerm(term) && (
+                          <Button
+                            icon={<Trash2 size={15} />}
+                            onClick={() => setTermToDelete(term)}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Delete term
+                          </Button>
+                        )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -515,10 +607,46 @@ export function AdminTermsPage() {
                       Archive students
                     </Button>
                   )}
+                  {isEmptyTerm(term) && (
+                    <Button
+                      className="w-full"
+                      icon={<Trash2 size={15} />}
+                      onClick={() => setTermToDelete(term)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Delete term
+                    </Button>
+                  )}
                 </article>
               );
             })}
           </div>
+          {termsPage && termsPage.totalPages > 1 && (
+            <div className="flex min-w-0 items-center justify-between gap-4 border-t border-border px-6 py-4 max-[680px]:flex-col max-[680px]:items-stretch max-[480px]:px-4">
+              <span className="text-sm text-muted">
+                Page {termsPage.page + 1} of {termsPage.totalPages} ({termsPage.totalElements} terms)
+              </span>
+              <div className="flex gap-2 max-[480px]:grid max-[480px]:grid-cols-2 max-[480px]:[&>button]:w-full">
+                <Button
+                  disabled={!termsPage.hasPrevious}
+                  onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
+                  size="sm"
+                  variant="secondary"
+                >
+                  Previous
+                </Button>
+                <Button
+                  disabled={!termsPage.hasNext}
+                  onClick={() => setPage((currentPage) => currentPage + 1)}
+                  size="sm"
+                  variant="secondary"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
@@ -528,8 +656,18 @@ export function AdminTermsPage() {
       {termToArchive && (
         <ArchiveTermModal onClose={() => setTermToArchive(null)} term={termToArchive} />
       )}
+      {termToDelete && (
+        <DeleteTermModal
+          onClose={() => setTermToDelete(null)}
+          onDeleted={handleDeletedTerm}
+          term={termToDelete}
+        />
+      )}
       {isCreateTermOpen && (
-        <CreateTermModal onClose={() => setIsCreateTermOpen(false)} />
+        <CreateTermModal
+          onClose={() => setIsCreateTermOpen(false)}
+          onCreated={handleCreatedTerm}
+        />
       )}
     </div>
   );

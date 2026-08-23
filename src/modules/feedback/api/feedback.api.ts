@@ -1,10 +1,11 @@
-import { apiGet, apiPatch, apiPost, apiPut } from "@/shared/lib";
-import type { ApiResponse, PageResponse } from "@/shared/types";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/shared/lib";
+import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types";
 
 import type {
   AdminFeedbackQuery,
   AdminFeedbackResponseDto,
   AcademicTermResponseDto,
+  AdminTermsQuery,
   ArchiveTermStudentsResponseDto,
   CreateAcademicTermRequest,
   FeedbackReceivedSummaryDto,
@@ -44,8 +45,11 @@ export function listAdminFeedback(query: AdminFeedbackQuery = {}) {
   );
 }
 
-export function listAcademicTerms() {
-  return apiGet<ApiResponse<AcademicTermResponseDto[]>>("/api/admin/terms");
+export function listAcademicTerms(query: AdminTermsQuery = {}) {
+  return apiGet<ApiResponse<PageResponse<AcademicTermResponseDto>>>(
+    "/api/admin/terms",
+    { query },
+  );
 }
 
 export function createAcademicTerm(payload: CreateAcademicTermRequest) {
@@ -70,5 +74,11 @@ export function closeAcademicTerm(term: string) {
 export function archiveTermStudents(term: string) {
   return apiPost<ApiResponse<ArchiveTermStudentsResponseDto>>(
     `/api/admin/terms/${encodeURIComponent(term)}/archive-students`,
+  );
+}
+
+export function deleteEmptyAcademicTerm(term: string) {
+  return apiDelete<EmptyApiResponse>(
+    `/api/admin/terms/${encodeURIComponent(term)}`,
   );
 }
