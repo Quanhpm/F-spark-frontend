@@ -35,6 +35,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.groups.all, "list"] as const,
     list: (filters?: QueryFilters) =>
       [...queryKeys.groups.lists(), filters ?? {}] as const,
+    adminList: (filters?: QueryFilters) =>
+      [...queryKeys.groups.all, "admin", "list", filters ?? {}] as const,
     detail: (id: number) => [...queryKeys.groups.all, "detail", id] as const,
     studentMe: () => [...queryKeys.groups.all, "student", "me"] as const,
     mentorMe: () => [...queryKeys.groups.all, "mentor", "me"] as const,

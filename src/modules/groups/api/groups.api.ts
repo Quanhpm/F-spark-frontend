@@ -4,10 +4,11 @@ import {
   apiPatch,
   apiPost,
 } from "@/shared/lib";
-import type { ApiResponse, EmptyApiResponse } from "@/shared/types";
+import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types";
 
 import type {
   CreateJoinRequestDto,
+  AdminGroupsQuery,
   CreateGroupRequest,
   GroupDetailDto,
   GroupJoinRequestDto,
@@ -24,6 +25,13 @@ import type {
 
 export function listGroups(query?: GroupsQuery) {
   return apiGet<ApiResponse<GroupSummaryDto[]>>("/api/groups", { query });
+}
+
+export function listAdminGroups(query?: AdminGroupsQuery) {
+  return apiGet<ApiResponse<PageResponse<GroupSummaryDto>>>(
+    "/api/admin/groups",
+    { query },
+  );
 }
 
 export function getGroup(groupId: number) {

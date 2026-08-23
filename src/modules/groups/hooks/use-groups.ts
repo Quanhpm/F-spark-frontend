@@ -6,14 +6,22 @@ import {
   getGroup,
   getMentorGroups,
   getMyGroups,
+  listAdminGroups,
   listGroups,
 } from "../api";
-import type { GroupsQuery } from "../types";
+import type { AdminGroupsQuery, GroupsQuery } from "../types";
 
 export function useGroups(query: GroupsQuery = {}) {
   return useQuery({
     queryFn: () => listGroups(query),
     queryKey: queryKeys.groups.list(query),
+  });
+}
+
+export function useAdminGroups(query: AdminGroupsQuery = {}) {
+  return useQuery({
+    queryFn: () => listAdminGroups(query),
+    queryKey: queryKeys.groups.adminList(query),
   });
 }
 

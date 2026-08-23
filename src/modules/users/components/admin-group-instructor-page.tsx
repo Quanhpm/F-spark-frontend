@@ -6,7 +6,7 @@ import { ChevronDown, Loader2, Search, UserRoundPlus, X } from "lucide-react";
 import {
   useAssignGroupInstructor,
   useAssignGroupMentor,
-  useGroups,
+  useAdminGroups,
 } from "@/modules/groups";
 import {
   Badge,
@@ -348,17 +348,16 @@ export function AdminGroupInstructorPage() {
     Record<number, RowFeedback | undefined>
   >({});
 
-  const groupsQuery = useGroups({
+  const groupsQuery = useAdminGroups({
+    page: groupPage,
     search: optional(appliedFilters.groupSearch),
+    size: GROUP_PAGE_SIZE,
   });
   const assignInstructorMutation = useAssignGroupInstructor();
   const assignMentorMutation = useAssignGroupMentor();
-  const groups = groupsQuery.data?.data ?? [];
-  const groupTotalPages = Math.ceil(groups.length / GROUP_PAGE_SIZE);
-  const paginatedGroups = groups.slice(
-    groupPage * GROUP_PAGE_SIZE,
-    (groupPage + 1) * GROUP_PAGE_SIZE,
-  );
+  const groupsPage = groupsQuery.data?.data;
+  const groups = groupsPage?.content ?? [];
+  const groupTotalPages = groupsPage?.totalPages ?? 0;
 
   function clearSelections() {
     setSelectedInstructorIds({});
@@ -532,7 +531,7 @@ export function AdminGroupInstructorPage() {
           title="No groups found"
         />
       ) : assigningGroupId !== null ? (
-        <AssignmentResultsSkeleton rowCount={paginatedGroups.length} />
+        <AssignmentResultsSkeleton rowCount={groups.length} />
       ) : (
         <Card>
           <div className={tableWrapClassName}>
@@ -548,7 +547,7 @@ export function AdminGroupInstructorPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedGroups.map((group) => {
+                {groups.map((group) => {
                   const selectedInstructorId = selectedInstructorIds[group.id] ?? "";
                   const selectedMentorId = selectedMentorIds[group.id] ?? "";
                   const currentInstructorAccountId =
@@ -689,7 +688,7 @@ export function AdminGroupInstructorPage() {
             </table>
           </div>
           <div className={mobileListClassName}>
-            {paginatedGroups.map((group) => {
+            {groups.map((group) => {
               const selectedInstructorId =
                 selectedInstructorIds[group.id] ?? "";
               const selectedMentorId = selectedMentorIds[group.id] ?? "";
@@ -837,7 +836,7 @@ export function AdminGroupInstructorPage() {
           {groupTotalPages > 1 && (
             <div className="flex min-w-0 items-center justify-between gap-4 border-t border-border px-6 py-4 max-[680px]:flex-col max-[680px]:items-stretch max-[480px]:px-4">
               <span className="text-sm text-muted">
-                Page {groupPage + 1} of {groupTotalPages} ({groups.length} groups)
+                Page {groupPage + 1} of {groupTotalPages} ({groupsPage?.totalElements ?? 0} groups)
               </span>
               <div className="flex gap-2 max-[480px]:grid max-[480px]:grid-cols-2 max-[480px]:[&>button]:w-full">
                 <Button

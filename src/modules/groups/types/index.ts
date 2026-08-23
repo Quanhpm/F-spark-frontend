@@ -215,6 +215,8 @@ export type CreateJoinRequestDto = {
 
 export type GroupsQuery = Pick<ApiListQuery, "search">;
 
+export type AdminGroupsQuery = ApiListQuery;
+
 export type UngroupedStudentsQuery = {
   term: string;
   courseCode: string;
