@@ -1,4 +1,6 @@
+import { getMentorGroups } from "@/modules/groups/api";
 import {
+  ApiError,
   apiDelete,
   apiGet,
   apiPatch,
@@ -23,39 +25,38 @@ export function listMyAvailability() {
   );
 }
 
-type MentorDashboardMeetingSummary = {
-  id: number;
-  groupId: number;
-};
-
 export async function listMyMeetings() {
-  const dashboardResponse = await apiGet<
-    ApiResponse<MentorDashboardMeetingSummary[]>
-  >("/api/dashboard/mentor/meetings", { query: { status: "ALL" } });
-
-  const groupIds = [
-    ...new Set(dashboardResponse.data.map((meeting) => meeting.groupId)),
-  ];
+  const groupsResponse = await getMentorGroups();
+  const groupIds = groupsResponse.data.map((group) => group.id);
 
   if (groupIds.length === 0) {
-    return { ...dashboardResponse, data: [] as MentorMeetingDto[] };
+    return { ...groupsResponse, data: [] as MentorMeetingDto[] };
   }
 
-  const groupMeetingResponses = await Promise.all(
+  const groupMeetingResults = await Promise.allSettled(
     groupIds.map((groupId) => getGroupMeetings(groupId)),
   );
-  const meetingsById = new Map(
-    groupMeetingResponses.flatMap((response) =>
-      response.data.map((meeting) => [meeting.id, meeting] as const),
-    ),
+  const unexpectedFailure = groupMeetingResults.find(
+    (result) =>
+      result.status === "rejected" &&
+      !(result.reason instanceof ApiError && result.reason.status === 403),
   );
+  if (unexpectedFailure?.status === "rejected") {
+    throw unexpectedFailure.reason;
+  }
+
+  const meetings = groupMeetingResults
+    .flatMap((result) =>
+      result.status === "fulfilled" ? result.value.data : [],
+    )
+    .sort(
+      (left, right) =>
+        new Date(left.startAt).getTime() - new Date(right.startAt).getTime(),
+    );
 
   return {
-    ...dashboardResponse,
-    data: dashboardResponse.data.flatMap((summary) => {
-      const meeting = meetingsById.get(summary.id);
-      return meeting ? [meeting] : [];
-    }),
+    ...groupsResponse,
+    data: meetings,
   };
 }
 
