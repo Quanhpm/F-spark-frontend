@@ -70,6 +70,9 @@ export type UpdateGroupLockRequest = {
 export type GroupSummaryDto = {
   id: number;
   term: string;
+  termStatus: "OPEN" | "CLOSED";
+  termClosedAt: ISODateTimeString | null;
+  studentReadOnly: boolean;
   courseCode: string;
   groupNo: string;
   name: string;
@@ -105,6 +108,9 @@ export type GroupMemberDto = {
 export type GroupDetailDto = {
   id: number;
   term: string;
+  termStatus: "OPEN" | "CLOSED";
+  termClosedAt: ISODateTimeString | null;
+  studentReadOnly: boolean;
   courseCode: string;
   groupNo: string;
   name: string;

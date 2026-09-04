@@ -101,6 +101,7 @@ export function ActiveGroupWorkspace({
 
   const invitations = invitationsQuery.data?.data ?? [];
   const isLeader = isCurrentUserLeader(group, sessionEmail);
+  const isReadOnly = group.studentReadOnly;
 
   function requestLeaveGroup() {
     setLocalError("");
@@ -185,7 +186,7 @@ export function ActiveGroupWorkspace({
     <div className="grid min-w-0 gap-6">
       <PageHeader
         actions={
-          <div className="grid justify-items-end gap-3 max-[760px]:justify-items-stretch">
+          !isReadOnly ? <div className="grid justify-items-end gap-3 max-[760px]:justify-items-stretch">
             <div className="flex flex-wrap justify-end gap-2 max-[760px]:justify-start max-[480px]:grid max-[480px]:[&>button]:w-full">
               {isLeader && (
                 <>
@@ -222,12 +223,18 @@ export function ActiveGroupWorkspace({
                 Leave group
               </Button>
             </div>
-          </div>
+          </div> : undefined
         }
         description="Manage your group profile, members, invitations, join requests, and mentor meetings."
         eyebrow="Student"
         title="My Group Workspace"
       />
+
+      {isReadOnly && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          Term {group.term} has ended — read-only. You can review historical data, but student changes are disabled.
+        </div>
+      )}
 
       {localError && (
         <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -245,7 +252,7 @@ export function ActiveGroupWorkspace({
           actions={
             <div className="flex flex-wrap justify-end gap-2">
               <Badge tone={group.isLock ? "neutral" : "success"}>
-                {group.isLock ? "Closed" : "Recruiting"}
+                {isReadOnly ? `Ended · ${group.term}` : group.isLock ? "Closed" : "Recruiting"}
               </Badge>
             </div>
           }
@@ -285,8 +292,8 @@ export function ActiveGroupWorkspace({
 
       <MemberList
         group={group}
-        isMembershipLocked={group.isLock}
-        isLeader={isLeader}
+        isMembershipLocked={group.isLock || isReadOnly}
+        isLeader={isLeader && !isReadOnly}
         onRemoveMember={requestRemoveMember}
         onTransferLeadership={requestTransferLeadership}
         sessionEmail={sessionEmail}
@@ -297,12 +304,13 @@ export function ActiveGroupWorkspace({
           <JoinRequestSection
             groupId={group.id}
             isMembershipLocked={group.isLock}
+            readOnly={isReadOnly}
           />
           <InvitationList
             emptyDescription="No sent invitations for this group."
             invitations={invitations}
             mode="sent"
-            onCancel={(invitation) =>
+            onCancel={isReadOnly ? undefined : (invitation) =>
               setConfirmAction({
                 confirmLabel: "Cancel invitation",
                 description: `Cancel invitation for ${invitation.studentName}?`,
@@ -316,7 +324,7 @@ export function ActiveGroupWorkspace({
         </div>
       )}
 
-      <MeetingBookingSection canBook={isLeader} group={group} />
+      <MeetingBookingSection canBook={isLeader && !isReadOnly} group={group} />
 
       {isEditOpen && (
         <GroupFormModal

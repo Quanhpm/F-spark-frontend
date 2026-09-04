@@ -6,6 +6,7 @@ import { TaskCard } from "./task-card";
 import { CheckCircle2, MoreHorizontal, Plus } from "lucide-react";
 
 type KanbanColumnProps = {
+  readOnly?: boolean;
   status: TaskStatus;
   label: string;
   isMoving: boolean;
@@ -18,6 +19,7 @@ type KanbanColumnProps = {
 };
 
 export function KanbanColumn({
+  readOnly = false,
   status,
   label,
   isMoving,
@@ -32,6 +34,7 @@ export function KanbanColumn({
   const [dragOverCardIndex, setDragOverCardIndex] = useState<number | null>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly) return;
     e.preventDefault();
     setIsDragOver(true);
   };
@@ -41,6 +44,7 @@ export function KanbanColumn({
   };
 
   const handleDrop = (e: React.DragEvent) => {
+    if (readOnly) return;
     e.preventDefault();
     setIsDragOver(false);
     
@@ -92,14 +96,14 @@ export function KanbanColumn({
         </div>
 
         <div className="flex items-center gap-1">
-          <button
+          {!readOnly && <button
             type="button"
             onClick={() => onAddTaskClick(status)}
             className="flex size-11 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground min-[761px]:size-7"
             title={`Add task to ${label}`}
           >
             <Plus className="size-4" />
-          </button>
+          </button>}
           <span
             className="flex size-7 items-center justify-center rounded-lg text-muted"
             aria-hidden="true"
@@ -113,7 +117,7 @@ export function KanbanColumn({
         {tasks.length === 0 ? (
           <button
             type="button"
-            onClick={() => onAddTaskClick(status)}
+            onClick={() => !readOnly && onAddTaskClick(status)}
             className="grid min-h-[132px] place-items-center rounded-2xl border border-dashed border-border/60 bg-surface/35 px-4 py-8 text-center transition-colors hover:border-brand-secondary/40 hover:bg-surface/70"
           >
             <span className="grid gap-2">
@@ -122,7 +126,7 @@ export function KanbanColumn({
                 No tasks in stage
               </span>
               <span className="text-xs font-extrabold text-brand-primary">
-                + Create a task
+                {readOnly ? "No tasks in this stage" : "+ Create a task"}
               </span>
             </span>
           </button>
@@ -152,6 +156,7 @@ export function KanbanColumn({
               )}
             >
               <TaskCard
+                readOnly={readOnly}
                 task={task}
                 onClick={() => onTaskClick(Number(task.id))}
                 onDragStart={onDragStart}
@@ -164,7 +169,7 @@ export function KanbanColumn({
                 <select
                   aria-label={`Move ${task.title} to another status`}
                   className="min-w-0 bg-transparent text-base font-medium text-foreground outline-none"
-                  disabled={isMoving}
+                  disabled={readOnly || isMoving}
                   onChange={(event) =>
                     onTaskStatusChange(
                       Number(task.id),

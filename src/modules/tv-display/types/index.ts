@@ -53,6 +53,7 @@ export type TvShowcaseRecruitmentDto = {
 };
 
 export type TvShowcasePageDto<TItem> = {
+  activeTermCode: string | null;
   content: TItem[];
   hasNext: boolean;
   hasPrevious: boolean;
@@ -102,6 +103,7 @@ export type RecruitmentDisplayItem = {
 };
 
 export type TvDisplayData = {
+  activeTermCode: string | null;
   projects: ProjectDisplayItem[];
   recruitments: RecruitmentDisplayItem[];
   refreshedAt: number;

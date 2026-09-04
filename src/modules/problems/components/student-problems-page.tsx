@@ -121,6 +121,7 @@ export function StudentProblemsPage() {
   const activeGroupId = activeGroup?.id;
   const { data: groupDetailsResponse } = useGroupDetails(activeGroupId || 0);
   const group = groupDetailsResponse?.data;
+  const isReadOnly = group?.studentReadOnly ?? activeGroup?.studentReadOnly ?? false;
 
   const {
     data: proposalsResponse,
@@ -174,7 +175,7 @@ export function StudentProblemsPage() {
           description="Browse official research topics or propose custom ideas for your graduation thesis."
         />
 
-        {activeGroupId && isGroupLeader &&
+        {activeGroupId && isGroupLeader && !isReadOnly &&
           (isProposalsLoading ? (
             <Button className="max-[480px]:w-full" disabled size="md">
               Loading proposals...
@@ -198,6 +199,12 @@ export function StudentProblemsPage() {
             </Button>
           ))}
       </div>
+
+      {isReadOnly && activeGroup && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          Term {activeGroup.term} has ended — read-only. Problems remain available for review.
+        </div>
+      )}
 
       {/* Selected problem summary */}
       {activeGroup && (
@@ -380,7 +387,7 @@ export function StudentProblemsPage() {
               {groupProposals.map((proposal) => (
                 <ProposalArchiveItem
                   canManage={
-                    isGroupLeader && proposal.status === "PENDING_REVIEW"
+                    isGroupLeader && !isReadOnly && proposal.status === "PENDING_REVIEW"
                   }
                   key={proposal.id}
                   onDelete={() => {
@@ -420,14 +427,14 @@ export function StudentProblemsPage() {
         <ProblemDetailModal
           problemId={selectedProblemId}
           onClose={() => setSelectedProblemId(null)}
-          isGroupLeader={isGroupLeader}
+          isGroupLeader={isGroupLeader && !isReadOnly}
           currentGroupId={activeGroupId}
           selectedProblemId={activeGroup?.selectedProblem ? activeGroup.selectedProblem.id : null}
         />
       )}
 
       {/* Propose Form Modal */}
-      {isProposing && activeGroupId && (
+      {isProposing && activeGroupId && !isReadOnly && (
         <ProposeProblemForm
           groupId={activeGroupId}
           onClose={() => setIsProposing(false)}
@@ -435,7 +442,7 @@ export function StudentProblemsPage() {
       )}
 
       {/* Edit pending proposal form */}
-      {editingProblemId !== null && activeGroupId && (
+      {editingProblemId !== null && activeGroupId && !isReadOnly && (
         <ProposeProblemForm
           groupId={activeGroupId}
           onClose={() => setEditingProblemId(null)}
@@ -443,7 +450,7 @@ export function StudentProblemsPage() {
         />
       )}
 
-      {deletingProposal && activeGroupId && (
+      {deletingProposal && activeGroupId && !isReadOnly && (
         <DeleteProposalDialog
           groupId={activeGroupId}
           onClose={() => {

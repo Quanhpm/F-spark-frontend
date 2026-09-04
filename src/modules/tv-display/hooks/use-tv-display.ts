@@ -153,6 +153,10 @@ export function useTvDisplay(filters: TvShowcaseFilters = {}) {
     }, 0);
 
     return {
+      activeTermCode:
+        projectQuery.data.pages[0]?.activeTermCode ??
+        recruitmentQuery.data.pages[0]?.activeTermCode ??
+        null,
       projects: buildProjects(projectItems),
       recruitments: buildRecruitments(recruitmentItems),
       refreshedAt,

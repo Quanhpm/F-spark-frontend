@@ -23,6 +23,7 @@ type StudentMilestoneDetailsDialogProps = {
   milestoneDetails?: CourseMilestoneDto | null;
   onClose: () => void;
   term: string;
+  studentReadOnly?: boolean;
 };
 
 function formatDateTime(value: string | null | undefined) {
@@ -69,6 +70,7 @@ export function StudentMilestoneDetailsDialog({
   milestoneDetails,
   onClose,
   term,
+  studentReadOnly = false,
 }: StudentMilestoneDetailsDialogProps) {
   const grade = milestone.groupGrade;
   const currentStudent = members.find(
@@ -77,9 +79,11 @@ export function StudentMilestoneDetailsDialog({
   const currentStudentScore = currentStudent?.milestoneScores.find(
     (score) => score.milestoneId === milestone.milestoneId,
   );
-  const readOnlyReason = milestone.graded
-    ? "Contributions are locked after this milestone has been graded."
-    : "Only the group leader can update contribution percentages.";
+  const readOnlyReason = studentReadOnly
+    ? `Term ${term} has ended — contributions are read-only.`
+    : milestone.graded
+      ? "Contributions are locked after this milestone has been graded."
+      : "Only the group leader can update contribution percentages.";
 
   return (
     <ResponsiveDialog
@@ -221,6 +225,7 @@ export function StudentMilestoneDetailsDialog({
             approvedCount={milestone.approvedCount}
             requiredCount={milestone.requiredCount}
             isGraded={milestone.graded}
+            readOnly={studentReadOnly}
           />
         </section>
       </div>

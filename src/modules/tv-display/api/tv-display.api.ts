@@ -262,6 +262,10 @@ function parsePageResponse<TItem>(
       : number + 1 < totalPages;
 
   return {
+    activeTermCode:
+      typeof data.activeTermCode === "string" && data.activeTermCode.trim()
+        ? data.activeTermCode.trim()
+        : null,
     content,
     hasNext,
     hasPrevious:

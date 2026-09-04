@@ -22,6 +22,7 @@ type ContributionEditorProps = {
   approvedCount: number;
   requiredCount: number;
   isGraded: boolean;
+  readOnly?: boolean;
 };
 
 function formatScore(value: number | null | undefined) {
@@ -45,6 +46,7 @@ export function ContributionEditor({
   approvedCount,
   requiredCount,
   isGraded,
+  readOnly = false,
 }: ContributionEditorProps) {
   const [changeReason, setChangeReason] = useState("");
   const [percents, setPercents] = useState<Record<number, number>>(() => {
@@ -69,7 +71,7 @@ export function ContributionEditor({
   const responseMutation = useRespondToContributions(groupId, milestoneId);
   const currentScore = members.find((member) => member.studentId === currentStudentId)
     ?.milestoneScores.find((score) => score.milestoneId === milestoneId);
-  const canRespond = !isGraded && contributionRevision > 0 && agreementStatus !== "CHANGES_REQUESTED";
+  const canRespond = !readOnly && !isGraded && contributionRevision > 0 && agreementStatus !== "CHANGES_REQUESTED";
 
   const handlePercentChange = (studentId: number, value: string) => {
     const num = Math.max(0, Math.min(100, Number(value) || 0));

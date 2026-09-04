@@ -51,6 +51,7 @@ export function StudentGroupSwitcher() {
           selectableGroups.map((group) => (
             <option key={group.id} value={group.id}>
               {group.courseCode} · {group.groupNo} - {group.name}
+              {group.studentReadOnly ? ` (Ended · ${group.term})` : ""}
             </option>
           ))
         )}

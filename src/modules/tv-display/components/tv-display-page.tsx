@@ -116,10 +116,22 @@ export function TvDisplayPage() {
     );
   }
 
+  if (!data.activeTermCode) {
+    return (
+      <main className="fixed inset-0 z-40 grid place-items-center bg-background p-6">
+        <EmptyState
+          className="w-[min(520px,100%)]"
+          description="TV Display sẽ tự hiển thị lại khi Admin mở học kỳ mới."
+          title="Không có học kỳ đang hoạt động"
+        />
+      </main>
+    );
+  }
+
   return (
     <>
       <main className="fixed inset-0 z-40 grid min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-background font-sans text-foreground max-[760px]:overflow-y-auto">
-        <TvDisplayHeader />
+        <TvDisplayHeader activeTermCode={data.activeTermCode} />
 
         <div className="grid min-h-0 grid-cols-2 max-[760px]:grid-cols-1">
           <ProjectDisplayColumn

@@ -189,6 +189,7 @@ type TaskDetailPanelProps = {
   groupId: EntityId;
   taskId: EntityId;
   onClose: () => void;
+  readOnly?: boolean;
 };
 
 function TaskDrawerShell({
@@ -221,7 +222,7 @@ function TaskDrawerShell({
   );
 }
 
-export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelProps) {
+export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: TaskDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<"comments" | "activities">("comments");
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [newCommentContent, setNewCommentContent] = useState("");
@@ -415,7 +416,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
     <TaskDrawerShell
       description={`Task #${task.id} · version ${task.version}`}
       headerActions={
-        <Button
+        !readOnly ? <Button
           disabled={archiveTaskMutation.isPending}
           icon={<Archive size={15} />}
           onClick={handleArchive}
@@ -423,17 +424,22 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
           variant="danger"
         >
           Archive
-        </Button>
+        </Button> : undefined
       }
       onClose={onClose}
       title={task.title}
     >
         <div className="min-w-0 space-y-6 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] min-[481px]:p-6">
+          {readOnly && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+              Term {group?.term} has ended — read-only.
+            </div>
+          )}
           {/* Title & Description Section */}
           {!isEditingTitleDesc ? (
             <div
               className="group rounded-xl border border-transparent p-2.5 -m-2.5 hover:bg-neutral-50/50 hover:border-border cursor-pointer transition-all"
-              onClick={handleStartEdit}
+              onClick={readOnly ? undefined : handleStartEdit}
             >
               <h2 className="m-0 break-words text-xl font-bold text-foreground group-hover:text-brand-primary">
                 {task.title}
@@ -487,6 +493,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                 Priority
               </label>
               <Select
+                disabled={readOnly}
                 value={task.priority}
                 onChange={(e) => handlePriorityChange(e.target.value)}
               >
@@ -502,6 +509,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                 Due Date
               </label>
               <DateTimeInput
+                disabled={readOnly}
                 min={getMinimumDateTimeLocal()}
                 value={toLocalDatetime(task.dueAt)}
                 onChange={(e) => handleDateChange(e.target.value)}
@@ -526,6 +534,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                   );
                   return (
                     <button
+                      disabled={readOnly}
                       key={member.studentId}
                       type="button"
                       onClick={() => handleAssigneeToggle(member.studentId)}
@@ -582,6 +591,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                   >
                     <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3">
                       <input
+                        disabled={readOnly}
                         type="checkbox"
                         checked={item.completed}
                         onChange={() => handleChecklistToggle(item.id, item.completed)}
@@ -598,14 +608,14 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                         {item.title}
                       </span>
                     </label>
-                    <button
+                    {!readOnly && <button
                       aria-label={`Delete checklist item: ${item.title}`}
                       type="button"
                       onClick={() => handleChecklistDelete(item.id)}
                       className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-transparent p-0 text-muted/50 opacity-100 transition-all hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 min-[761px]:size-7 min-[761px]:opacity-0 min-[761px]:group-hover/item:opacity-100"
                     >
                       <Trash2 className="size-3.5" />
-                    </button>
+                    </button>}
                   </div>
                 ))
               ) : (
@@ -616,7 +626,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
             </div>
 
             {/* Add Checklist Item Form */}
-            <form onSubmit={handleAddChecklist} className="flex gap-2 max-[480px]:grid">
+            {!readOnly && <form onSubmit={handleAddChecklist} className="flex gap-2 max-[480px]:grid">
               <TextInput
                 value={newChecklistTitle}
                 onChange={(e) => setNewChecklistTitle(e.target.value)}
@@ -632,7 +642,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
               >
                 <Plus className="size-4" />
               </Button>
-            </form>
+            </form>}
           </div>
 
           {/* Tabs for Comments & Activities */}
@@ -671,7 +681,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
               {activeTab === "comments" ? (
                 <div className="space-y-4">
                   {/* Add comment */}
-                  <form onSubmit={handleAddComment} className="flex flex-col gap-2 bg-neutral-50/50 border border-border p-3 rounded-2xl">
+                  {!readOnly && <form onSubmit={handleAddComment} className="flex flex-col gap-2 bg-neutral-50/50 border border-border p-3 rounded-2xl">
                     <textarea
                       value={newCommentContent}
                       onChange={(e) => setNewCommentContent(e.target.value)}
@@ -688,7 +698,7 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                         Send Comment
                       </Button>
                     </div>
-                  </form>
+                  </form>}
 
                   {/* List comments */}
                   <div className="space-y-3 mt-4">
@@ -706,14 +716,14 @@ export function TaskDetailPanel({ groupId, taskId, onClose }: TaskDetailPanelPro
                               <span className="break-words">
                                 {formatFullDate(comment.createdAt)}
                               </span>
-                              <button
+                              {!readOnly && <button
                                 type="button"
                                 onClick={() => deleteTaskCommentMutation.mutate(comment.id)}
                                 className="min-h-11 rounded-lg px-2 text-red-500 hover:text-red-700 hover:underline"
                                 title="Delete comment"
                               >
                                 Delete
-                              </button>
+                              </button>}
                             </div>
                           </div>
                           <p className="m-0 text-sm leading-relaxed text-muted font-medium break-words">

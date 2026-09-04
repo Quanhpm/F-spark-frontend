@@ -4,12 +4,13 @@ import { TaskPriorityBadge } from "./task-priority-badge";
 import { CalendarClock, CheckSquare } from "lucide-react";
 
 type TaskCardProps = {
+  readOnly?: boolean;
   task: TaskSummaryDto;
   onClick: () => void;
   onDragStart: (e: React.DragEvent, taskId: number, currentStatus: string) => void;
 };
 
-export function TaskCard({ task, onClick, onDragStart }: TaskCardProps) {
+export function TaskCard({ readOnly = false, task, onClick, onDragStart }: TaskCardProps) {
   const isOverdue = task.overdue;
 
   // Format initials for assignees
@@ -34,7 +35,7 @@ export function TaskCard({ task, onClick, onDragStart }: TaskCardProps) {
   return (
     <div
       aria-label={`Open task: ${task.title}`}
-      draggable
+      draggable={!readOnly}
       onDragStart={(e) => onDragStart(e, Number(task.id), task.status)}
       onClick={onClick}
       onKeyDown={(event) => {

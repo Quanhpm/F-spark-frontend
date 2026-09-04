@@ -19,6 +19,7 @@ import { ApiError, cn } from "@/shared/lib";
 import {
   useAcademicTerms,
   useArchiveTermStudents,
+  useAvailableAcademicTerms,
   useCloseAcademicTerm,
   useCreateAcademicTerm,
   useDeleteEmptyAcademicTerm,
@@ -265,7 +266,8 @@ function CloseTermModal({ onClose, term }: CloseTermModalProps) {
       title="Close academic term"
     >
       <p className="m-0">
-        This action closes the term. It cannot be undone from the frontend.
+        Closing this term makes every student group in {term.code} read-only
+        and removes it from TV Display. This action cannot be undone from the frontend.
       </p>
       <div className="rounded-xl border border-border bg-background p-4">
         <span className="block text-xs font-bold text-muted uppercase">
@@ -346,21 +348,21 @@ function ArchiveTermModal({ onClose, term }: ArchiveTermModalProps) {
         <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
           <ArchiveResultMetric label="Archived students" value={result.archivedStudents} tone="success" />
           <ArchiveResultMetric label="Already inactive" value={result.alreadyInactiveStudents} />
-          <ArchiveResultMetric label="Kept for pending feedback" value={result.skippedPendingFeedbackStudents} tone="warning" />
-          <ArchiveResultMetric label="Kept for another open term" value={result.skippedActiveInOpenTerm} tone="warning" />
+          <ArchiveResultMetric label="Kept in the current open term" value={result.skippedActiveInOpenTerm} tone="warning" />
         </div>
       ) : (
         <>
           <p className="m-0">
-            Only students who have completed every feedback form for this term will be inactivated.
+            Every student from this closed term will be archived, regardless of feedback status,
+            except students who are participating in the current OPEN term.
           </p>
           <ul className="m-0 grid gap-2 rounded-xl border border-border bg-background p-4 pl-8 text-muted">
-            <li>Students with pending feedback remain active so they can submit it.</li>
-            <li>Students assigned to another OPEN term remain active.</li>
+            <li>Pending feedback does not prevent archiving.</li>
+            <li>Students assigned to the current OPEN term remain active.</li>
             <li>Groups, grades, submissions, and feedback history are preserved.</li>
           </ul>
           <p className="m-0 text-xs text-muted">
-            You can run this action again later to archive students who become eligible.
+            This operation is idempotent and can safely be run again.
           </p>
         </>
       )}
@@ -399,6 +401,7 @@ function ArchiveResultMetric({
 export function AdminTermsPage() {
   const [page, setPage] = useState(0);
   const termsQuery = useAcademicTerms({ page, size: TERM_PAGE_SIZE });
+  const availableTermsQuery = useAvailableAcademicTerms();
   const [isCreateTermOpen, setIsCreateTermOpen] = useState(false);
   const [termToClose, setTermToClose] =
     useState<AcademicTermResponseDto | null>(null);
@@ -408,6 +411,7 @@ export function AdminTermsPage() {
     useState<AcademicTermResponseDto | null>(null);
   const termsPage = termsQuery.data?.data;
   const terms = termsPage?.content ?? [];
+  const openTerm = availableTermsQuery.data?.data?.[0] ?? null;
 
   function handleCreatedTerm() {
     setPage(0);
@@ -424,8 +428,10 @@ export function AdminTermsPage() {
       <PageHeader
         actions={
           <Button
+            disabled={Boolean(openTerm) || availableTermsQuery.isLoading}
             icon={<Plus size={16} />}
             onClick={() => setIsCreateTermOpen(true)}
+            title={openTerm ? `Close ${openTerm.code} before creating a new term` : undefined}
           >
             Create term
           </Button>
@@ -434,6 +440,12 @@ export function AdminTermsPage() {
         eyebrow="Admin"
         title="Academic terms"
       />
+
+      {openTerm && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Academic term <strong>{openTerm.code}</strong> is currently OPEN. Close it before creating another term.
+        </div>
+      )}
 
       {termsQuery.isLoading ? (
         <LoadingState title="Loading academic terms" />

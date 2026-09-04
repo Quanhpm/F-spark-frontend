@@ -24,6 +24,9 @@ export type GroupMemberDto = {
 export type GroupDetailDto = {
   id: EntityId;
   term: string;
+  termStatus: "OPEN" | "CLOSED";
+  termClosedAt: ISODateTimeString | null;
+  studentReadOnly: boolean;
   courseCode: string;
   groupNo: string;
   name: string;
@@ -49,6 +52,9 @@ export type GroupDetailDto = {
 export type GroupSummaryDto = {
   id: EntityId;
   term: string;
+  termStatus: "OPEN" | "CLOSED";
+  termClosedAt: ISODateTimeString | null;
+  studentReadOnly: boolean;
   courseCode: string;
   groupNo: string;
   name: string;

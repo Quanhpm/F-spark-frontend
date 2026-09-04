@@ -67,7 +67,7 @@ export function GroupDetailModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function requestJoin() {
-    if (!group || !onRequestJoin || group.isLock) return;
+    if (!group || !onRequestJoin || group.isLock || group.studentReadOnly) return;
 
     setError("");
     setIsSubmitting(true);
@@ -97,6 +97,9 @@ export function GroupDetailModal({
           status: group.status,
           targetGrade: group.targetGrade,
           term: group.term,
+          termStatus: group.termStatus,
+          termClosedAt: group.termClosedAt,
+          studentReadOnly: group.studentReadOnly,
         },
         message.trim() || undefined,
       );

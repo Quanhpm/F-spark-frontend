@@ -43,7 +43,7 @@ function ClockDisplay() {
   );
 }
 
-export function TvDisplayHeader() {
+export function TvDisplayHeader({ activeTermCode }: { activeTermCode: string }) {
   return (
     <header className="flex min-w-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 py-4 min-[761px]:gap-6 min-[761px]:px-10 min-[1440px]:px-14 max-[760px]:flex-wrap">
       <div className="flex min-w-0 items-center gap-3 min-[761px]:gap-5">
@@ -63,6 +63,9 @@ export function TvDisplayHeader() {
           <h1 className="m-0 mt-1 truncate text-xl font-bold text-foreground min-[1440px]:text-2xl">
             Dự án & Chiêu mộ
           </h1>
+          <p className="m-0 mt-1 text-xs font-semibold text-muted">
+            Học kỳ đang hoạt động: {activeTermCode}
+          </p>
         </div>
       </div>
 

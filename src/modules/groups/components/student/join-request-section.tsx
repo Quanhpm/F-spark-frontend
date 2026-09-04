@@ -83,9 +83,11 @@ function RequestCard({
 export function JoinRequestSection({
   groupId,
   isMembershipLocked = false,
+  readOnly = false,
 }: {
   groupId: number;
   isMembershipLocked?: boolean;
+  readOnly?: boolean;
 }) {
   const requestsQuery = useGroupJoinRequests(groupId);
   const approveMutation = useApproveJoinRequest();
@@ -115,7 +117,9 @@ export function JoinRequestSection({
           ) : undefined
         }
         description={
-          isMembershipLocked
+          readOnly
+            ? "This term has ended. Join requests are read-only."
+            : isMembershipLocked
             ? "Membership is locked. Unlock the group before approving requests."
             : "Approve or reject students asking to join your group."
         }
@@ -141,7 +145,7 @@ export function JoinRequestSection({
                 actions={
                   <div className="flex flex-wrap gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
                     <Button
-                      disabled={isMembershipLocked || isMutating}
+                      disabled={readOnly || isMembershipLocked || isMutating}
                       icon={<Check size={16} />}
                       onClick={() =>
                         runAction(() =>
@@ -156,7 +160,7 @@ export function JoinRequestSection({
                       Approve
                     </Button>
                     <Button
-                      disabled={isMutating}
+                      disabled={readOnly || isMutating}
                       icon={<X size={16} />}
                       onClick={() =>
                         runAction(() =>

@@ -131,6 +131,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
   } = useTaskBoards(groupId);
 
   const group = groupResponse?.data;
+  const isReadOnly = group?.studentReadOnly ?? false;
   const taskBoards = useMemo(
     () => taskBoardsResponse?.data.filter((taskBoard) => !taskBoard.archivedAt) ?? [],
     [taskBoardsResponse?.data],
@@ -270,6 +271,10 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
     taskId: number,
     currentStatus: string,
   ) => {
+    if (isReadOnly) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("text/plain", taskId.toString());
     e.dataTransfer.setData("application/x-task-status", currentStatus);
   };
@@ -279,7 +284,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
     targetStatus: TaskStatus,
     position: number,
   ) => {
-    if (!board || reorderTaskMutation.isPending) return;
+    if (isReadOnly || !board || reorderTaskMutation.isPending) return;
 
     let sourceTask = null;
     for (const col of board.columns) {
@@ -311,6 +316,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
 
   const handleCreateTask = (e: FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return;
     if (!newTitle.trim() || !addTaskStatus) return;
 
     if (newDueAt) {
@@ -377,6 +383,11 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
       return;
     }
 
+    if (isReadOnly) {
+      setBoardActionError(`Term ${group?.term ?? ""} has ended — read-only.`);
+      return;
+    }
+
     try {
       const response = await createTaskBoardMutation.mutateAsync({
         groupId,
@@ -403,6 +414,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
 
   const handleCreateCustomBoard = async (event: FormEvent) => {
     event.preventDefault();
+    if (isReadOnly) return;
     setBoardActionError("");
 
     if (!newBoardName.trim()) {
@@ -468,6 +480,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
       <div className="flex w-full min-w-0 max-w-full snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain scroll-smooth pb-2 pr-[12vw] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden min-[761px]:snap-none min-[761px]:pr-0">
         {columnsConfig.map((col) => (
           <KanbanColumn
+            readOnly={isReadOnly}
             isMoving={reorderTaskMutation.isPending}
             key={col.status}
             status={col.status}
@@ -513,6 +526,11 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
 
   return (
     <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-background shadow-card">
+      {isReadOnly && (
+        <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-900">
+          Term {group?.term} has ended — read-only. Tasks and history remain available for review.
+        </div>
+      )}
       <div className="border-b border-border bg-surface px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-wrap items-center gap-2.5 max-[640px]:w-full max-[640px]:snap-x max-[640px]:flex-nowrap max-[640px]:overflow-x-auto max-[640px]:overscroll-x-contain max-[640px]:[scrollbar-width:none] max-[640px]:[&::-webkit-scrollbar]:hidden">
@@ -578,7 +596,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                 </button>
               );
             })}
-            <button
+            {!isReadOnly && <button
               type="button"
               title="Add board"
               onClick={() => {
@@ -589,7 +607,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
             >
               <Plus className="size-3.5" />
               <span>Board</span>
-            </button>
+            </button>}
           </div>
 
           <div className="flex flex-wrap items-center gap-3 max-[480px]:grid max-[480px]:w-full max-[480px]:[&>button]:w-full">
@@ -601,7 +619,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
                 {board.overdueTaskCount} overdue
               </span>
             </div>
-            <Button
+            {!isReadOnly && <Button
               onClick={() => {
                 setTaskFormError("");
                 setAddTaskStatus("TODO");
@@ -610,7 +628,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
             >
               <Plus className="size-4" />
               New Task
-            </Button>
+            </Button>}
           </div>
         </div>
         {boardActionError && (
@@ -703,6 +721,7 @@ export function KanbanBoard({ groupId }: KanbanBoardProps) {
       {selectedTaskId !== null && (
         <TaskDetailPanel
           groupId={groupId}
+          readOnly={isReadOnly}
           taskId={selectedTaskId}
           onClose={() => setSelectedTaskId(null)}
         />

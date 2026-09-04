@@ -30,6 +30,7 @@ export type StudentMilestoneGroupOption = {
   projectName: string | null;
   status: string;
   term: string;
+  studentReadOnly: boolean;
 };
 
 type StudentMilestoneSubmissionsPanelProps = {
@@ -131,6 +132,11 @@ export function StudentMilestoneSubmissionsPanel({
 
   return (
     <div className="grid min-w-0 gap-6">
+      {activeGroup?.studentReadOnly && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          Term {activeGroup.term} has ended — read-only. Submissions and grades remain available for review.
+        </div>
+      )}
       <Card>
         <CardHeader
           actions={
@@ -157,6 +163,7 @@ export function StudentMilestoneSubmissionsPanel({
               {groups.map((group) => (
                 <option key={group.id} value={String(group.id)}>
                   {group.groupNo} - {group.name}
+                  {group.studentReadOnly ? ` (Ended · ${group.term})` : ""}
                 </option>
               ))}
             </Select>

@@ -165,6 +165,12 @@ export function StudentGradesPage({
         title="My Thesis Grades"
       />
 
+      {group?.studentReadOnly && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          Term {group.term} has ended — read-only. Grades and contribution history remain available.
+        </div>
+      )}
+
       {myGroupsQuery.isLoading ? (
         <LoadingState title="Loading your groups..." />
       ) : !myGroups || myGroups.length === 0 ? (
@@ -187,6 +193,7 @@ export function StudentGradesPage({
                   {myGroups.map((item) => (
                     <option key={item.id} value={String(item.id)}>
                       {item.groupNo} - {item.name}
+                      {item.studentReadOnly ? ` (Ended · ${item.term})` : ""}
                     </option>
                   ))}
                 </Select>
@@ -327,7 +334,7 @@ export function StudentGradesPage({
               {selectedMilestone && activeGroupId && (
                 <StudentMilestoneDetailsDialog
                   canEditContributions={
-                    isGroupLeader && !selectedMilestone.graded
+                    isGroupLeader && !group?.studentReadOnly && !selectedMilestone.graded
                   }
                   courseCode={matrix.courseCode}
                   currentStudentId={myMemberRow?.studentId}
@@ -345,6 +352,7 @@ export function StudentGradesPage({
                   milestoneDetails={selectedMilestoneDetails}
                   onClose={() => setSelectedMilestoneId(null)}
                   term={matrix.term}
+                  studentReadOnly={group?.studentReadOnly}
                 />
               )}
             </>

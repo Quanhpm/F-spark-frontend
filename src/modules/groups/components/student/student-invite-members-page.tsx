@@ -298,6 +298,25 @@ export function StudentInviteMembersPage({
     );
   }
 
+  if (group.studentReadOnly) {
+    return (
+      <EmptyState
+        actions={
+          <Button
+            icon={<ArrowLeft size={16} />}
+            onClick={() => router.push(backToGroupHref)}
+            variant="secondary"
+          >
+            Back to group
+          </Button>
+        }
+        description={`Term ${group.term} has ended — this group is read-only.`}
+        icon={<UserPlus size={22} />}
+        title={`Ended · ${group.term}`}
+      />
+    );
+  }
+
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
