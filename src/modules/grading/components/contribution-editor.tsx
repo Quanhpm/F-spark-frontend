@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge, Button, TextInput } from "@/shared/components";
-import { useUpdateContributions } from "../hooks";
+import { useRespondToContributions, useUpdateContributions } from "../hooks";
+import type { MilestoneColumn } from "../types";
 import type { MemberRow } from "../types";
 
 type ContributionEditorProps = {
@@ -16,6 +17,11 @@ type ContributionEditorProps = {
   leaderStudentId?: number | null;
   onSuccess?: () => void;
   readOnlyReason?: string;
+  agreementStatus: MilestoneColumn["contributionAgreementStatus"];
+  contributionRevision: number;
+  approvedCount: number;
+  requiredCount: number;
+  isGraded: boolean;
 };
 
 function formatScore(value: number | null | undefined) {
@@ -34,7 +40,13 @@ export function ContributionEditor({
   leaderStudentId,
   onSuccess,
   readOnlyReason,
+  agreementStatus,
+  contributionRevision,
+  approvedCount,
+  requiredCount,
+  isGraded,
 }: ContributionEditorProps) {
+  const [changeReason, setChangeReason] = useState("");
   const [percents, setPercents] = useState<Record<number, number>>(() => {
     return members.reduce<Record<number, number>>((acc, member) => {
       // Find the percent for this milestone if it exists
@@ -54,6 +66,10 @@ export function ContributionEditor({
     groupId,
     milestoneId
   );
+  const responseMutation = useRespondToContributions(groupId, milestoneId);
+  const currentScore = members.find((member) => member.studentId === currentStudentId)
+    ?.milestoneScores.find((score) => score.milestoneId === milestoneId);
+  const canRespond = !isGraded && contributionRevision > 0 && agreementStatus !== "CHANGES_REQUESTED";
 
   const total = Number(
     Object.values(percents)
@@ -136,6 +152,10 @@ export function ContributionEditor({
                     </span>
                   )}
                 </p>
+                <Badge size="sm" tone={memberScore?.agreementDecision === "AGREE" ? "success" : memberScore?.agreementDecision === "REQUEST_CHANGES" ? "danger" : "neutral"}>
+                  {memberScore?.agreementDecision === "AGREE" ? "Agreed" : memberScore?.agreementDecision === "REQUEST_CHANGES" ? "Changes requested" : "Pending agreement"}
+                </Badge>
+                {memberScore?.agreementReason && <p className="m-0 mt-1 text-xs text-red-700">{memberScore.agreementReason}</p>}
               </div>
 
               {canEdit ? (
@@ -166,6 +186,22 @@ export function ContributionEditor({
             </div>
           );
         })}
+      </div>
+
+      <div className="grid gap-3 rounded-xl border border-border bg-background p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <strong>Revision {contributionRevision || "–"}</strong>
+          <Badge tone={agreementStatus === "AGREED" ? "success" : agreementStatus === "CHANGES_REQUESTED" ? "danger" : "warning"}>{agreementStatus.replaceAll("_", " ")}</Badge>
+        </div>
+        <p className="m-0 text-sm text-muted">{approvedCount}/{requiredCount} active members agreed. Every member, including the leader, must agree.</p>
+        {canRespond && <div className="grid gap-2">
+          <TextInput label="Reason when requesting changes" maxLength={1000} value={changeReason} onChange={(event) => setChangeReason(event.target.value)} />
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={responseMutation.isPending || currentScore?.agreementDecision === "AGREE"} onClick={() => responseMutation.mutate({ decision: "AGREE" })}>Agree</Button>
+            <Button size="sm" variant="danger" disabled={responseMutation.isPending || !changeReason.trim()} onClick={() => responseMutation.mutate({ decision: "REQUEST_CHANGES", reason: changeReason.trim() })}>Request changes</Button>
+          </div>
+        </div>}
+        {agreementStatus === "CHANGES_REQUESTED" && <p className="m-0 text-sm font-semibold text-red-700">The leader must save a new revision before members can respond again.</p>}
       </div>
 
       {canEdit && error && (

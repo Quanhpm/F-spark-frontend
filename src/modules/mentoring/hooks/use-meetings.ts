@@ -3,13 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
 
 import {
-  bookMeeting,
+  createMeeting,
   cancelMeeting,
   confirmMeeting,
   getGroupMeetings,
   listMyMeetings,
+  updateMeeting,
+  submitMeetingEvidence,
 } from "../api";
-import type { BookMeetingRequest } from "../types";
+import type { CreateMentorMeetingRequest, UpdateMentorMeetingRequest } from "../types";
 
 export function useMyMeetings() {
   return useQuery({
@@ -35,7 +37,7 @@ export function useGroupMeetings(groupId: number | null | undefined) {
   });
 }
 
-export function useBookMeeting() {
+export function useCreateMeeting() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -44,8 +46,8 @@ export function useBookMeeting() {
       payload,
     }: {
       groupId: number;
-      payload: BookMeetingRequest;
-    }) => bookMeeting(groupId, payload),
+      payload: CreateMentorMeetingRequest;
+    }) => createMeeting(groupId, payload),
     onSuccess: (_response, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.mentoring.meetings(variables.groupId),
@@ -59,6 +61,32 @@ export function useBookMeeting() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.mentoring.myMeetings(),
       });
+    },
+  });
+}
+
+export function useUpdateMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, meetingId, payload }: { groupId: number; meetingId: number; payload: UpdateMentorMeetingRequest }) =>
+      updateMeeting(groupId, meetingId, payload),
+    onSuccess: (_response, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
+    },
+  });
+}
+
+export function useSubmitMeetingEvidence() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, meetingId, imageUrl }: { groupId: number; meetingId: number; imageUrl: string }) =>
+      submitMeetingEvidence(groupId, meetingId, { imageUrl }),
+    onSuccess: (_response, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
     },
   });
 }

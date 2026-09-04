@@ -216,6 +216,11 @@ export function StudentMilestoneDetailsDialog({
             milestoneId={milestone.milestoneId}
             milestoneTitle={milestone.title}
             readOnlyReason={readOnlyReason}
+            agreementStatus={milestone.contributionAgreementStatus}
+            contributionRevision={milestone.contributionRevision}
+            approvedCount={milestone.approvedCount}
+            requiredCount={milestone.requiredCount}
+            isGraded={milestone.graded}
           />
         </section>
       </div>

@@ -3,15 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarClock,
-  CheckCircle2,
-  Clock3,
   Eye,
   Users,
   XCircle,
 } from "lucide-react";
 
 import { MentorUpcomingMeetingsSection } from "@/modules/dashboards";
-import { useCancelMeeting, useGroupMeetings, useConfirmMeeting } from "@/modules/mentoring";
+import { useCancelMeeting, useGroupMeetings } from "@/modules/mentoring";
 import type { MentorMeetingDto } from "@/modules/mentoring";
 import {
   Badge,
@@ -79,19 +77,12 @@ function InfoItem({
 
 function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
   const meetingsQuery = useGroupMeetings(group.id);
-  const confirmMeetingMutation = useConfirmMeeting();
   const cancelMeetingMutation = useCancelMeeting();
   const meetings = meetingsQuery.data?.data ?? [];
-  const [now, setNow] = useState(() => Date.now());
   const [meetingToCancel, setMeetingToCancel] =
     useState<MentorMeetingDto | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(intervalId);
-  }, []);
 
   return (
     <div className="grid gap-5">
@@ -153,11 +144,6 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
         ) : (
           <div className="grid gap-3">
             {meetings.map((meeting) => {
-              const leaderConfirmed = meeting.leaderConfirmedAt !== null;
-              const mentorConfirmed = meeting.mentorConfirmedAt !== null;
-              const hasStarted = new Date(meeting.startAt).getTime() <= now;
-              const canConfirm =
-                meeting.status === "SCHEDULED" && hasStarted && !mentorConfirmed;
               const canCancel = meeting.status === "SCHEDULED";
 
               return (
@@ -169,45 +155,8 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     <div className="break-words font-bold text-foreground">
                       {formatDateTime(meeting.startAt)}
                     </div>
-                    <p className="mt-1 mb-2 break-words text-[13px] text-muted">
-                      Booked by {meeting.bookedByStudentName}
-                    </p>
-
-                    {/* Confirmation Status */}
-                    <div className="flex flex-col gap-1.5 text-xs text-muted">
-                      <div className="flex items-center gap-1.5">
-                        <span>Leader:</span>
-                        <Badge
-                          icon={
-                            leaderConfirmed ? (
-                              <CheckCircle2 size={13} />
-                            ) : (
-                              <Clock3 size={13} />
-                            )
-                          }
-                          size="sm"
-                          tone={leaderConfirmed ? "success" : "warning"}
-                        >
-                          {leaderConfirmed ? "Confirmed" : "Pending"}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span>Mentor:</span>
-                        <Badge
-                          icon={
-                            mentorConfirmed ? (
-                              <CheckCircle2 size={13} />
-                            ) : (
-                              <Clock3 size={13} />
-                            )
-                          }
-                          size="sm"
-                          tone={mentorConfirmed ? "success" : "warning"}
-                        >
-                          {mentorConfirmed ? "Confirmed" : "Pending"}
-                        </Badge>
-                      </div>
-                    </div>
+                    <p className="mt-1 mb-2 break-words text-[13px] text-muted">{meeting.note || "No note"}</p>
+                    {meeting.evidenceImageUrl && <a className="text-xs font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer">View student evidence</a>}
                   </div>
 
                   <div className="flex flex-wrap items-center justify-end gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
@@ -222,32 +171,14 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     >
                       {meeting.status}
                     </Badge>
-                    <Button
+                    {meeting.meetLink && <Button
                       icon={<CalendarClock size={15} />}
-                      onClick={() => window.open(meeting.meetLink, "_blank")}
+                      onClick={() => window.open(meeting.meetLink!, "_blank")}
                       size="sm"
                       variant="secondary"
                     >
                       Meet
-                    </Button>
-                    {meeting.status === "SCHEDULED" && (
-                      <Button
-                        onClick={() =>
-                          confirmMeetingMutation.mutate({
-                            groupId: group.id,
-                            meetingId: meeting.id,
-                          })
-                        }
-                        disabled={!canConfirm || confirmMeetingMutation.isPending}
-                        size="sm"
-                      >
-                        {confirmMeetingMutation.isPending
-                          ? "Confirming..."
-                          : mentorConfirmed
-                            ? "Confirmed"
-                            : "Confirm"}
-                      </Button>
-                    )}
+                    </Button>}
                     {canCancel && (
                       <Button
                         disabled={cancelMeetingMutation.isPending}

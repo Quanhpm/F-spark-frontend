@@ -303,7 +303,7 @@ export function createCalendarEvents(
   });
 
   visibleMeetings.forEach((meeting) => {
-    if (slotIds.has(meeting.slotId)) return;
+    if (meeting.slotId !== null && slotIds.has(meeting.slotId)) return;
 
     events.push({
       endAt: meeting.endAt,

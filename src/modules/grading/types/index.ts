@@ -22,6 +22,10 @@ export type MilestoneColumn = {
   groupGrade: MilestoneGroupGradeDto | null;
   graded: boolean;
   contributionsComplete: boolean;
+  contributionAgreementStatus: "NOT_SUBMITTED" | "PENDING" | "CHANGES_REQUESTED" | "AGREED";
+  contributionRevision: number;
+  approvedCount: number;
+  requiredCount: number;
   gradeComplete: boolean;
 };
 
@@ -29,6 +33,9 @@ export type MemberMilestoneScore = {
   milestoneId: number;
   contributionPercent: number;
   calculatedScore: number;
+  agreementDecision: "AGREE" | "REQUEST_CHANGES" | null;
+  agreementReason: string | null;
+  agreementRespondedAt: ISODateTimeString | null;
   complete: boolean;
 };
 
@@ -81,4 +88,20 @@ export type ExportGradesQuery = {
   term?: string;
   courseCode?: string;
   groupId?: number;
+};
+
+export type UpsertContributionAgreementRequest = {
+  decision: "AGREE" | "REQUEST_CHANGES";
+  reason?: string;
+};
+
+export type ContributionAgreementDto = {
+  revision: number;
+  status: MilestoneColumn["contributionAgreementStatus"];
+  approvedCount: number;
+  requiredCount: number;
+  studentId: number;
+  decision: "AGREE" | "REQUEST_CHANGES";
+  reason: string | null;
+  respondedAt: ISODateTimeString;
 };

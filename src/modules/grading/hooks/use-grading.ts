@@ -5,11 +5,13 @@ import {
   getGroupGradeMatrix,
   gradeGroup,
   updateContributions,
+  respondToContributions,
 } from "../api";
 import type {
   ExportGradesQuery,
   UpsertMilestoneContributionsRequest,
   UpsertMilestoneGroupGradeRequest,
+  UpsertContributionAgreementRequest,
 } from "../types";
 
 export function useGroupGradeMatrix(groupId: number | null | undefined) {
@@ -22,6 +24,14 @@ export function useGroupGradeMatrix(groupId: number | null | undefined) {
       return getGroupGradeMatrix(groupId);
     },
     queryKey: typeof groupId === "number" ? queryKeys.grading.groupGradeMatrix(groupId) : ["grading", "groups", "empty"],
+  });
+}
+
+export function useRespondToContributions(groupId: number, milestoneId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: UpsertContributionAgreementRequest) => respondToContributions(groupId, milestoneId, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.grading.groupGradeMatrix(groupId) }),
   });
 }
 

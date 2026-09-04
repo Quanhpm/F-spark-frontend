@@ -111,7 +111,7 @@ export function SelectedEventPanel({
           </div>
         </div>
 
-        <a
+        {meeting.meetLink && <a
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-medium !text-brand-primary transition-colors hover:bg-background hover:!text-brand-primary-hover"
           href={meeting.meetLink}
           rel="noreferrer"
@@ -119,7 +119,7 @@ export function SelectedEventPanel({
         >
           <ExternalLink aria-hidden="true" size={15} />
           Open Google Meet
-        </a>
+        </a>}
 
         {confirmError && <div className={errorPanelClassName}>{confirmError}</div>}
 

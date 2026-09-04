@@ -20,24 +20,31 @@ export type MentorAvailabilitySlotDto = {
 
 export type MentorMeetingDto = {
   id: number;
-  slotId: number;
+  slotId: number | null;
   groupId: number;
   groupName: string;
   groupNo: string;
   mentorId: number;
   mentorCode: string;
   mentorName: string;
-  bookedByStudentId: number;
-  bookedByStudentCode: string;
-  bookedByStudentName: string;
+  bookedByStudentId: number | null;
+  bookedByStudentCode: string | null;
+  bookedByStudentName: string | null;
   startAt: ISODateTimeString;
   endAt: ISODateTimeString;
-  meetLink: string;
+  meetLink: string | null;
+  note: string | null;
   status: MeetingStatus;
   leaderConfirmedByStudentId: number | null;
   leaderConfirmedAt: ISODateTimeString | null;
   mentorConfirmedAt: ISODateTimeString | null;
   completedAt: ISODateTimeString | null;
+  canceledAt: ISODateTimeString | null;
+  cancelReason: string | null;
+  evidenceImageUrl: string | null;
+  evidenceSubmittedByStudentId: number | null;
+  evidenceSubmittedByStudentName: string | null;
+  evidenceSubmittedAt: ISODateTimeString | null;
   createdAt: ISODateTimeString;
   updatedAt: ISODateTimeString;
 };
@@ -56,6 +63,15 @@ export type UpdateAvailabilitySlotRequest = {
   note?: string;
 };
 
-export type BookMeetingRequest = {
-  slotId: number;
+export type CreateMentorMeetingRequest = {
+  startAt: ISODateTimeString;
+  endAt: ISODateTimeString;
+  meetLink?: string;
+  note?: string;
+};
+
+export type UpdateMentorMeetingRequest = Partial<CreateMentorMeetingRequest>;
+
+export type SubmitMeetingEvidenceRequest = {
+  imageUrl: string;
 };

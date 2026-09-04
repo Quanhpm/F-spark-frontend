@@ -7,6 +7,8 @@ import type {
   MilestoneMemberScoreDto,
   UpsertMilestoneContributionsRequest,
   UpsertMilestoneGroupGradeRequest,
+  UpsertContributionAgreementRequest,
+  ContributionAgreementDto,
 } from "../types";
 
 export function gradeGroup(
@@ -16,6 +18,13 @@ export function gradeGroup(
 ) {
   return apiPut<ApiResponse<MilestoneGroupGradeDto>>(
     `/api/instructor/milestones/${milestoneId}/groups/${groupId}/grade`,
+    payload,
+  );
+}
+
+export function respondToContributions(groupId: number, milestoneId: number, payload: UpsertContributionAgreementRequest) {
+  return apiPut<ApiResponse<ContributionAgreementDto>>(
+    `/api/groups/${groupId}/milestones/${milestoneId}/contribution-agreement`,
     payload,
   );
 }

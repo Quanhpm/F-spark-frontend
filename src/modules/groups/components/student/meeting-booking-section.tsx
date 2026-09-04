@@ -1,379 +1,74 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, CheckCircle2, Clock3, LinkIcon } from "lucide-react";
+import { CalendarClock, ExternalLink, ImageIcon } from "lucide-react";
+import { toast } from "sonner";
 
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  EmptyState,
-  LoadingState,
-} from "@/shared/components";
+import { useGroupMeetings, useSubmitMeetingEvidence } from "@/modules/mentoring";
+import { Badge, Button, Card, CardContent, CardHeader, EmptyState, LoadingState, TextInput } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
-import {
-  useBookMeeting,
-  useConfirmMeeting,
-  useGroupMeetings,
-  useMentorAvailabilityForGroup,
-} from "@/modules/mentoring";
-import type {
-  MentorAvailabilitySlotDto,
-  MentorMeetingDto,
-} from "@/modules/mentoring";
-
 import type { GroupDetailDto } from "../../types";
-import { ConfirmDialog } from "./confirm-dialog";
 
 type MeetingBookingSectionProps = {
   canBook: boolean;
   group: GroupDetailDto;
 };
 
-const MIN_BOOKABLE_SLOT_DURATION_MS = 60 * 60 * 1000;
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-  }).format(new Date(value));
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function getErrorMessage(error: unknown) {
-  return error instanceof ApiError
-    ? error.message
-    : "Something went wrong. Please try again.";
-}
-
-function isBookableSlot(slot: MentorAvailabilitySlotDto) {
-  const duration =
-    new Date(slot.endAt).getTime() - new Date(slot.startAt).getTime();
-  return (
-    slot.status === "AVAILABLE" &&
-    Number.isFinite(duration) &&
-    duration >= MIN_BOOKABLE_SLOT_DURATION_MS
-  );
-}
-
-function groupSlotsByDate(slots: MentorAvailabilitySlotDto[]) {
-  return slots.reduce<Record<string, MentorAvailabilitySlotDto[]>>(
-    (groups, slot) => {
-      const key = formatDate(slot.startAt);
-      return {
-        ...groups,
-        [key]: [...(groups[key] ?? []), slot],
-      };
-    },
-    {},
-  );
-}
-
-function getMeetingStatusTone(status: string) {
-  if (status === "COMPLETED") return "success";
-  if (status === "SCHEDULED") return "warning";
-  return "danger";
-}
-
-function MeetingCard({
-  meeting,
-  groupId,
-  isLeader,
-}: {
-  meeting: MentorMeetingDto;
-  groupId: number;
-  isLeader: boolean;
-}) {
-  const confirmMeetingMutation = useConfirmMeeting();
-  const leaderConfirmed = meeting.leaderConfirmedAt !== null;
-  const mentorConfirmed = meeting.mentorConfirmedAt !== null;
-  const [hasStarted, setHasStarted] = useState(
-    () => new Date(meeting.startAt).getTime() <= Date.now(),
-  );
+export function MeetingBookingSection({ group }: MeetingBookingSectionProps) {
+  const meetingsQuery = useGroupMeetings(group.id);
+  const evidenceMutation = useSubmitMeetingEvidence();
+  const [evidenceUrls, setEvidenceUrls] = useState<Record<number, string>>({});
+  const [now, setNow] = useState(() => Date.now());
+  const meetings = useMemo(() => meetingsQuery.data?.data ?? [], [meetingsQuery.data?.data]);
 
   useEffect(() => {
-    const startAt = new Date(meeting.startAt).getTime();
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
-    function updateStartedState() {
-      const started = startAt <= Date.now();
-      setHasStarted(started);
-
-      if (started) {
-        window.clearTimeout(timeoutId);
-        timeoutId = undefined;
-      } else {
-        timeoutId = window.setTimeout(updateStartedState, startAt - Date.now());
-      }
+  async function submitEvidence(meetingId: number) {
+    const imageUrl = evidenceUrls[meetingId]?.trim();
+    if (!imageUrl) return;
+    try {
+      await evidenceMutation.mutateAsync({ groupId: group.id, meetingId, imageUrl });
+      toast.success("Meeting evidence submitted. The meeting is now complete.");
+      setEvidenceUrls((value) => ({ ...value, [meetingId]: "" }));
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Unable to submit evidence.");
     }
+  }
 
-    let timeoutId: number | undefined;
-    updateStartedState();
-
-    return () => {
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [meeting.startAt]);
-
-  const canShowConfirm =
-    meeting.status === "SCHEDULED" && !leaderConfirmed && isLeader;
-  const canConfirm = canShowConfirm && hasStarted;
-
-  return (
-    <article className="grid gap-2 rounded-xl border border-border bg-surface p-4">
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <div className="grid min-w-0 gap-1">
-          <strong className="break-words text-sm text-foreground">
-            {formatDateTime(meeting.startAt)}
-          </strong>
-          <span className="break-words text-xs text-muted">
-            {formatTime(meeting.startAt)} - {formatTime(meeting.endAt)}
-          </span>
-        </div>
-        <Badge tone={getMeetingStatusTone(meeting.status)}>
-          {meeting.status}
-        </Badge>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 max-[480px]:grid">
-        {meeting.meetLink && (
-          <a
-            className="inline-flex min-h-11 min-w-0 items-center gap-1 break-all text-sm font-medium text-brand-primary hover:text-brand-primary-hover"
-            href={meeting.meetLink}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <LinkIcon size={14} />
-            Meeting link
-          </a>
-        )}
-      </div>
-
-      {/* Confirmation Status */}
-      <div className="mt-2 grid gap-1 border-t border-border/60 pt-2 text-xs">
-        <div className="flex items-center justify-between">
-          <span className="text-muted">Leader confirm:</span>
-          <Badge
-            icon={
-              leaderConfirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />
-            }
-            size="sm"
-            tone={leaderConfirmed ? "success" : "warning"}
-          >
-            {leaderConfirmed ? "Confirmed" : "Pending"}
-          </Badge>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted">Mentor confirm:</span>
-          <Badge
-            icon={
-              mentorConfirmed ? <CheckCircle2 size={13} /> : <Clock3 size={13} />
-            }
-            size="sm"
-            tone={mentorConfirmed ? "success" : "warning"}
-          >
-            {mentorConfirmed ? "Confirmed" : "Pending"}
-          </Badge>
-        </div>
-      </div>
-
-      {canShowConfirm && (
-        <Button
-          onClick={() =>
-            confirmMeetingMutation.mutate({
-              groupId,
-              meetingId: meeting.id,
-            })
-          }
-          disabled={!canConfirm || confirmMeetingMutation.isPending}
-          size="sm"
-          className="mt-2 w-full"
-        >
-          {confirmMeetingMutation.isPending ? "Confirming..." : "Confirm Meeting"}
-        </Button>
-      )}
-    </article>
-  );
-}
-
-export function MeetingBookingSection({
-  canBook,
-  group,
-}: MeetingBookingSectionProps) {
-  const availabilityQuery = useMentorAvailabilityForGroup(
-    group.mentor ? group.id : null,
-  );
-  const meetingsQuery = useGroupMeetings(group.id);
-  const bookMeetingMutation = useBookMeeting();
-  const [slotToBook, setSlotToBook] =
-    useState<MentorAvailabilitySlotDto | null>(null);
-
-  const slots = useMemo(
-    () =>
-      (availabilityQuery.data?.data ?? []).filter(
-        (slot) => slot.status === "AVAILABLE",
-      ),
-    [availabilityQuery.data?.data],
-  );
-  const meetings = useMemo(
-    () =>
-      (meetingsQuery.data?.data ?? []).filter(
-        (meeting) => meeting.status !== "CANCELED",
-      ),
-    [meetingsQuery.data?.data],
-  );
-  const groupedSlots = useMemo(() => groupSlotsByDate(slots), [slots]);
-  const hasData = slots.length > 0 || meetings.length > 0;
-
-  return (
-    <Card>
-      <CardHeader
-        description={
-          group.mentor
-            ? `Assigned mentor: ${group.mentor.fullName}`
-            : "Assign a mentor before booking meetings."
-        }
-        title="Mentor meetings"
-      />
-      <CardContent>
-        {!group.mentor ? (
-          <EmptyState
-            className="min-h-44"
-            icon={<CalendarClock size={22} />}
-            title="No mentor assigned"
-          />
-        ) : availabilityQuery.isLoading || meetingsQuery.isLoading ? (
-          <LoadingState className="min-h-44" title="Loading meetings" />
-        ) : availabilityQuery.isError || meetingsQuery.isError ? (
-          <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {getErrorMessage(availabilityQuery.error ?? meetingsQuery.error)}
-          </p>
-        ) : !hasData ? (
-          <EmptyState
-            className="min-h-44"
-            description="Available slots and booked meetings will appear here."
-            icon={<CalendarClock size={22} />}
-            title="No meeting slots"
-          />
-        ) : (
-          <div className="grid gap-6">
-            <section className="grid gap-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <CheckCircle2 size={17} />
-                Booked meetings
-              </div>
-              {meetings.length > 0 ? (
-                <div className="grid grid-cols-[repeat(auto-fit,minmax(min(240px,100%),1fr))] gap-3">
-                  {meetings.map((meeting) => (
-                    <MeetingCard
-                      key={meeting.id}
-                      meeting={meeting}
-                      groupId={group.id}
-                      isLeader={canBook}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="m-0 rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted">
-                  No meetings booked yet.
-                </p>
-              )}
-            </section>
-
-            <section className="grid gap-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <CalendarClock size={17} />
-                Available slots
-              </div>
-              {Object.entries(groupedSlots).length > 0 ? (
-                <div className="grid gap-4">
-                  {Object.entries(groupedSlots).map(([date, daySlots]) => (
-                    <div
-                      className="grid gap-3 rounded-xl border border-border bg-background p-4"
-                      key={date}
-                    >
-                      <h3 className="m-0 text-sm font-bold text-foreground">
-                        {date}
-                      </h3>
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(210px,100%),1fr))] gap-3">
-                        {daySlots.map((slot) => (
-                          <article
-                            className="grid gap-2 rounded-xl border border-border bg-surface p-4"
-                            key={slot.id}
-                          >
-                            <div className="flex min-w-0 items-start justify-between gap-3">
-                              <div className="grid min-w-0 gap-1">
-                                <strong className="break-words text-sm text-foreground">
-                                  {formatTime(slot.startAt)} -{" "}
-                                  {formatTime(slot.endAt)}
-                                </strong>
-                                <span className="break-words text-xs text-muted">
-                                  {slot.note ?? "No note"}
-                                </span>
-                              </div>
-                              <Badge tone="success">{slot.status}</Badge>
-                            </div>
-                            {canBook && isBookableSlot(slot) && (
-                              <Button
-                                className="max-[480px]:min-h-11 max-[480px]:w-full"
-                                onClick={() => setSlotToBook(slot)}
-                                size="sm"
-                              >
-                                Book slot
-                              </Button>
-                            )}
-                            {canBook && !isBookableSlot(slot) && (
-                              <p className="m-0 text-xs font-medium text-muted">
-                                A minimum 1-hour slot is required to book.
-                              </p>
-                            )}
-                          </article>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="m-0 rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted">
-                  No available slots from this mentor.
-                </p>
-              )}
-            </section>
-          </div>
-        )}
-      </CardContent>
-
-      {slotToBook && (
-        <ConfirmDialog
-          confirmLabel="Book meeting"
-          description={`${formatDateTime(slotToBook.startAt)} - ${formatTime(
-            slotToBook.endAt,
-          )}`}
-          onClose={() => setSlotToBook(null)}
-          onConfirm={() =>
-            bookMeetingMutation.mutateAsync({
-              groupId: group.id,
-              payload: { slotId: slotToBook.id },
-            })
-          }
-          title="Confirm meeting booking"
-        />
-      )}
-
-    </Card>
-  );
+  return <Card>
+    <CardHeader title="Mentor meetings" description={group.mentor ? `Assigned mentor: ${group.mentor.fullName}. Your mentor manages the meeting schedule.` : "A mentor must be assigned before meetings can be reported."} />
+    <CardContent>
+      {!group.mentor ? <EmptyState title="No mentor assigned" icon={<CalendarClock size={22} />} /> :
+       meetingsQuery.isLoading ? <LoadingState title="Loading meeting reports" /> :
+       meetingsQuery.isError ? <EmptyState title="Unable to load meeting reports" /> :
+       meetings.length === 0 ? <EmptyState title="No meetings yet" description="Meeting times added by your mentor will appear here." /> :
+       <div className="grid gap-4">
+         {meetings.map((meeting) => {
+           const canSubmit = meeting.status === "SCHEDULED" && new Date(meeting.endAt).getTime() <= now;
+           return <article className="grid gap-3 rounded-xl border border-border bg-background p-4" key={meeting.id}>
+             <div className="flex flex-wrap items-start justify-between gap-3">
+               <div><strong className="text-foreground">{formatDateTime(meeting.startAt)} – {formatDateTime(meeting.endAt)}</strong><p className="m-0 mt-1 text-sm text-muted">{meeting.note || "No note"}</p></div>
+               <Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{meeting.status}</Badge>
+             </div>
+             {meeting.meetLink && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.meetLink} target="_blank" rel="noreferrer"><ExternalLink size={14} /> Open meeting link</a>}
+             {meeting.evidenceImageUrl ? <div className="grid gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+               <span>Evidence submitted by {meeting.evidenceSubmittedByStudentName ?? "a group member"}.</span>
+               <a className="inline-flex items-center gap-1 font-semibold" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ImageIcon size={14} /> View evidence image</a>
+             </div> : canSubmit ? <div className="grid gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+               <TextInput label="Evidence image URL" type="url" placeholder="https://..." value={evidenceUrls[meeting.id] ?? ""} onChange={(event) => setEvidenceUrls((value) => ({ ...value, [meeting.id]: event.target.value }))} />
+               <Button className="w-fit" size="sm" disabled={!evidenceUrls[meeting.id]?.trim() || evidenceMutation.isPending} onClick={() => submitEvidence(meeting.id)}>Submit evidence & complete</Button>
+             </div> : meeting.status === "SCHEDULED" ? <p className="m-0 text-xs text-muted">Evidence can be submitted by any active member after the meeting ends.</p> : null}
+             {meeting.cancelReason && <p className="m-0 text-sm text-red-700">Reason: {meeting.cancelReason}</p>}
+           </article>;
+         })}
+       </div>}
+    </CardContent>
+  </Card>;
 }

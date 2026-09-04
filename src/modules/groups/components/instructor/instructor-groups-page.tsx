@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, ExternalLink, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -12,11 +12,13 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
+  ResponsiveDialog,
   Select,
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 
 import { useInstructorGroups } from "../../hooks";
+import { useGroupMeetings } from "@/modules/mentoring";
 
 const PAGE_SIZE = 6;
 
@@ -31,10 +33,25 @@ function getErrorMessage(error: unknown) {
     : "Something went wrong. Please try again.";
 }
 
+function MeetingReportsDialog({ groupId, groupName, onClose }: { groupId: number; groupName: string; onClose: () => void }) {
+  const query = useGroupMeetings(groupId);
+  const meetings = query.data?.data ?? [];
+  return <ResponsiveDialog title="Mentor meeting reports" description={groupName} onClose={onClose}>
+    {query.isLoading ? <LoadingState title="Loading meeting reports" /> : query.isError ? <EmptyState title="Unable to load reports" /> : meetings.length === 0 ? <EmptyState title="No meetings reported" /> : <div className="grid gap-3">
+      {meetings.map((meeting) => <article className="grid gap-2 rounded-xl border border-border bg-background p-4" key={meeting.id}>
+        <div className="flex flex-wrap justify-between gap-2"><strong>{new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(meeting.startAt))}</strong><Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{meeting.status}</Badge></div>
+        <span className="text-sm text-muted">{meeting.mentorName} · {meeting.note || "No note"}</span>
+        {meeting.evidenceImageUrl ? <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View evidence</a> : <span className="text-xs text-muted">No evidence submitted.</span>}
+      </article>)}
+    </div>}
+  </ResponsiveDialog>;
+}
+
 export function InstructorGroupsPage() {
   const [term, setTerm] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [page, setPage] = useState(0);
+  const [meetingGroup, setMeetingGroup] = useState<{ id: number; name: string } | null>(null);
 
   const allGroupsQuery = useInstructorGroups();
   const groupsQuery = useInstructorGroups({
@@ -205,6 +222,7 @@ export function InstructorGroupsPage() {
                         </dd>
                       </div>
                     </dl>
+                    <Button variant="secondary" icon={<CalendarClock size={15} />} onClick={() => setMeetingGroup({ id: group.id, name: group.name })}>View meeting reports</Button>
                   </article>
                 ))}
               </div>
@@ -238,6 +256,7 @@ export function InstructorGroupsPage() {
           )}
         </CardContent>
       </Card>
+      {meetingGroup && <MeetingReportsDialog groupId={meetingGroup.id} groupName={meetingGroup.name} onClose={() => setMeetingGroup(null)} />}
     </div>
   );
 }

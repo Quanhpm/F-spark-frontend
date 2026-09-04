@@ -3,15 +3,18 @@ import {
   apiGet,
   apiPatch,
   apiPost,
+  apiPut,
 } from "@/shared/lib";
 import type { ApiResponse, EmptyApiResponse } from "@/shared/types";
 
 import type {
-  BookMeetingRequest,
+  CreateMentorMeetingRequest,
   CreateAvailabilitySlotRequest,
   MentorAvailabilitySlotDto,
   MentorMeetingDto,
   UpdateAvailabilitySlotRequest,
+  UpdateMentorMeetingRequest,
+  SubmitMeetingEvidenceRequest,
 } from "../types";
 
 export function listMyAvailability() {
@@ -85,9 +88,23 @@ export function getMentorAvailability(groupId: number) {
   );
 }
 
-export function bookMeeting(groupId: number, payload: BookMeetingRequest) {
+export function createMeeting(groupId: number, payload: CreateMentorMeetingRequest) {
   return apiPost<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings`,
+    payload,
+  );
+}
+
+export function updateMeeting(groupId: number, meetingId: number, payload: UpdateMentorMeetingRequest) {
+  return apiPatch<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}`,
+    payload,
+  );
+}
+
+export function submitMeetingEvidence(groupId: number, meetingId: number, payload: SubmitMeetingEvidenceRequest) {
+  return apiPut<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/evidence`,
     payload,
   );
 }

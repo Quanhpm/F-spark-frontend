@@ -77,9 +77,9 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   MENTOR: [
     { href: "/mentor/groups", icon: Users, label: "Groups" },
     {
-      href: "/mentor/availability",
+      href: "/mentor/meetings",
       icon: CalendarClock,
-      label: "Availability",
+      label: "Meeting reports",
     },
     { href: "/mentor/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/mentor/notifications", icon: Bell, label: "Notifications" },
