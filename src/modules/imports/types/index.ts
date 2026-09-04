@@ -44,9 +44,13 @@ export type ImportBatch = {
   finishedAt: ISODateTimeString | null;
 };
 
-export type ImportUploadTarget = "students" | "mentors" | "problem-bank";
+export type ImportUploadTarget =
+  | "students"
+  | "student-accounts"
+  | "mentors"
+  | "problem-bank";
 
-export type ImportTemplateTarget = "students" | "mentors" | "problem-bank";
+export type ImportTemplateTarget = ImportUploadTarget;
 
 export type ImportBatchErrorsQuery = {
   errorCode?: ImportErrorCode | "";

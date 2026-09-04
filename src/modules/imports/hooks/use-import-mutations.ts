@@ -5,9 +5,11 @@ import { queryKeys } from "@/shared/lib";
 import {
   downloadMentorImportTemplate,
   downloadProblemBankImportTemplate,
+  downloadStudentAccountImportTemplate,
   downloadStudentImportTemplate,
   importMentors,
   importProblemBank,
+  importStudentAccounts,
   importStudents,
 } from "../api";
 import type { ImportResponse } from "../types";
@@ -31,6 +33,10 @@ export function useImportStudents() {
   return useImportMutation(importStudents);
 }
 
+export function useImportStudentAccounts() {
+  return useImportMutation(importStudentAccounts);
+}
+
 export function useImportMentors() {
   return useImportMutation(importMentors);
 }
@@ -42,6 +48,12 @@ export function useImportProblemBank() {
 export function useDownloadStudentImportTemplate() {
   return useMutation({
     mutationFn: downloadStudentImportTemplate,
+  });
+}
+
+export function useDownloadStudentAccountImportTemplate() {
+  return useMutation({
+    mutationFn: downloadStudentAccountImportTemplate,
   });
 }
 

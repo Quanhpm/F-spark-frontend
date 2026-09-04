@@ -30,9 +30,11 @@ import type { ImportErrorCode } from "@/shared/types";
 import {
   useDownloadMentorImportTemplate,
   useDownloadProblemBankImportTemplate,
+  useDownloadStudentAccountImportTemplate,
   useDownloadStudentImportTemplate,
   useImportMentors,
   useImportProblemBank,
+  useImportStudentAccounts,
   useImportStudents,
 } from "../hooks/use-import-mutations";
 import {
@@ -74,6 +76,12 @@ const UPLOAD_TARGETS: UploadTargetOption[] = [
     label: "Students",
     template: "students",
     value: "students",
+  },
+  {
+    description: "Account-only class roster CSV/XLSX",
+    label: "Student accounts",
+    template: "student-accounts",
+    value: "student-accounts",
   },
   {
     description: "Mentor roster CSV/XLSX",
@@ -183,7 +191,7 @@ function isActiveImportStatus(status: ImportBatch["status"] | undefined) {
 }
 
 function getTargetTone(target: string) {
-  if (target === "STUDENT") return "brand";
+  if (target === "STUDENT" || target === "STUDENT_ACCOUNT") return "brand";
   if (target === "MENTOR") return "warning";
   return "neutral";
 }
@@ -500,9 +508,12 @@ export function AdminImportsPage() {
   const [errorPage, setErrorPage] = useState(0);
 
   const importStudentsMutation = useImportStudents();
+  const importStudentAccountsMutation = useImportStudentAccounts();
   const importMentorsMutation = useImportMentors();
   const importProblemBankMutation = useImportProblemBank();
   const downloadStudentTemplateMutation = useDownloadStudentImportTemplate();
+  const downloadStudentAccountTemplateMutation =
+    useDownloadStudentAccountImportTemplate();
   const downloadMentorTemplateMutation = useDownloadMentorImportTemplate();
   const downloadProblemBankTemplateMutation =
     useDownloadProblemBankImportTemplate();
@@ -542,10 +553,12 @@ export function AdminImportsPage() {
   );
   const isUploading =
     importStudentsMutation.isPending ||
+    importStudentAccountsMutation.isPending ||
     importMentorsMutation.isPending ||
     importProblemBankMutation.isPending;
   const isDownloading =
     downloadStudentTemplateMutation.isPending ||
+    downloadStudentAccountTemplateMutation.isPending ||
     downloadMentorTemplateMutation.isPending ||
     downloadProblemBankTemplateMutation.isPending;
 
@@ -562,9 +575,11 @@ export function AdminImportsPage() {
       const response =
         uploadTarget === "students"
           ? await importStudentsMutation.mutateAsync(selectedFile)
-          : uploadTarget === "mentors"
-            ? await importMentorsMutation.mutateAsync(selectedFile)
-            : await importProblemBankMutation.mutateAsync(selectedFile);
+          : uploadTarget === "student-accounts"
+            ? await importStudentAccountsMutation.mutateAsync(selectedFile)
+            : uploadTarget === "mentors"
+              ? await importMentorsMutation.mutateAsync(selectedFile)
+              : await importProblemBankMutation.mutateAsync(selectedFile);
 
       setLastResult(response.data);
       setActiveBatchId(response.data.batchId);
@@ -587,17 +602,21 @@ export function AdminImportsPage() {
       const blob =
         target === "students"
           ? await downloadStudentTemplateMutation.mutateAsync()
-          : target === "mentors"
-            ? await downloadMentorTemplateMutation.mutateAsync()
-            : await downloadProblemBankTemplateMutation.mutateAsync();
+          : target === "student-accounts"
+            ? await downloadStudentAccountTemplateMutation.mutateAsync()
+            : target === "mentors"
+              ? await downloadMentorTemplateMutation.mutateAsync()
+              : await downloadProblemBankTemplateMutation.mutateAsync();
 
       downloadBlob(
         blob,
         target === "students"
           ? "SU26_EXE101_Group_List_template.xlsx"
-          : target === "mentors"
-            ? "mentor_ID_matrix_template.xlsx"
-            : "Guideline_EXE101_problem_bank_template.xlsx",
+          : target === "student-accounts"
+            ? "student_accounts_template.xlsx"
+            : target === "mentors"
+              ? "mentor_ID_matrix_template.xlsx"
+              : "Guideline_EXE101_problem_bank_template.xlsx",
       );
     } catch (error) {
       setDownloadError(getErrorMessage(error));
@@ -667,6 +686,14 @@ export function AdminImportsPage() {
               variant="secondary"
             >
               Student template
+            </Button>
+            <Button
+              disabled={isDownloading}
+              icon={<Download size={16} />}
+              onClick={() => handleDownloadTemplate("student-accounts")}
+              variant="secondary"
+            >
+              Student account template
             </Button>
             <Button
               disabled={isDownloading}
@@ -757,10 +784,19 @@ export function AdminImportsPage() {
                 </p>
               )}
 
-              {(uploadTarget === "students" || uploadTarget === "mentors") && (
+              {(uploadTarget === "students" ||
+                uploadTarget === "student-accounts" ||
+                uploadTarget === "mentors") && (
                 <p className="mt-3 mb-0 text-sm text-muted">
                   Imported accounts are not required to change their password.
                   Google login can be used when the import file does not include a password.
+                </p>
+              )}
+
+              {uploadTarget === "student-accounts" && (
+                <p className="mt-3 mb-0 text-sm text-muted">
+                  GroupName is saved as the student&apos;s class name. This
+                  import does not create project groups or memberships.
                 </p>
               )}
 

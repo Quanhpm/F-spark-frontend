@@ -43,7 +43,11 @@ export type SlotStatus = "AVAILABLE" | "BOOKED" | "CANCELED";
 
 export type MeetingStatus = "SCHEDULED" | "CANCELED" | "COMPLETED";
 
-export type ImportTargetType = "STUDENT" | "MENTOR" | "PROBLEM_BANK";
+export type ImportTargetType =
+  | "STUDENT"
+  | "STUDENT_ACCOUNT"
+  | "MENTOR"
+  | "PROBLEM_BANK";
 
 export type ImportFileType = "CSV" | "XLSX";
 

@@ -59,7 +59,7 @@ Endpoints returning lists use this pagination structure inside `data`:
 | **InvitationStatus** | `PENDING`, `ACCEPTED`, `DECLINED`, `CANCELED` |
 | **SlotStatus** | `AVAILABLE`, `BOOKED`, `CANCELED` |
 | **MeetingStatus** | `SCHEDULED`, `CANCELED`, `COMPLETED` |
-| **ImportTargetType** | `STUDENT`, `MENTOR`, `PROBLEM_BANK` |
+| **ImportTargetType** | `STUDENT`, `STUDENT_ACCOUNT`, `MENTOR`, `PROBLEM_BANK` |
 | **ImportFileType** | `CSV`, `XLSX` |
 | **JoinRequestStatus** | `PENDING`, `ACCEPTED`, `REJECTED`, `CANCELED` |
 | **ImportBatchStatus** | `COMPLETED`, `FAILED` |
@@ -2116,6 +2116,21 @@ POST /api/imports/mentors
 
 ---
 
+#### 12.2.1 Import Student Accounts from a Class Roster
+```
+POST /api/imports/student-accounts
+```
+**Content-Type:** `multipart/form-data`
+
+The CSV/XLSX file must contain `RollNumber`, `Fullname`, `Email`,
+`SubjectCode`, and `GroupName`. This import creates an account and student
+profile only. `GroupName` is stored as the student's class name, and
+`SubjectCode` must be `EXE101` or `EXE201` but is not persisted.
+
+**Response:** `APIResponse<ImportResponse>` with target type `STUDENT_ACCOUNT`
+
+---
+
 #### 12.3 Import Problem Bank from CSV/XLSX
 ```
 POST /api/imports/problem-bank
@@ -2169,6 +2184,15 @@ GET /api/imports/templates/mentors
 ```
 
 **Response:** Binary file download (CSV)
+
+---
+
+#### 12.8 Download Student Account Import Template
+```
+GET /api/imports/templates/student-accounts
+```
+
+**Response:** XLSX file with the five supported student-account headers
 
 ---
 
@@ -2394,12 +2418,14 @@ de lay cac endpoint moi va endpoint thay doi.
 | 66 | POST | `/api/groups/{groupId}/mentor/meetings` | Yes | Leader | Book a meeting |
 | 67 | GET | `/api/groups/{groupId}/mentor/meetings` | Yes | Member/Mentor | Get group meetings |
 | 68 | POST | `/api/imports/students` | Yes | ADMIN | Import students (file upload) |
+| 68a | POST | `/api/imports/student-accounts` | Yes | ADMIN | Import student accounts from a class roster |
 | 69 | POST | `/api/imports/mentors` | Yes | ADMIN | Import mentors (file upload) |
 | 70 | POST | `/api/imports/problem-bank` | Yes | ADMIN | Import problem bank (file upload) |
 | 71 | GET | `/api/imports/{batchId}` | Yes | ADMIN | Get import batch status |
 | 72 | GET | `/api/imports/{batchId}/errors` | Yes | ADMIN | Get import batch errors |
 | 73 | GET | `/api/imports/templates/students` | Yes | ADMIN | Download student template |
 | 74 | GET | `/api/imports/templates/mentors` | Yes | ADMIN | Download mentor template |
+| 74a | GET | `/api/imports/templates/student-accounts` | Yes | ADMIN | Download student account template |
 | 75 | GET | `/api/dashboard/admin/execution-status` | Yes | Member/Mentor | Admin monitors execution status |
 | 76 | GET | `/api/dashboard/admin/groups` | Yes | Member/Mentor | Admin monitors all groups |
 | 77 | GET | `/api/dashboard/admin/mentors` | Yes | Member/Mentor | Admin monitors mentors |

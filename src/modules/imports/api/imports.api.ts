@@ -31,6 +31,10 @@ export function importStudents(file: ImportFileInput) {
   return importFile("students", file);
 }
 
+export function importStudentAccounts(file: ImportFileInput) {
+  return importFile("student-accounts", file);
+}
+
 export function importMentors(file: ImportFileInput) {
   return importFile("mentors", file);
 }
@@ -59,6 +63,10 @@ export function downloadImportTemplate(target: ImportTemplateTarget) {
 
 export function downloadStudentImportTemplate() {
   return downloadImportTemplate("students");
+}
+
+export function downloadStudentAccountImportTemplate() {
+  return downloadImportTemplate("student-accounts");
 }
 
 export function downloadMentorImportTemplate() {
