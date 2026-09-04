@@ -9,6 +9,7 @@ import { Badge, Button, Card, CardContent, CardHeader, EmptyState, LoadingState,
 import { ApiError } from "@/shared/lib";
 import { useCancelMeeting, useCreateMeeting, useMyMeetings, useUpdateMeeting } from "../hooks";
 import type { MentorMeetingDto } from "../types";
+import { HalfHourDateTimeInput } from "./half-hour-date-time-input";
 
 const MEETING_DURATION_MS = 60 * 60 * 1000;
 
@@ -89,7 +90,7 @@ export function MentorMeetingsPage() {
     const payload = {
       startAt: new Date(form.startAt).toISOString(),
       endAt: new Date(form.endAt).toISOString(),
-      meetLink: editing ? form.meetLink.trim() : form.meetLink.trim() || undefined,
+      meetLink: form.meetLink.trim(),
       note: editing ? form.note.trim() : form.note.trim() || undefined,
     };
     try {
@@ -137,15 +138,15 @@ export function MentorMeetingsPage() {
         </div>
       )}
 
-      {showForm && <ResponsiveDialog title={editing ? "Edit mentor meeting" : "Add team & time slot"} description="Meetings last 60 minutes and start at minute 00 or 30." onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || invalidStartBoundary || invalidDuration}>Save meeting</Button></>}>
+      {showForm && <ResponsiveDialog title={editing ? "Edit mentor meeting" : "Add team & time slot"} description="Meetings last 60 minutes and start at minute 00 or 30." onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartBoundary || invalidDuration}>Save meeting</Button></>}>
         <form id="mentor-meeting-form" className="grid gap-4" onSubmit={submit}>
           <Select label="Team" value={form.groupId} disabled={Boolean(editing)} onChange={(event) => setForm((value) => ({ ...value, groupId: event.target.value }))} required>
             {eligibleGroups.map((group) => <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({counts[group.id] ?? 0}/2)</option>)}
             {editing && !eligibleGroups.some((group) => group.id === editing.groupId) && <option value={editing.groupId}>{editing.groupNo} · {editing.groupName}</option>}
           </Select>
-          <TextInput error={invalidStartBoundary ? "Choose a time ending in :00 or :30." : undefined} hint="60-minute meeting · minute 00 or 30" label="Start time" step={1800} type="datetime-local" required value={form.startAt} onChange={(event) => updateStartAt(event.target.value)} />
+          <HalfHourDateTimeInput error={invalidStartBoundary ? "Choose a time ending in :00 or :30." : undefined} hint="Only times ending in :00 or :30 can be selected." label="Start time" required value={form.startAt} onChange={updateStartAt} />
           <TextInput error={invalidDuration ? "End must be exactly 60 minutes after start." : undefined} hint="Calculated automatically after changing start time" label="End time" type="datetime-local" readOnly value={form.endAt} />
-          <TextInput label="Meeting link (optional)" type="url" value={form.meetLink} onChange={(event) => setForm((value) => ({ ...value, meetLink: event.target.value }))} />
+          <TextInput label="Meeting link" placeholder="https://meet.google.com/abc-defg-hij" required type="url" value={form.meetLink} onChange={(event) => setForm((value) => ({ ...value, meetLink: event.target.value }))} />
           <TextInput label="Note (optional)" maxLength={500} value={form.note} onChange={(event) => setForm((value) => ({ ...value, note: event.target.value }))} />
         </form>
       </ResponsiveDialog>}

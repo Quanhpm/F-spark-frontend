@@ -7,6 +7,7 @@ import { Button, ResponsiveDialog, TextInput } from "@/shared/components";
 import { getMinimumDateTimeLocal } from "@/shared/lib";
 import type { MentorAvailabilitySlotDto } from "../types";
 import type { SlotFormState } from "./availability-calendar.types";
+import { HalfHourDateTimeInput } from "./half-hour-date-time-input";
 import {
   EMPTY_SLOT_FORM,
   createFormFromSlot,
@@ -101,6 +102,7 @@ export function SlotFormModal({
               isSubmitting ||
               !form.startAt ||
               !form.endAt ||
+              !form.meetLink.trim() ||
               invalidStartBoundary ||
               invalidDuration
             }
@@ -125,19 +127,17 @@ export function SlotFormModal({
         <p className="m-0 text-sm text-muted">
           Each slot lasts 60 minutes and must start at minute 00 or 30.
         </p>
-        <TextInput
+        <HalfHourDateTimeInput
           error={
             invalidStartBoundary
               ? "Choose a time ending in :00 or :30."
               : undefined
           }
-          hint="60-minute slot · minute 00 or 30"
-          icon={<CalendarClock size={16} />}
+          hint="Only times ending in :00 or :30 can be selected."
           label="Start"
           min={minimumDateTime}
-          onChange={(event) => updateStartAt(event.target.value)}
-          step={1800}
-          type="datetime-local"
+          onChange={updateStartAt}
+          required
           value={form.startAt}
         />
         <TextInput
@@ -157,6 +157,7 @@ export function SlotFormModal({
           label="Google Meet link"
           onChange={(event) => updateField("meetLink", event.target.value)}
           placeholder="https://meet.google.com/abc-defg-hij"
+          required
           value={form.meetLink}
         />
         <TextInput

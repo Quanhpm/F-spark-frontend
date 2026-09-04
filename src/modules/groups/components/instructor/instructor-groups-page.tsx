@@ -61,6 +61,40 @@ const ASSIGNMENT_FILTERS: Array<{
   { label: "Other instructors", value: "OTHER" },
 ];
 
+type PaginationItem = number | "start-ellipsis" | "end-ellipsis";
+
+function getPaginationItems(currentPage: number, totalPages: number): PaginationItem[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index);
+  }
+
+  if (currentPage <= 3) {
+    return [0, 1, 2, 3, 4, "end-ellipsis", totalPages - 1];
+  }
+
+  if (currentPage >= totalPages - 4) {
+    return [
+      0,
+      "start-ellipsis",
+      totalPages - 5,
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+    ];
+  }
+
+  return [
+    0,
+    "start-ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "end-ellipsis",
+    totalPages - 1,
+  ];
+}
+
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed || undefined;
@@ -190,7 +224,7 @@ function GroupCard({
   onViewMeetings: () => void;
 }) {
   return (
-    <article className="grid min-w-0 content-start gap-4 rounded-2xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-card-interactive">
+    <article className="flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-card-interactive">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
           <span className="text-xs font-bold uppercase tracking-wide text-brand-primary">
@@ -361,6 +395,11 @@ export function InstructorGroupsPage() {
     [board?.courses],
   );
   const totalPages = board?.groups.totalPages ?? 0;
+  const currentPage = board?.groups.page ?? page;
+  const paginationItems = useMemo(
+    () => getPaginationItems(currentPage, totalPages),
+    [currentPage, totalPages],
+  );
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -564,29 +603,60 @@ export function InstructorGroupsPage() {
             ))}
           </div>
 
-          <div className="flex min-w-0 items-center justify-between gap-4 border-t border-border pt-4 max-[480px]:grid max-[480px]:grid-cols-2">
-            <span className="text-sm text-muted max-[480px]:col-span-2 max-[480px]:text-center">
-              Page {(board?.groups.page ?? 0) + 1} of {Math.max(totalPages, 1)} (
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 border-t border-border pt-4 max-[640px]:justify-center">
+            <span className="text-sm text-muted max-[640px]:w-full max-[640px]:text-center">
+              Page {currentPage + 1} of {Math.max(totalPages, 1)} (
               {board?.groups.totalElements ?? 0} matching groups)
             </span>
-            <div className="flex gap-2 max-[480px]:col-span-2 max-[480px]:grid max-[480px]:grid-cols-2">
+            <nav
+              aria-label="Group board pagination"
+              className="flex flex-wrap items-center justify-center gap-2"
+            >
               <Button
                 disabled={!board?.groups.hasPrevious || claimMutation.isPending}
                 icon={<ChevronLeft size={16} />}
                 onClick={() => setPage((value) => Math.max(0, value - 1))}
+                size="sm"
                 variant="secondary"
               >
                 Previous
               </Button>
+
+              {paginationItems.map((item) =>
+                typeof item === "number" ? (
+                  <Button
+                    aria-current={item === currentPage ? "page" : undefined}
+                    aria-label={`Go to page ${item + 1}`}
+                    className="min-w-9 px-3"
+                    disabled={claimMutation.isPending}
+                    key={item}
+                    onClick={() => setPage(item)}
+                    size="sm"
+                    variant={item === currentPage ? "primary" : "secondary"}
+                  >
+                    {item + 1}
+                  </Button>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className="px-1 text-sm font-semibold text-muted"
+                    key={item}
+                  >
+                    …
+                  </span>
+                ),
+              )}
+
               <Button
                 disabled={!board?.groups.hasNext || claimMutation.isPending}
                 icon={<ChevronRight size={16} />}
                 onClick={() => setPage((value) => value + 1)}
+                size="sm"
                 variant="secondary"
               >
                 Next
               </Button>
-            </div>
+            </nav>
           </div>
         </>
       )}
