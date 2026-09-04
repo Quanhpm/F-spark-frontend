@@ -50,6 +50,8 @@ export const queryKeys = {
       [...queryKeys.groups.all, "join-requests", "me"] as const,
     instructorMe: (filters?: QueryFilters) =>
       [...queryKeys.groups.all, "instructor", "me", filters ?? {}] as const,
+    instructorBoard: (filters?: QueryFilters) =>
+      [...queryKeys.groups.all, "instructor", "board", filters ?? {}] as const,
     recruitmentRoles: () =>
       [...queryKeys.groups.all, "recruitment-roles"] as const,
   },

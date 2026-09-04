@@ -1,13 +1,29 @@
-import { apiGet, apiPatch } from "@/shared/lib";
+import { apiGet, apiPatch, apiPost } from "@/shared/lib";
 import type { ApiResponse } from "@/shared/types";
 
 import type {
   AssignInstructorRequest,
   AssignMentorRequest,
   InstructorAssignedGroupDetailDto,
+  InstructorGroupBoardItemDto,
+  InstructorGroupBoardQuery,
+  InstructorGroupBoardResponseDto,
   InstructorGroupsQuery,
   InstructorGroupSummaryDto,
 } from "../types/instructor-groups.types";
+
+export function listInstructorGroupBoard(query: InstructorGroupBoardQuery = {}) {
+  return apiGet<ApiResponse<InstructorGroupBoardResponseDto>>(
+    "/api/instructor/groups/board",
+    { query },
+  );
+}
+
+export function claimInstructorGroup(groupId: number) {
+  return apiPost<ApiResponse<InstructorGroupBoardItemDto>>(
+    `/api/instructor/groups/${groupId}/claim`,
+  );
+}
 
 export function listInstructorGroups(query: InstructorGroupsQuery = {}) {
   return apiGet<ApiResponse<InstructorGroupSummaryDto[]>>(

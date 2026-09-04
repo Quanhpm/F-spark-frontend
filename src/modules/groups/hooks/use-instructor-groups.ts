@@ -3,13 +3,40 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
 import type { ApiResponse } from "@/shared/types";
 
-import { assignGroupInstructor, assignGroupMentor, listInstructorGroups } from "../api";
+import {
+  assignGroupInstructor,
+  assignGroupMentor,
+  claimInstructorGroup,
+  listInstructorGroupBoard,
+  listInstructorGroups,
+} from "../api";
 import type { GroupDetailDto, GroupSummaryDto } from "../types";
 import type {
   AssignGroupInstructorVariables,
   AssignGroupMentorVariables,
+  InstructorGroupBoardQuery,
   InstructorGroupsQuery,
 } from "../types/instructor-groups.types";
+
+export function useInstructorGroupBoard(query: InstructorGroupBoardQuery = {}) {
+  return useQuery({
+    queryFn: () => listInstructorGroupBoard(query),
+    queryKey: queryKeys.groups.instructorBoard(query),
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useClaimInstructorGroup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: claimInstructorGroup,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+  });
+}
 
 export function useInstructorGroups(query: InstructorGroupsQuery = {}) {
   return useQuery({

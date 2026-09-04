@@ -71,23 +71,13 @@ export function ContributionEditor({
     ?.milestoneScores.find((score) => score.milestoneId === milestoneId);
   const canRespond = !isGraded && contributionRevision > 0 && agreementStatus !== "CHANGES_REQUESTED";
 
-  const total = Number(
-    Object.values(percents)
-      .reduce((sum, val) => sum + val, 0)
-      .toFixed(2),
-  );
-  const error =
-    total !== 100
-      ? `Total percentage must equal exactly 100%. Current total is ${total}%.`
-      : null;
-
   const handlePercentChange = (studentId: number, value: string) => {
     const num = Math.max(0, Math.min(100, Number(value) || 0));
     setPercents((prev) => ({ ...prev, [studentId]: num }));
   };
 
   const handleSave = () => {
-    if (!canEdit || total !== 100) return;
+    if (!canEdit) return;
 
     updateContributionsMutation.mutate(
       {
@@ -116,7 +106,7 @@ export function ContributionEditor({
         </h3>
         <p className="mt-1 mb-0 text-xs text-muted">
           {canEdit
-            ? `Set each member's contribution for ${milestoneTitle}.`
+            ? `Rate each member independently from 0% to 100% for ${milestoneTitle}. Percentages do not need to add up to 100%.`
             : readOnlyReason ??
               `Contribution details for ${milestoneTitle}.`}
         </p>
@@ -148,7 +138,7 @@ export function ContributionEditor({
                   {memberScore && (
                     <span>
                       {" "}
-                      · Individual score {formatScore(memberScore.calculatedScore)}
+                      · Individual milestone score {formatScore(memberScore.calculatedScore)}
                     </span>
                   )}
                 </p>
@@ -204,22 +194,10 @@ export function ContributionEditor({
         {agreementStatus === "CHANGES_REQUESTED" && <p className="m-0 text-sm font-semibold text-red-700">The leader must save a new revision before members can respond again.</p>}
       </div>
 
-      {canEdit && error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-normal text-red-700 font-semibold">
-          {error}
-        </div>
-      )}
-
       {canEdit && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
-          <span className="text-sm font-bold text-foreground">
-            Total:{" "}
-            <span className={total === 100 ? "text-green-600" : "text-red-600"}>
-              {total}%
-            </span>
-          </span>
+        <div className="flex flex-wrap justify-end gap-3 border-t border-border/60 pt-4">
           <Button
-            disabled={total !== 100 || updateContributionsMutation.isPending}
+            disabled={updateContributionsMutation.isPending}
             onClick={handleSave}
           >
             {updateContributionsMutation.isPending

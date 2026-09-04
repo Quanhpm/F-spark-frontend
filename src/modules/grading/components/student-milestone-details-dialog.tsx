@@ -185,7 +185,7 @@ export function StudentMilestoneDetailsDialog({
                     }
                   />
                   <DetailItem
-                    label="My score"
+                    label="My milestone score"
                     value={formatScore(currentStudentScore?.calculatedScore)}
                   />
                 </div>
