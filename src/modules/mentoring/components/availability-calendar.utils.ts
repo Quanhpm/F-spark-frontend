@@ -29,8 +29,7 @@ export const DEFAULT_START_HOUR = 0;
 export const DEFAULT_END_HOUR = 24;
 export const HOUR_HEIGHT = 40;
 export const MINUTE_IN_MS = 60_000;
-export const MIN_SLOT_DURATION_MS = 60 * MINUTE_IN_MS;
-export const MAX_SLOT_DURATION_MS = 12 * 60 * MINUTE_IN_MS;
+export const SLOT_DURATION_MS = 60 * MINUTE_IN_MS;
 export const BUSINESS_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
 export const pageClassName = "grid min-w-0 gap-6";
@@ -77,19 +76,23 @@ export function toIsoDateTime(value: string): string {
   return new Date(value).toISOString();
 }
 
-export function getMinimumEndDateTimeLocal(
-  startAt: string,
-  fallback: string,
-): string {
+export function getOneHourEndDateTimeLocal(startAt: string): string {
   const startDate = new Date(startAt);
-  if (Number.isNaN(startDate.getTime())) return fallback;
+  if (Number.isNaN(startDate.getTime())) return "";
 
-  const minimumEnd = new Date(startDate.getTime() + 60_000);
-  const fallbackDate = new Date(fallback);
+  return toDateTimeLocalValue(
+    new Date(startDate.getTime() + SLOT_DURATION_MS),
+  );
+}
 
-  return minimumEnd.getTime() > fallbackDate.getTime()
-    ? toDateTimeLocalValue(minimumEnd)
-    : fallback;
+export function isHalfHourBoundary(value: string): boolean {
+  const date = new Date(value);
+  return (
+    Number.isFinite(date.getTime()) &&
+    (date.getMinutes() === 0 || date.getMinutes() === 30) &&
+    date.getSeconds() === 0 &&
+    date.getMilliseconds() === 0
+  );
 }
 
 export function createFormFromSlot(
@@ -392,16 +395,12 @@ export function validateSlotForm(form: SlotFormState): string | null {
     return "End time must be in the future.";
   }
 
-  if (endAt <= startAt) {
-    return "End time must be after start time.";
+  if (!isHalfHourBoundary(form.startAt)) {
+    return "Availability slots must start on the hour or half hour.";
   }
 
-  if (endAt - startAt < MIN_SLOT_DURATION_MS) {
-    return "Availability slots must be at least 1 hour long.";
-  }
-
-  if (endAt - startAt > MAX_SLOT_DURATION_MS) {
-    return "Availability slots cannot be longer than 12 hours.";
+  if (endAt - startAt !== SLOT_DURATION_MS) {
+    return "Availability slots must last exactly 60 minutes.";
   }
 
   if (

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { queryKeys } from "@/shared/lib";
+import { ApiError, queryKeys } from "@/shared/lib";
 import type { ApiResponse } from "@/shared/types";
 
 import {
@@ -18,11 +18,19 @@ import type {
   InstructorGroupsQuery,
 } from "../types/instructor-groups.types";
 
-export function useInstructorGroupBoard(query: InstructorGroupBoardQuery = {}) {
+export function useInstructorGroupBoard(
+  query: InstructorGroupBoardQuery = {},
+  enabled = true,
+) {
   return useQuery({
+    enabled,
     queryFn: () => listInstructorGroupBoard(query),
     queryKey: queryKeys.groups.instructorBoard(query),
     refetchOnWindowFocus: true,
+    retry: (failureCount, error) => {
+      if (error instanceof ApiError && error.status < 500) return false;
+      return failureCount < 1;
+    },
   });
 }
 

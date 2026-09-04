@@ -12,7 +12,9 @@ import {
   createFormFromSlot,
   errorPanelClassName,
   getErrorMessage,
-  getMinimumEndDateTimeLocal,
+  getOneHourEndDateTimeLocal,
+  isHalfHourBoundary,
+  SLOT_DURATION_MS,
   validateSlotForm,
 } from "./availability-calendar.utils";
 
@@ -34,12 +36,26 @@ export function SlotFormModal({
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const minimumDateTime = getMinimumDateTimeLocal();
+  const invalidStartBoundary =
+    Boolean(form.startAt) && !isHalfHourBoundary(form.startAt);
+  const invalidDuration =
+    Boolean(form.startAt && form.endAt) &&
+    new Date(form.endAt).getTime() - new Date(form.startAt).getTime() !==
+      SLOT_DURATION_MS;
 
   function updateField<K extends keyof SlotFormState>(
     field: K,
     value: SlotFormState[K],
   ) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateStartAt(startAt: string) {
+    setForm((current) => ({
+      ...current,
+      endAt: getOneHourEndDateTimeLocal(startAt),
+      startAt,
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -80,7 +96,17 @@ export function SlotFormModal({
           <Button onClick={onClose} variant="secondary">
             Cancel
           </Button>
-          <Button disabled={isSubmitting} form={formId} type="submit">
+          <Button
+            disabled={
+              isSubmitting ||
+              !form.startAt ||
+              !form.endAt ||
+              invalidStartBoundary ||
+              invalidDuration
+            }
+            form={formId}
+            type="submit"
+          >
             {isSubmitting ? "Saving..." : "Save slot"}
           </Button>
         </>
@@ -96,21 +122,34 @@ export function SlotFormModal({
         onSubmit={handleSubmit}
       >
         {formError && <div className={errorPanelClassName}>{formError}</div>}
+        <p className="m-0 text-sm text-muted">
+          Each slot lasts 60 minutes and must start at minute 00 or 30.
+        </p>
         <TextInput
-          hint="Future date and time"
+          error={
+            invalidStartBoundary
+              ? "Choose a time ending in :00 or :30."
+              : undefined
+          }
+          hint="60-minute slot · minute 00 or 30"
           icon={<CalendarClock size={16} />}
           label="Start"
           min={minimumDateTime}
-          onChange={(event) => updateField("startAt", event.target.value)}
+          onChange={(event) => updateStartAt(event.target.value)}
+          step={1800}
           type="datetime-local"
           value={form.startAt}
         />
         <TextInput
-          hint="Future date and time"
+          error={
+            invalidDuration
+              ? "End must be exactly 60 minutes after start."
+              : undefined
+          }
+          hint="Calculated automatically"
           icon={<CalendarClock size={16} />}
           label="End"
-          min={getMinimumEndDateTimeLocal(form.startAt, minimumDateTime)}
-          onChange={(event) => updateField("endAt", event.target.value)}
+          readOnly
           type="datetime-local"
           value={form.endAt}
         />

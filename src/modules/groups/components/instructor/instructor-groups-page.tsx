@@ -338,14 +338,19 @@ export function InstructorGroupsPage() {
   const termsQuery = useAvailableAcademicTerms();
   const availableTerms = termsQuery.data?.data ?? [];
   const selectedTerm = term ?? availableTerms[0]?.code ?? "";
-  const boardQuery = useInstructorGroupBoard({
-    assignment,
-    courseCode: optional(courseCode),
-    page,
-    search: optional(search),
-    size: PAGE_SIZE,
-    term: optional(selectedTerm),
-  });
+  const canLoadBoard =
+    !termsQuery.isLoading && !termsQuery.isError && selectedTerm.length > 0;
+  const boardQuery = useInstructorGroupBoard(
+    {
+      assignment,
+      courseCode: optional(courseCode),
+      page,
+      search: optional(search),
+      size: PAGE_SIZE,
+      term: optional(selectedTerm),
+    },
+    canLoadBoard,
+  );
   const claimMutation = useClaimInstructorGroup();
 
   const board = boardQuery.data?.data;
@@ -379,12 +384,15 @@ export function InstructorGroupsPage() {
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         await boardQuery.refetch();
+        throw new ApiError(
+          "This group was just claimed by another instructor. The board has been refreshed.",
+          409,
+          error.payload,
+        );
       }
       throw error;
     }
   }
-
-  const loadError = boardQuery.error ?? termsQuery.error;
 
   return (
     <div className="grid min-w-0 gap-6">
@@ -512,12 +520,25 @@ export function InstructorGroupsPage() {
         </CardContent>
       </Card>
 
-      {boardQuery.isLoading || termsQuery.isLoading ? (
+      {termsQuery.isLoading || (canLoadBoard && boardQuery.isLoading) ? (
         <LoadingState title="Loading group board" />
-      ) : loadError ? (
+      ) : termsQuery.isError ? (
         <EmptyState
           className="border-red-200 bg-red-50"
-          description={getErrorMessage(loadError)}
+          description={getErrorMessage(termsQuery.error)}
+          icon={<AlertTriangle size={22} />}
+          title="Unable to load group board"
+        />
+      ) : availableTerms.length === 0 ? (
+        <EmptyState
+          description="The group board becomes available when an academic term is open."
+          icon={<CalendarClock size={22} />}
+          title="No open academic terms"
+        />
+      ) : boardQuery.isError ? (
+        <EmptyState
+          className="border-red-200 bg-red-50"
+          description={getErrorMessage(boardQuery.error)}
           icon={<AlertTriangle size={22} />}
           title="Unable to load group board"
         />
