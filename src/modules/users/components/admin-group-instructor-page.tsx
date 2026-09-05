@@ -8,6 +8,7 @@ import {
   ChevronRight,
   GraduationCap,
   Loader2,
+  Pencil,
   Search,
   UserRoundPlus,
   UserRoundX,
@@ -109,6 +110,13 @@ type PendingUnassignment = {
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed || undefined;
+}
+
+function getPersonInitials(name: string | null | undefined, fallback: string) {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (parts.length === 0) return fallback.slice(0, 2).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }
 
 function getLoadErrorMessage(error: unknown) {
@@ -345,7 +353,7 @@ type AssignmentPanelProps = {
   disabled: boolean;
   groupName: string;
   isSameSelection: boolean;
-  onAssign: () => void;
+  onAssign: () => Promise<boolean>;
   onChange: (value: string) => void;
   onUnassign?: () => void;
   pending: boolean;
@@ -370,9 +378,21 @@ function AssignmentPanel({
   const isInstructor = role === "INSTRUCTOR";
   const roleLabel = isInstructor ? "Instructor" : "Mentor";
   const hasCurrentAssignment = Boolean(currentName || currentCode);
+  const [isEditing, setIsEditing] = useState(false);
+  const displayName =
+    currentName ?? `No ${roleLabel.toLowerCase()} assigned`;
+
+  async function handleSave() {
+    if (await onAssign()) setIsEditing(false);
+  }
+
+  function handleCancel() {
+    onChange("");
+    setIsEditing(false);
+  }
 
   return (
-    <section className="grid min-w-0 content-start gap-4 rounded-2xl border border-border bg-background p-4">
+    <section className="grid h-full min-w-0 content-start gap-4 rounded-2xl border border-border bg-background p-4">
       <div className="flex items-center gap-3">
         <span
           className={cn(
@@ -396,63 +416,110 @@ function AssignmentPanel({
 
       <div
         className={cn(
-          "flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-xl border p-3",
+          "grid min-h-24 min-w-0 gap-3 rounded-xl border p-3",
           hasCurrentAssignment
             ? "border-border bg-surface"
             : "border-dashed border-border bg-surface/50",
         )}
       >
-        <div className="grid min-w-0 gap-1">
+        <div className="flex min-w-0 items-center gap-3">
           <span
+            aria-hidden="true"
             className={cn(
-              "truncate text-sm",
+              "inline-flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold",
               hasCurrentAssignment
-                ? "font-semibold text-foreground"
-                : "text-muted",
+                ? isInstructor
+                  ? "bg-orange-100 text-brand-primary"
+                  : "bg-amber-100 text-amber-800"
+                : "bg-border text-muted",
             )}
           >
-            {currentName ?? `No ${roleLabel.toLowerCase()} assigned`}
+            {getPersonInitials(currentName, roleLabel)}
           </span>
-          {currentCode && (
-            <span className="truncate text-xs text-muted">{currentCode}</span>
-          )}
+          <div className="grid min-w-0 flex-1 gap-1">
+            <span
+              className={cn(
+                "line-clamp-2 break-words text-sm leading-5",
+                hasCurrentAssignment
+                  ? "font-semibold text-foreground"
+                  : "text-muted",
+              )}
+              title={currentName ?? undefined}
+            >
+              {displayName}
+            </span>
+            {currentCode && (
+              <span className="break-all text-xs text-muted">{currentCode}</span>
+            )}
+          </div>
         </div>
-        {hasCurrentAssignment && onUnassign && (
-          <Button
-            className="shrink-0"
-            disabled={disabled}
-            icon={<UserRoundX size={15} />}
-            onClick={onUnassign}
-            size="sm"
-            variant="danger"
-          >
-            Unassign
-          </Button>
+
+        {!isEditing && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={disabled || Boolean(blockedReason)}
+              icon={
+                hasCurrentAssignment ? (
+                  <Pencil size={14} />
+                ) : (
+                  <UserRoundPlus size={14} />
+                )
+              }
+              onClick={() => setIsEditing(true)}
+              size="sm"
+              variant="primary"
+            >
+              {hasCurrentAssignment
+                ? "Change"
+                : `Assign ${roleLabel.toLowerCase()}`}
+            </Button>
+            {hasCurrentAssignment && onUnassign && (
+              <Button
+                disabled={disabled}
+                icon={<UserRoundX size={14} />}
+                onClick={onUnassign}
+                size="sm"
+                variant="danger"
+              >
+                Unassign
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="grid gap-2">
-        <UserSearchCombobox
-          ariaLabel={`New ${roleLabel.toLowerCase()} for ${groupName}`}
-          disabled={disabled || Boolean(blockedReason)}
-          onChange={onChange}
-          placeholder={`Search active ${roleLabel.toLowerCase()}`}
-          role={role}
-          value={value}
-        />
-        <Button
-          className="w-full"
-          disabled={
-            disabled || Boolean(blockedReason) || !value || isSameSelection
-          }
-          onClick={onAssign}
-          variant={isInstructor ? "primary" : "secondary"}
-        >
-          {pending
-            ? "Saving..."
-            : `${hasCurrentAssignment ? "Replace" : "Assign"} ${roleLabel.toLowerCase()}`}
-        </Button>
-      </div>
+      {isEditing && (
+        <div className="grid gap-2 rounded-xl border border-orange-100 bg-orange-50/50 p-3">
+          <UserSearchCombobox
+            ariaLabel={`New ${roleLabel.toLowerCase()} for ${groupName}`}
+            disabled={disabled || Boolean(blockedReason)}
+            onChange={onChange}
+            placeholder={`Search active ${roleLabel.toLowerCase()}`}
+            role={role}
+            value={value}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              disabled={disabled}
+              onClick={handleCancel}
+              size="sm"
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                disabled || Boolean(blockedReason) || !value || isSameSelection
+              }
+              onClick={handleSave}
+              size="sm"
+              variant="primary"
+            >
+              {pending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -542,7 +609,7 @@ export function AdminGroupInstructorPage() {
         message: "Choose an active instructor before assigning the group.",
         tone: "error",
       });
-      return;
+      return false;
     }
 
     if (instructorId === currentInstructorAccountId) {
@@ -550,7 +617,7 @@ export function AdminGroupInstructorPage() {
         message: "This instructor is already assigned to the group.",
         tone: "error",
       });
-      return;
+      return false;
     }
 
     setAssigningGroupId(groupId);
@@ -567,11 +634,13 @@ export function AdminGroupInstructorPage() {
         message: "Instructor assignment saved.",
         tone: "success",
       });
+      return true;
     } catch (mutationError) {
       setFeedback(groupId, {
         message: getMutationErrorMessage(mutationError),
         tone: "error",
       });
+      return false;
     } finally {
       setAssigningGroupId(null);
     }
@@ -588,7 +657,7 @@ export function AdminGroupInstructorPage() {
         message: "Choose an active mentor before assigning the group.",
         tone: "error",
       });
-      return;
+      return false;
     }
 
     if (mentorId === currentMentorAccountId) {
@@ -596,7 +665,7 @@ export function AdminGroupInstructorPage() {
         message: "This mentor is already assigned to the group.",
         tone: "error",
       });
-      return;
+      return false;
     }
 
     setAssigningGroupId(groupId);
@@ -613,11 +682,13 @@ export function AdminGroupInstructorPage() {
         message: "Mentor assignment saved.",
         tone: "success",
       });
+      return true;
     } catch (mutationError) {
       setFeedback(groupId, {
         message: getMutationErrorMessage(mutationError),
         tone: "error",
       });
+      return false;
     } finally {
       setAssigningGroupId(null);
     }
