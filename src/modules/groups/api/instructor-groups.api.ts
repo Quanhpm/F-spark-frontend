@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "@/shared/lib";
+import { apiDelete, apiGet, apiPatch, apiPost } from "@/shared/lib";
 import type { ApiResponse } from "@/shared/types";
 
 import type {
@@ -49,5 +49,17 @@ export function assignGroupMentor(
   return apiPatch<ApiResponse<InstructorAssignedGroupDetailDto>>(
     `/api/groups/${groupId}/mentor`,
     payload,
+  );
+}
+
+export function unassignGroupInstructor(groupId: number) {
+  return apiDelete<ApiResponse<InstructorAssignedGroupDetailDto>>(
+    `/api/groups/${groupId}/instructor`,
+  );
+}
+
+export function unassignGroupMentor(groupId: number) {
+  return apiDelete<ApiResponse<InstructorAssignedGroupDetailDto>>(
+    `/api/groups/${groupId}/mentor`,
   );
 }

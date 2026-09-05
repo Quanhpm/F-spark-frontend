@@ -1,12 +1,14 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { ChevronDown, Loader2, Search, UserRoundPlus, X } from "lucide-react";
+import { ChevronDown, Loader2, Search, UserRoundPlus, UserRoundX, X } from "lucide-react";
 
 import {
   useAssignGroupInstructor,
   useAssignGroupMentor,
   useAdminGroups,
+  useUnassignGroupInstructor,
+  useUnassignGroupMentor,
 } from "@/modules/groups";
 import {
   Badge,
@@ -16,6 +18,7 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
+  ResponsiveDialog,
   TextInput,
 } from "@/shared/components";
 import { ApiError, cn } from "@/shared/lib";
@@ -50,6 +53,13 @@ type RowFeedback = {
   tone: "error" | "success";
 };
 
+type PendingUnassignment = {
+  groupId: number;
+  groupName: string;
+  personName: string;
+  role: "instructor" | "mentor";
+};
+
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed || undefined;
@@ -64,7 +74,7 @@ function getLoadErrorMessage(error: unknown) {
 function getMutationErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
-    : "Unable to assign the person. Please try again.";
+    : "Unable to save the assignment change. Please try again.";
 }
 
 function getUserDisplayName(user: AdminUserSummaryDto) {
@@ -344,6 +354,8 @@ export function AdminGroupInstructorPage() {
     Record<number, string>
   >({});
   const [assigningGroupId, setAssigningGroupId] = useState<number | null>(null);
+  const [pendingUnassignment, setPendingUnassignment] =
+    useState<PendingUnassignment | null>(null);
   const [rowFeedback, setRowFeedback] = useState<
     Record<number, RowFeedback | undefined>
   >({});
@@ -355,6 +367,8 @@ export function AdminGroupInstructorPage() {
   });
   const assignInstructorMutation = useAssignGroupInstructor();
   const assignMentorMutation = useAssignGroupMentor();
+  const unassignInstructorMutation = useUnassignGroupInstructor();
+  const unassignMentorMutation = useUnassignGroupMentor();
   const groupsPage = groupsQuery.data?.data;
   const groups = groupsPage?.content ?? [];
   const groupTotalPages = groupsPage?.totalPages ?? 0;
@@ -482,6 +496,39 @@ export function AdminGroupInstructorPage() {
     }
   }
 
+  async function handleConfirmUnassign() {
+    if (!pendingUnassignment) return;
+
+    const { groupId, role } = pendingUnassignment;
+    setAssigningGroupId(groupId);
+    setRowFeedback((current) => ({ ...current, [groupId]: undefined }));
+
+    try {
+      if (role === "instructor") {
+        await unassignInstructorMutation.mutateAsync({ groupId });
+      } else {
+        await unassignMentorMutation.mutateAsync({ groupId });
+      }
+      setPendingUnassignment(null);
+      await groupsQuery.refetch();
+      setFeedback(groupId, {
+        message: `${role === "instructor" ? "Instructor" : "Mentor"} unassigned successfully.`,
+        tone: "success",
+      });
+    } catch (mutationError) {
+      setPendingUnassignment(null);
+      setFeedback(groupId, {
+        message: getMutationErrorMessage(mutationError),
+        tone: "error",
+      });
+    } finally {
+      setAssigningGroupId(null);
+    }
+  }
+
+  const isUnassigning =
+    unassignInstructorMutation.isPending || unassignMentorMutation.isPending;
+
   return (
     <div className={pageClassName}>
       <PageHeader
@@ -582,7 +629,25 @@ export function AdminGroupInstructorPage() {
                       <td className={tableCellClassName}>
                         <div className="grid gap-2">
                           {group.mentorName ? (
-                            <Badge tone="neutral">{group.mentorName}</Badge>
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <Badge tone="neutral">{group.mentorName}</Badge>
+                              <Button
+                                disabled={assigningGroupId !== null}
+                                icon={<UserRoundX size={15} />}
+                                onClick={() =>
+                                  setPendingUnassignment({
+                                    groupId: group.id,
+                                    groupName: group.name,
+                                    personName: group.mentorName ?? "the current mentor",
+                                    role: "mentor",
+                                  })
+                                }
+                                size="sm"
+                                variant="danger"
+                              >
+                                Unassign
+                              </Button>
+                            </div>
                           ) : (
                             <span className="text-muted">Unassigned</span>
                           )}
@@ -628,6 +693,26 @@ export function AdminGroupInstructorPage() {
                             <span className="break-all text-xs text-muted">
                               {group.instructorCode ?? "No instructor code"}
                             </span>
+                            <Button
+                              className="mt-1 w-fit"
+                              disabled={assigningGroupId !== null}
+                              icon={<UserRoundX size={15} />}
+                              onClick={() =>
+                                setPendingUnassignment({
+                                  groupId: group.id,
+                                  groupName: group.name,
+                                  personName:
+                                    group.instructorName ??
+                                    group.instructorCode ??
+                                    "the current instructor",
+                                  role: "instructor",
+                                })
+                              }
+                              size="sm"
+                              variant="danger"
+                            >
+                              Unassign
+                            </Button>
                           </div>
                         ) : (
                           <span className="text-muted">Unassigned</span>
@@ -735,6 +820,25 @@ export function AdminGroupInstructorPage() {
                       <dd className="m-0 break-words text-sm text-foreground">
                         {group.mentorName ?? "Unassigned"}
                       </dd>
+                      {group.mentorName && (
+                        <Button
+                          className="mt-1 w-fit"
+                          disabled={assigningGroupId !== null}
+                          icon={<UserRoundX size={15} />}
+                          onClick={() =>
+                            setPendingUnassignment({
+                              groupId: group.id,
+                              groupName: group.name,
+                              personName: group.mentorName ?? "the current mentor",
+                              role: "mentor",
+                            })
+                          }
+                          size="sm"
+                          variant="danger"
+                        >
+                          Unassign mentor
+                        </Button>
+                      )}
                     </div>
                   </dl>
 
@@ -782,6 +886,28 @@ export function AdminGroupInstructorPage() {
                     <span className="break-all text-xs text-muted">
                       {group.instructorCode ?? "No instructor code"}
                     </span>
+                    {(group.instructorName || group.instructorCode) && (
+                      <Button
+                        className="mt-1 w-fit"
+                        disabled={assigningGroupId !== null}
+                        icon={<UserRoundX size={15} />}
+                        onClick={() =>
+                          setPendingUnassignment({
+                            groupId: group.id,
+                            groupName: group.name,
+                            personName:
+                              group.instructorName ??
+                              group.instructorCode ??
+                              "the current instructor",
+                            role: "instructor",
+                          })
+                        }
+                        size="sm"
+                        variant="danger"
+                      >
+                        Unassign instructor
+                      </Button>
+                    )}
                   </div>
 
                   <div className="grid min-w-0 gap-3 border-t border-border pt-3">
@@ -861,6 +987,43 @@ export function AdminGroupInstructorPage() {
             </div>
           )}
         </Card>
+      )}
+
+      {pendingUnassignment && (
+        <ResponsiveDialog
+          closeLabel="Cancel unassignment"
+          closeOnBackdrop={!isUnassigning}
+          closeOnEscape={!isUnassigning}
+          description={`${pendingUnassignment.groupName} · ${pendingUnassignment.personName}`}
+          footer={
+            <>
+              <Button
+                disabled={isUnassigning}
+                onClick={() => setPendingUnassignment(null)}
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={isUnassigning}
+                icon={<UserRoundX size={16} />}
+                onClick={handleConfirmUnassign}
+                variant="danger"
+              >
+                {isUnassigning ? "Unassigning..." : "Confirm unassign"}
+              </Button>
+            </>
+          }
+          onClose={() => {
+            if (!isUnassigning) setPendingUnassignment(null);
+          }}
+          title={`Unassign ${pendingUnassignment.role}`}
+        >
+          <p className="m-0 text-sm leading-6 text-muted">
+            This removes the current assignment only. Existing meetings,
+            milestone grades, and contribution history will be preserved.
+          </p>
+        </ResponsiveDialog>
       )}
     </div>
   );

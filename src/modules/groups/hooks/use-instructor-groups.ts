@@ -9,6 +9,8 @@ import {
   claimInstructorGroup,
   listInstructorGroupBoard,
   listInstructorGroups,
+  unassignGroupInstructor,
+  unassignGroupMentor,
 } from "../api";
 import type { GroupDetailDto, GroupSummaryDto } from "../types";
 import type {
@@ -16,6 +18,7 @@ import type {
   AssignGroupMentorVariables,
   InstructorGroupBoardQuery,
   InstructorGroupsQuery,
+  UnassignGroupRoleVariables,
 } from "../types/instructor-groups.types";
 
 export function useInstructorGroupBoard(
@@ -138,6 +141,44 @@ export function useAssignGroupMentor() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.admin.all,
       });
+    },
+  });
+}
+
+function invalidateAssignmentCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  groupId: number,
+) {
+  queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.groups.detail(groupId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.grading.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.milestones.all });
+}
+
+export function useUnassignGroupInstructor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId }: UnassignGroupRoleVariables) =>
+      unassignGroupInstructor(groupId),
+    onSuccess: (response, variables) => {
+      updateCachedGroupLists(queryClient, response.data);
+      invalidateAssignmentCaches(queryClient, variables.groupId);
+    },
+  });
+}
+
+export function useUnassignGroupMentor() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId }: UnassignGroupRoleVariables) =>
+      unassignGroupMentor(groupId),
+    onSuccess: (response, variables) => {
+      updateCachedGroupLists(queryClient, response.data);
+      invalidateAssignmentCaches(queryClient, variables.groupId);
     },
   });
 }

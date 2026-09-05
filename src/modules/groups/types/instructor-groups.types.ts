@@ -92,6 +92,10 @@ export type AssignGroupMentorVariables = {
   payload: AssignMentorRequest;
 };
 
+export type UnassignGroupRoleVariables = {
+  groupId: number;
+};
+
 export type InstructorGroupSummaryDto = GroupSummaryDto;
 
 export type InstructorAssignedGroupDetailDto = GroupDetailDto;

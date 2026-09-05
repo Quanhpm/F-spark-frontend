@@ -47,30 +47,42 @@ function GradeModal({
   const contributionsAgreed = column?.contributionAgreementStatus === "AGREED";
   const canGrade = isContributionsComplete && contributionsAgreed;
   
-  const [score, setScore] = useState<number>(() => column?.groupGrade?.score ?? 0);
+  const [score, setScore] = useState<string>(() =>
+    column?.groupGrade ? String(column.groupGrade.score) : "",
+  );
   const [feedback, setFeedback] = useState<string>(() => column?.groupGrade?.feedback ?? "");
 
   // Update form when data loads
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (column?.groupGrade) {
-      setScore(column.groupGrade.score);
+      setScore(String(column.groupGrade.score));
       setFeedback(column.groupGrade.feedback ?? "");
+    } else if (column) {
+      setScore("");
+      setFeedback("");
     }
   }, [column]);
 
   const gradeMutation = useGradeGroup(milestoneId, groupId);
+  const parsedScore = score.trim() ? Number(score) : null;
+  const scoreError =
+    parsedScore === null
+      ? "Score is required"
+      : !Number.isFinite(parsedScore) || parsedScore < 0 || parsedScore > maxScore
+        ? `Score must be between 0 and ${maxScore}`
+        : undefined;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (score < 0 || score > maxScore) {
-      toast.error(`Score must be between 0 and ${maxScore}.`);
+    if (scoreError || parsedScore === null) {
+      toast.error(scoreError ?? "Enter a valid score.");
       return;
     }
 
     gradeMutation.mutate(
       {
-        score,
+        score: parsedScore,
         feedback: feedback.trim() || undefined,
       },
       {
@@ -101,7 +113,7 @@ function GradeModal({
             Cancel
           </Button>
           <Button
-            disabled={gradeMutation.isPending || !canGrade}
+            disabled={gradeMutation.isPending || !canGrade || Boolean(scoreError)}
             form={formId}
             type="submit"
           >
@@ -164,13 +176,14 @@ function GradeModal({
             <div className="space-y-4">
               <TextInput
                 label={`Score (0 - ${maxScore})`}
+                error={canGrade ? scoreError : undefined}
                 type="number"
                 min={0}
                 max={maxScore}
                 step={0.1}
                 required
                 value={score}
-                onChange={(e) => setScore(Number(e.target.value) || 0)}
+                onChange={(e) => setScore(e.target.value)}
                 disabled={!canGrade}
               />
 

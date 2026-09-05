@@ -31,6 +31,14 @@ function formatScore(value: number | null | undefined) {
     : "Not available";
 }
 
+function parsePercent(value: string) {
+  if (!value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100
+    ? parsed
+    : null;
+}
+
 export function ContributionEditor({
   groupId,
   milestoneId,
@@ -49,8 +57,8 @@ export function ContributionEditor({
   readOnly = false,
 }: ContributionEditorProps) {
   const [changeReason, setChangeReason] = useState("");
-  const [percents, setPercents] = useState<Record<number, number>>(() => {
-    return members.reduce<Record<number, number>>((acc, member) => {
+  const [percents, setPercents] = useState<Record<number, string>>(() => {
+    return members.reduce<Record<number, string>>((acc, member) => {
       // Find the percent for this milestone if it exists
       const score = member.milestoneScores.find(
         (m) => m.milestoneId === milestoneId
@@ -58,8 +66,8 @@ export function ContributionEditor({
       acc[member.studentId] =
         typeof score?.contributionPercent === "number" &&
         Number.isFinite(score.contributionPercent)
-          ? score.contributionPercent
-          : 0;
+          ? String(score.contributionPercent)
+          : "";
       return acc;
     }, {});
   });
@@ -72,21 +80,33 @@ export function ContributionEditor({
   const currentScore = members.find((member) => member.studentId === currentStudentId)
     ?.milestoneScores.find((score) => score.milestoneId === milestoneId);
   const canRespond = !readOnly && !isGraded && contributionRevision > 0 && agreementStatus !== "CHANGES_REQUESTED";
+  const hasInvalidPercent = members.some(
+    (member) => parsePercent(percents[member.studentId] ?? "") === null,
+  );
 
   const handlePercentChange = (studentId: number, value: string) => {
-    const num = Math.max(0, Math.min(100, Number(value) || 0));
-    setPercents((prev) => ({ ...prev, [studentId]: num }));
+    setPercents((prev) => ({ ...prev, [studentId]: value }));
   };
 
   const handleSave = () => {
     if (!canEdit) return;
 
+    const items = members.map((member) => {
+      const contributionPercent = parsePercent(
+        percents[member.studentId] ?? "",
+      );
+      return contributionPercent === null
+        ? null
+        : { studentId: member.studentId, contributionPercent };
+    });
+    if (items.some((item) => item === null)) {
+      toast.error("Enter a contribution from 0% to 100% for every member.");
+      return;
+    }
+
     updateContributionsMutation.mutate(
       {
-        items: Object.entries(percents).map(([studentId, pct]) => ({
-          studentId: Number(studentId),
-          contributionPercent: pct,
-        })),
+        items: items.filter((item) => item !== null),
       },
       {
         onSuccess: () => {
@@ -155,6 +175,13 @@ export function ContributionEditor({
                   <div className="w-24">
                     <TextInput
                       aria-label={`${member.studentName} contribution percentage`}
+                      error={
+                        parsePercent(percents[member.studentId] ?? "") === null
+                          ? (percents[member.studentId] ?? "").trim()
+                            ? "0–100 only"
+                            : "Required"
+                          : undefined
+                      }
                       max={100}
                       min={0}
                       onChange={(event) =>
@@ -162,7 +189,7 @@ export function ContributionEditor({
                       }
                       step="0.01"
                       type="number"
-                      value={percents[member.studentId] ?? 0}
+                      value={percents[member.studentId] ?? ""}
                     />
                   </div>
                   <span className="text-sm font-semibold text-muted">%</span>
@@ -199,7 +226,9 @@ export function ContributionEditor({
       {canEdit && (
         <div className="flex flex-wrap justify-end gap-3 border-t border-border/60 pt-4">
           <Button
-            disabled={updateContributionsMutation.isPending}
+            disabled={
+              updateContributionsMutation.isPending || hasInvalidPercent
+            }
             onClick={handleSave}
           >
             {updateContributionsMutation.isPending
