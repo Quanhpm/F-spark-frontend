@@ -221,7 +221,11 @@ export type CreateJoinRequestDto = {
 
 export type GroupsQuery = Pick<ApiListQuery, "search">;
 
-export type AdminGroupsQuery = ApiListQuery;
+export type AdminGroupStatusFilter = "ACTIVE" | "INACTIVE" | "ALL";
+
+export type AdminGroupsQuery = ApiListQuery & {
+  status?: AdminGroupStatusFilter;
+};
 
 export type UngroupedStudentsQuery = {
   term: string;

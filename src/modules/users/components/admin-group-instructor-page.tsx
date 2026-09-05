@@ -1,9 +1,22 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { ChevronDown, Loader2, Search, UserRoundPlus, UserRoundX, X } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap,
+  Loader2,
+  Search,
+  UserRoundPlus,
+  UserRoundX,
+  Users,
+  X,
+} from "lucide-react";
 
 import {
+  type AdminGroupStatusFilter,
   useAssignGroupInstructor,
   useAssignGroupMentor,
   useAdminGroups,
@@ -32,17 +45,50 @@ const GROUP_PAGE_SIZE = 10;
 const pageClassName = "grid min-w-0 gap-6";
 const filterClassName =
   "grid grid-cols-[minmax(220px,1fr)_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]";
-const tableWrapClassName = "w-full overflow-x-auto max-[760px]:hidden";
-const mobileListClassName =
-  "hidden min-w-0 gap-3 p-4 max-[760px]:grid max-[480px]:p-3";
-const mobileCardClassName =
-  "grid min-w-0 gap-4 rounded-xl border border-border bg-background p-4";
-const tableClassName = "w-full min-w-[1180px] border-collapse";
-const tableHeadCellClassName =
-  "border-b border-border px-4 py-3 text-left text-xs font-bold tracking-[0.04em] text-muted uppercase";
-const tableCellClassName =
-  "border-b border-border px-4 py-4 align-middle text-sm text-foreground";
 const skeletonLineClassName = "h-3 animate-pulse rounded-full bg-border";
+
+const GROUP_STATUS_FILTERS: Array<{
+  label: string;
+  value: AdminGroupStatusFilter;
+}> = [
+  { label: "Active", value: "ACTIVE" },
+  { label: "Inactive", value: "INACTIVE" },
+  { label: "All", value: "ALL" },
+];
+
+type PaginationItem = number | "start-ellipsis" | "end-ellipsis";
+
+function getPaginationItems(
+  currentPage: number,
+  totalPages: number,
+): PaginationItem[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index);
+  }
+  if (currentPage <= 3) {
+    return [0, 1, 2, 3, 4, "end-ellipsis", totalPages - 1];
+  }
+  if (currentPage >= totalPages - 4) {
+    return [
+      0,
+      "start-ellipsis",
+      totalPages - 5,
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+    ];
+  }
+  return [
+    0,
+    "start-ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "end-ellipsis",
+    totalPages - 1,
+  ];
+}
 
 type AppliedFilters = {
   groupSearch: string;
@@ -251,98 +297,170 @@ function UserSearchCombobox({
 }
 
 function AssignmentResultsSkeleton({ rowCount }: { rowCount: number }) {
-  const visibleRowCount = Math.max(1, rowCount);
-  const mobileRowCount = Math.min(visibleRowCount, 3);
+  const visibleCardCount = Math.min(Math.max(1, rowCount), 6);
 
   return (
-    <Card aria-busy="true" aria-label="Saving instructor assignment">
+    <div
+      aria-busy="true"
+      aria-label="Saving group assignment"
+      className="grid min-w-0 grid-cols-2 gap-4 max-[980px]:grid-cols-1"
+    >
       <span className="sr-only" role="status">
-        Saving instructor assignment and refreshing groups
+        Saving assignment and refreshing groups
       </span>
-
-      <div className={tableWrapClassName} aria-hidden="true">
-        <div className="min-w-[1180px]">
-          <div className="grid grid-cols-[1.35fr_1fr_1fr_1.35fr_2fr_100px] border-b border-border px-4 py-3">
-            {["Group", "Term / course", "Mentor", "Current instructor", "Assign new instructor", "Action"].map(
-              (label) => (
-                <div className="px-4" key={label}>
-                  <div className={cn(skeletonLineClassName, "w-24")} />
-                </div>
-              ),
-            )}
-          </div>
-          {Array.from({ length: visibleRowCount }, (_, rowIndex) => (
-            <div
-              className="grid min-h-[92px] grid-cols-[1.35fr_1fr_1fr_1.35fr_2fr_100px] items-center border-b border-border px-4 last:border-b-0"
-              key={`assignment-skeleton-row-${rowIndex}`}
-            >
-              <div className="grid gap-2 px-4">
-                <div className={cn(skeletonLineClassName, "w-32")} />
-                <div className={cn(skeletonLineClassName, "w-20")} />
+      {Array.from({ length: visibleCardCount }, (_, cardIndex) => (
+        <Card className="overflow-visible" key={`assignment-card-${cardIndex}`}>
+          <CardContent className="grid animate-pulse gap-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="grid flex-1 gap-2">
+                <div className={cn(skeletonLineClassName, "h-5 w-2/3")} />
+                <div className={cn(skeletonLineClassName, "w-1/3")} />
               </div>
-              <div className="grid gap-2 px-4">
-                <div className={cn(skeletonLineClassName, "w-20")} />
-                <div className={cn(skeletonLineClassName, "w-16")} />
-              </div>
-              <div className="px-4">
-                <div className={cn(skeletonLineClassName, "h-6 w-24")} />
-              </div>
-              <div className="grid gap-2 px-4">
-                <div className={cn(skeletonLineClassName, "w-32")} />
-                <div className={cn(skeletonLineClassName, "w-20")} />
-              </div>
-              <div className="px-4">
-                <div className={cn(skeletonLineClassName, "h-10 w-full rounded-xl")} />
-              </div>
-              <div className="px-4">
-                <div className={cn(skeletonLineClassName, "h-9 w-16 rounded-xl")} />
-              </div>
+              <div className={cn(skeletonLineClassName, "h-7 w-20")} />
             </div>
-          ))}
+            <div className="grid grid-cols-2 gap-3 max-[560px]:grid-cols-1">
+              {[0, 1].map((section) => (
+                <div
+                  className="grid gap-3 rounded-2xl border border-border bg-background p-4"
+                  key={section}
+                >
+                  <div className={cn(skeletonLineClassName, "w-24")} />
+                  <div className={cn(skeletonLineClassName, "h-5 w-1/2")} />
+                  <div className={cn(skeletonLineClassName, "h-11 w-full rounded-xl")} />
+                  <div className={cn(skeletonLineClassName, "h-10 w-full rounded-xl")} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+type AssignmentPanelProps = {
+  blockedReason?: string;
+  currentCode?: string | null;
+  currentName?: string | null;
+  disabled: boolean;
+  groupName: string;
+  isSameSelection: boolean;
+  onAssign: () => void;
+  onChange: (value: string) => void;
+  onUnassign?: () => void;
+  pending: boolean;
+  role: Extract<UserRole, "INSTRUCTOR" | "MENTOR">;
+  value: string;
+};
+
+function AssignmentPanel({
+  blockedReason,
+  currentCode,
+  currentName,
+  disabled,
+  groupName,
+  isSameSelection,
+  onAssign,
+  onChange,
+  onUnassign,
+  pending,
+  role,
+  value,
+}: AssignmentPanelProps) {
+  const isInstructor = role === "INSTRUCTOR";
+  const roleLabel = isInstructor ? "Instructor" : "Mentor";
+  const hasCurrentAssignment = Boolean(currentName || currentCode);
+
+  return (
+    <section className="grid min-w-0 content-start gap-4 rounded-2xl border border-border bg-background p-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={cn(
+            "inline-flex size-10 shrink-0 items-center justify-center rounded-xl",
+            isInstructor
+              ? "bg-orange-100 text-brand-primary"
+              : "bg-amber-100 text-amber-800",
+          )}
+        >
+          {isInstructor ? <GraduationCap size={20} /> : <BookOpen size={20} />}
+        </span>
+        <div className="grid min-w-0 gap-0.5">
+          <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
+            {roleLabel}
+          </span>
+          <span className="text-sm font-semibold text-foreground">
+            Current assignment
+          </span>
         </div>
       </div>
 
-      <div className={mobileListClassName} aria-hidden="true">
-        {Array.from({ length: mobileRowCount }, (_, rowIndex) => (
-          <div
-            className={cn(mobileCardClassName, "animate-pulse")}
-            key={`assignment-mobile-skeleton-${rowIndex}`}
+      <div
+        className={cn(
+          "flex min-h-20 min-w-0 items-center justify-between gap-3 rounded-xl border p-3",
+          hasCurrentAssignment
+            ? "border-border bg-surface"
+            : "border-dashed border-border bg-surface/50",
+        )}
+      >
+        <div className="grid min-w-0 gap-1">
+          <span
+            className={cn(
+              "truncate text-sm",
+              hasCurrentAssignment
+                ? "font-semibold text-foreground"
+                : "text-muted",
+            )}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="grid flex-1 gap-2">
-                <div className="h-4 w-2/3 rounded-full bg-border" />
-                <div className="h-3 w-1/3 rounded-full bg-border" />
-              </div>
-              <div className="h-6 w-16 rounded-full bg-border" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-              <div className="grid gap-2">
-                <div className="h-3 w-20 rounded-full bg-border" />
-                <div className="h-3 w-28 rounded-full bg-border" />
-              </div>
-              <div className="grid gap-2">
-                <div className="h-3 w-16 rounded-full bg-border" />
-                <div className="h-3 w-24 rounded-full bg-border" />
-              </div>
-            </div>
-            <div className="grid gap-2 border-t border-border pt-3">
-              <div className="h-3 w-28 rounded-full bg-border" />
-              <div className="h-3 w-2/3 rounded-full bg-border" />
-              <div className="h-3 w-1/3 rounded-full bg-border" />
-            </div>
-            <div className="grid gap-3 border-t border-border pt-3">
-              <div className="h-11 w-full rounded-xl bg-border" />
-              <div className="h-11 w-full rounded-xl bg-border" />
-            </div>
-          </div>
-        ))}
+            {currentName ?? `No ${roleLabel.toLowerCase()} assigned`}
+          </span>
+          {currentCode && (
+            <span className="truncate text-xs text-muted">{currentCode}</span>
+          )}
+        </div>
+        {hasCurrentAssignment && onUnassign && (
+          <Button
+            className="shrink-0"
+            disabled={disabled}
+            icon={<UserRoundX size={15} />}
+            onClick={onUnassign}
+            size="sm"
+            variant="danger"
+          >
+            Unassign
+          </Button>
+        )}
       </div>
-    </Card>
+
+      <div className="grid gap-2">
+        <UserSearchCombobox
+          ariaLabel={`New ${roleLabel.toLowerCase()} for ${groupName}`}
+          disabled={disabled || Boolean(blockedReason)}
+          onChange={onChange}
+          placeholder={`Search active ${roleLabel.toLowerCase()}`}
+          role={role}
+          value={value}
+        />
+        <Button
+          className="w-full"
+          disabled={
+            disabled || Boolean(blockedReason) || !value || isSameSelection
+          }
+          onClick={onAssign}
+          variant={isInstructor ? "primary" : "secondary"}
+        >
+          {pending
+            ? "Saving..."
+            : `${hasCurrentAssignment ? "Replace" : "Assign"} ${roleLabel.toLowerCase()}`}
+        </Button>
+      </div>
+    </section>
   );
 }
 
 export function AdminGroupInstructorPage() {
   const [groupSearchInput, setGroupSearchInput] = useState("");
+  const [groupStatus, setGroupStatus] =
+    useState<AdminGroupStatusFilter>("ACTIVE");
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilters>({
     groupSearch: "",
   });
@@ -364,6 +482,7 @@ export function AdminGroupInstructorPage() {
     page: groupPage,
     search: optional(appliedFilters.groupSearch),
     size: GROUP_PAGE_SIZE,
+    status: groupStatus,
   });
   const assignInstructorMutation = useAssignGroupInstructor();
   const assignMentorMutation = useAssignGroupMentor();
@@ -372,6 +491,7 @@ export function AdminGroupInstructorPage() {
   const groupsPage = groupsQuery.data?.data;
   const groups = groupsPage?.content ?? [];
   const groupTotalPages = groupsPage?.totalPages ?? 0;
+  const paginationItems = getPaginationItems(groupPage, groupTotalPages);
 
   function clearSelections() {
     setSelectedInstructorIds({});
@@ -391,6 +511,13 @@ export function AdminGroupInstructorPage() {
   function handleResetFilters() {
     setGroupSearchInput("");
     setAppliedFilters({ groupSearch: "" });
+    setGroupStatus("ACTIVE");
+    setGroupPage(0);
+    clearSelections();
+  }
+
+  function handleStatusChange(status: AdminGroupStatusFilter) {
+    setGroupStatus(status);
     setGroupPage(0);
     clearSelections();
   }
@@ -532,7 +659,7 @@ export function AdminGroupInstructorPage() {
   return (
     <div className={pageClassName}>
       <PageHeader
-        description="Review the current assignment and choose active Instructor or Mentor accounts for each group."
+        description="Review group status and manage Instructor or Mentor assignments safely."
         eyebrow="Admin"
         title="Assign instructors & mentors"
       />
@@ -555,11 +682,31 @@ export function AdminGroupInstructorPage() {
             </div>
           </form>
 
+          <div className="grid gap-2 border-t border-border pt-4">
+            <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
+              Group status
+            </span>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter groups by status">
+              {GROUP_STATUS_FILTERS.map((filter) => (
+                <Button
+                  aria-pressed={groupStatus === filter.value}
+                  key={filter.value}
+                  onClick={() => handleStatusChange(filter.value)}
+                  size="sm"
+                  variant={groupStatus === filter.value ? "primary" : "secondary"}
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex min-w-0 items-start gap-3 rounded-xl border border-border bg-background p-3 text-sm text-muted">
             <UserRoundPlus className="mt-0.5 shrink-0" size={18} />
             <span className="break-words">
-              Search Mentor and Instructor directly inside each assignment row.
-              Results are filtered by active accounts only.
+              Only active groups with at least one member can receive a new
+              assignment. Existing assignments can still be removed from
+              inactive or empty groups.
             </span>
           </div>
         </CardContent>
@@ -580,199 +727,8 @@ export function AdminGroupInstructorPage() {
       ) : assigningGroupId !== null ? (
         <AssignmentResultsSkeleton rowCount={groups.length} />
       ) : (
-        <Card>
-          <div className={tableWrapClassName}>
-            <table className={tableClassName}>
-              <thead>
-                <tr>
-                  <th className={tableHeadCellClassName}>Group</th>
-                  <th className={tableHeadCellClassName}>Term / course</th>
-                  <th className={tableHeadCellClassName}>Mentor</th>
-                  <th className={tableHeadCellClassName}>Current instructor</th>
-                  <th className={tableHeadCellClassName}>Assign new instructor</th>
-                  <th className={tableHeadCellClassName} aria-label="Assign" />
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group) => {
-                  const selectedInstructorId = selectedInstructorIds[group.id] ?? "";
-                  const selectedMentorId = selectedMentorIds[group.id] ?? "";
-                  const currentInstructorAccountId =
-                    group.instructorAccountId ?? group.instructorId;
-                  const currentMentorAccountId =
-                    group.mentorAccountId ?? group.mentorId;
-                  const isSameInstructor =
-                    Boolean(selectedInstructorId) &&
-                    Number(selectedInstructorId) === currentInstructorAccountId;
-                  const isSameMentor =
-                    Boolean(selectedMentorId) &&
-                    Number(selectedMentorId) === currentMentorAccountId;
-                  const isCurrentRowPending = assigningGroupId === group.id;
-                  const feedback = rowFeedback[group.id];
-
-                  return (
-                    <tr key={group.id}>
-                      <td className={tableCellClassName}>
-                        <div className="grid gap-1">
-                          <span className="font-bold">{group.name}</span>
-                          <span className="text-xs text-muted">{group.groupNo}</span>
-                        </div>
-                      </td>
-                      <td className={tableCellClassName}>
-                        <div className="grid gap-1">
-                          <span>{group.term}</span>
-                          <span className="text-xs text-muted">
-                            {group.courseCode}
-                          </span>
-                        </div>
-                      </td>
-                      <td className={tableCellClassName}>
-                        <div className="grid gap-2">
-                          {group.mentorName ? (
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <Badge tone="neutral">{group.mentorName}</Badge>
-                              <Button
-                                disabled={assigningGroupId !== null}
-                                icon={<UserRoundX size={15} />}
-                                onClick={() =>
-                                  setPendingUnassignment({
-                                    groupId: group.id,
-                                    groupName: group.name,
-                                    personName: group.mentorName ?? "the current mentor",
-                                    role: "mentor",
-                                  })
-                                }
-                                size="sm"
-                                variant="danger"
-                              >
-                                Unassign
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-muted">Unassigned</span>
-                          )}
-                          <UserSearchCombobox
-                            ariaLabel={`New mentor for ${group.name}`}
-                            disabled={assigningGroupId !== null}
-                            onChange={(event) => {
-                              setSelectedMentorIds((current) => ({
-                                ...current,
-                                [group.id]: event,
-                              }));
-                              setRowFeedback((current) => ({
-                                ...current,
-                                [group.id]: undefined,
-                              }));
-                            }}
-                            placeholder="Search active mentor"
-                            role="MENTOR"
-                            value={selectedMentorId}
-                          />
-                          <Button
-                            disabled={
-                              assigningGroupId !== null ||
-                              !selectedMentorId ||
-                              isSameMentor
-                            }
-                            onClick={() =>
-                              handleAssignMentor(group.id, currentMentorAccountId)
-                            }
-                            size="sm"
-                            variant="secondary"
-                          >
-                            Assign mentor
-                          </Button>
-                        </div>
-                      </td>
-                      <td className={tableCellClassName}>
-                        {group.instructorName || group.instructorCode ? (
-                          <div className="grid min-w-0 gap-1">
-                            <span className="min-w-0 break-words font-medium">
-                              {group.instructorName ?? "Assigned instructor"}
-                            </span>
-                            <span className="break-all text-xs text-muted">
-                              {group.instructorCode ?? "No instructor code"}
-                            </span>
-                            <Button
-                              className="mt-1 w-fit"
-                              disabled={assigningGroupId !== null}
-                              icon={<UserRoundX size={15} />}
-                              onClick={() =>
-                                setPendingUnassignment({
-                                  groupId: group.id,
-                                  groupName: group.name,
-                                  personName:
-                                    group.instructorName ??
-                                    group.instructorCode ??
-                                    "the current instructor",
-                                  role: "instructor",
-                                })
-                              }
-                              size="sm"
-                              variant="danger"
-                            >
-                              Unassign
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-muted">Unassigned</span>
-                        )}
-                      </td>
-                      <td className={cn(tableCellClassName, "min-w-[280px]")}>
-                        <div className="grid gap-2">
-                          <UserSearchCombobox
-                            ariaLabel={`New instructor for ${group.name}`}
-                            disabled={assigningGroupId !== null}
-                            onChange={(event) => {
-                              setSelectedInstructorIds((current) => ({
-                                ...current,
-                                [group.id]: event,
-                              }));
-                              setRowFeedback((current) => ({
-                                ...current,
-                                [group.id]: undefined,
-                              }));
-                            }}
-                            placeholder="Search active instructor"
-                            role="INSTRUCTOR"
-                            value={selectedInstructorId}
-                          />
-                          {feedback && (
-                            <span
-                              className={cn(
-                                "text-xs",
-                                feedback.tone === "success"
-                                  ? "text-green-800"
-                                  : "text-red-700",
-                              )}
-                            >
-                              {feedback.message}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className={tableCellClassName}>
-                        <Button
-                          disabled={
-                            assigningGroupId !== null ||
-                            !selectedInstructorId ||
-                            isSameInstructor
-                          }
-                          onClick={() =>
-                            handleAssign(group.id, currentInstructorAccountId)
-                          }
-                          size="sm"
-                        >
-                          {isCurrentRowPending ? "Saving..." : "Assign"}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className={mobileListClassName}>
+        <div className="grid min-w-0 gap-5">
+          <div className="grid min-w-0 grid-cols-2 gap-4 max-[980px]:grid-cols-1">
             {groups.map((group) => {
               const selectedInstructorId =
                 selectedInstructorIds[group.id] ?? "";
@@ -789,204 +745,231 @@ export function AdminGroupInstructorPage() {
                 Number(selectedMentorId) === currentMentorAccountId;
               const isCurrentRowPending = assigningGroupId === group.id;
               const feedback = rowFeedback[group.id];
+              const blockedReason =
+                group.status !== "ACTIVE"
+                  ? "This group is inactive. Remove an existing assignment if needed."
+                  : group.memberCount === 0
+                    ? "This group has no members and cannot receive a new assignment."
+                    : undefined;
 
               return (
-                <article className={mobileCardClassName} key={group.id}>
-                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
-                    <div className="grid min-w-0 gap-1">
-                      <h3 className="m-0 break-words text-base font-bold text-foreground">
-                        {group.name}
-                      </h3>
-                      <span className="break-all text-xs text-muted">
-                        {group.groupNo}
-                      </span>
-                    </div>
-                    <Badge tone="neutral">{group.status}</Badge>
-                  </div>
-
-                  <dl className="m-0 grid min-w-0 grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-                    <div className="grid min-w-0 gap-1">
-                      <dt className="text-[11px] font-bold text-muted uppercase">
-                        Term / course
-                      </dt>
-                      <dd className="m-0 break-words text-sm text-foreground">
-                        {group.term} · {group.courseCode}
-                      </dd>
-                    </div>
-                    <div className="grid min-w-0 gap-1">
-                      <dt className="text-[11px] font-bold text-muted uppercase">
-                        Mentor
-                      </dt>
-                      <dd className="m-0 break-words text-sm text-foreground">
-                        {group.mentorName ?? "Unassigned"}
-                      </dd>
-                      {group.mentorName && (
-                        <Button
-                          className="mt-1 w-fit"
-                          disabled={assigningGroupId !== null}
-                          icon={<UserRoundX size={15} />}
-                          onClick={() =>
-                            setPendingUnassignment({
-                              groupId: group.id,
-                              groupName: group.name,
-                              personName: group.mentorName ?? "the current mentor",
-                              role: "mentor",
-                            })
-                          }
-                          size="sm"
-                          variant="danger"
+                <Card
+                  className={cn(
+                    "overflow-visible transition-opacity",
+                    group.status === "INACTIVE" && "opacity-80",
+                  )}
+                  key={group.id}
+                >
+                  <CardContent className="grid gap-5">
+                    <header className="flex min-w-0 flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+                      <div className="grid min-w-0 gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <h2 className="m-0 min-w-0 break-words text-xl font-bold text-foreground">
+                            {group.name}
+                          </h2>
+                          <Badge tone="neutral">Group {group.groupNo}</Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+                          <span className="inline-flex items-center gap-1.5">
+                            <BookOpen size={15} />
+                            {group.term} · {group.courseCode}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Users size={15} />
+                            {group.memberCount}{" "}
+                            {group.memberCount === 1 ? "member" : "members"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Badge
+                          tone={group.status === "ACTIVE" ? "success" : "danger"}
                         >
-                          Unassign mentor
-                        </Button>
-                      )}
-                    </div>
-                  </dl>
+                          {group.status === "ACTIVE" ? "Active" : "Inactive"}
+                        </Badge>
+                        {group.memberCount === 0 && (
+                          <Badge tone="warning">Empty group</Badge>
+                        )}
+                      </div>
+                    </header>
 
-                  <div className="grid min-w-0 gap-3 border-t border-border pt-3">
-                    <UserSearchCombobox
-                      ariaLabel={`New mentor for ${group.name}`}
-                      disabled={assigningGroupId !== null}
-                      onChange={(event) => {
-                        setSelectedMentorIds((current) => ({
-                          ...current,
-                          [group.id]: event,
-                        }));
-                        setRowFeedback((current) => ({
-                          ...current,
-                          [group.id]: undefined,
-                        }));
-                      }}
-                      placeholder="Search active mentor"
-                      role="MENTOR"
-                      value={selectedMentorId}
-                    />
-                    <Button
-                      className="w-full"
-                      disabled={
-                        assigningGroupId !== null ||
-                        !selectedMentorId ||
-                        isSameMentor
-                      }
-                      onClick={() =>
-                        handleAssignMentor(group.id, currentMentorAccountId)
-                      }
-                      variant="secondary"
-                    >
-                      Assign mentor
-                    </Button>
-                  </div>
-
-                  <div className="grid min-w-0 gap-1 border-t border-border pt-3">
-                    <span className="text-[11px] font-bold text-muted uppercase">
-                      Current instructor
-                    </span>
-                    <span className="break-words text-sm font-medium text-foreground">
-                      {group.instructorName ?? "Unassigned"}
-                    </span>
-                    <span className="break-all text-xs text-muted">
-                      {group.instructorCode ?? "No instructor code"}
-                    </span>
-                    {(group.instructorName || group.instructorCode) && (
-                      <Button
-                        className="mt-1 w-fit"
-                        disabled={assigningGroupId !== null}
-                        icon={<UserRoundX size={15} />}
-                        onClick={() =>
-                          setPendingUnassignment({
-                            groupId: group.id,
-                            groupName: group.name,
-                            personName:
-                              group.instructorName ??
-                              group.instructorCode ??
-                              "the current instructor",
-                            role: "instructor",
-                          })
-                        }
-                        size="sm"
-                        variant="danger"
-                      >
-                        Unassign instructor
-                      </Button>
+                    {blockedReason && (
+                      <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm leading-5 text-yellow-800">
+                        {blockedReason} You can still remove an existing
+                        assignment below.
+                      </div>
                     )}
-                  </div>
 
-                  <div className="grid min-w-0 gap-3 border-t border-border pt-3">
-                    <UserSearchCombobox
-                      ariaLabel={`New instructor for ${group.name}`}
-                      disabled={assigningGroupId !== null}
-                      onChange={(event) => {
-                        setSelectedInstructorIds((current) => ({
-                          ...current,
-                          [group.id]: event,
-                        }));
-                        setRowFeedback((current) => ({
-                          ...current,
-                          [group.id]: undefined,
-                        }));
-                      }}
-                      placeholder="Search active instructor"
-                      role="INSTRUCTOR"
-                      value={selectedInstructorId}
-                    />
+                    <div className="grid min-w-0 grid-cols-2 gap-3 max-[620px]:grid-cols-1">
+                      <AssignmentPanel
+                        blockedReason={blockedReason}
+                        currentCode={group.mentorCode}
+                        currentName={
+                          group.mentorName ??
+                          (currentMentorAccountId ? "Assigned mentor" : null)
+                        }
+                        disabled={assigningGroupId !== null}
+                        groupName={group.name}
+                        isSameSelection={isSameMentor}
+                        onAssign={() =>
+                          handleAssignMentor(group.id, currentMentorAccountId)
+                        }
+                        onChange={(value) => {
+                          setSelectedMentorIds((current) => ({
+                            ...current,
+                            [group.id]: value,
+                          }));
+                          setRowFeedback((current) => ({
+                            ...current,
+                            [group.id]: undefined,
+                          }));
+                        }}
+                        onUnassign={
+                          currentMentorAccountId
+                            ? () =>
+                                setPendingUnassignment({
+                                  groupId: group.id,
+                                  groupName: group.name,
+                                  personName:
+                                    group.mentorName ??
+                                    group.mentorCode ??
+                                    "the current mentor",
+                                  role: "mentor",
+                                })
+                            : undefined
+                        }
+                        pending={isCurrentRowPending}
+                        role="MENTOR"
+                        value={selectedMentorId}
+                      />
+                      <AssignmentPanel
+                        blockedReason={blockedReason}
+                        currentCode={group.instructorCode}
+                        currentName={
+                          group.instructorName ??
+                          (currentInstructorAccountId
+                            ? "Assigned instructor"
+                            : null)
+                        }
+                        disabled={assigningGroupId !== null}
+                        groupName={group.name}
+                        isSameSelection={isSameInstructor}
+                        onAssign={() =>
+                          handleAssign(group.id, currentInstructorAccountId)
+                        }
+                        onChange={(value) => {
+                          setSelectedInstructorIds((current) => ({
+                            ...current,
+                            [group.id]: value,
+                          }));
+                          setRowFeedback((current) => ({
+                            ...current,
+                            [group.id]: undefined,
+                          }));
+                        }}
+                        onUnassign={
+                          currentInstructorAccountId
+                            ? () =>
+                                setPendingUnassignment({
+                                  groupId: group.id,
+                                  groupName: group.name,
+                                  personName:
+                                    group.instructorName ??
+                                    group.instructorCode ??
+                                    "the current instructor",
+                                  role: "instructor",
+                                })
+                            : undefined
+                        }
+                        pending={isCurrentRowPending}
+                        role="INSTRUCTOR"
+                        value={selectedInstructorId}
+                      />
+                    </div>
+
                     {feedback && (
-                      <span
+                      <div
                         className={cn(
-                          "break-words text-xs",
+                          "rounded-xl border px-4 py-3 text-sm",
                           feedback.tone === "success"
-                            ? "text-green-800"
-                            : "text-red-700",
+                            ? "border-green-200 bg-green-50 text-green-800"
+                            : "border-red-200 bg-red-50 text-red-700",
                         )}
                         role="status"
                       >
                         {feedback.message}
-                      </span>
+                      </div>
                     )}
-                    <Button
-                      className="w-full"
-                      disabled={
-                        assigningGroupId !== null ||
-                        !selectedInstructorId ||
-                        isSameInstructor
-                      }
-                      onClick={() =>
-                        handleAssign(group.id, currentInstructorAccountId)
-                      }
-                    >
-                      {isCurrentRowPending ? "Saving..." : "Assign instructor"}
-                    </Button>
-                  </div>
-                </article>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
+
           {groupTotalPages > 1 && (
-            <div className="flex min-w-0 items-center justify-between gap-4 border-t border-border px-6 py-4 max-[680px]:flex-col max-[680px]:items-stretch max-[480px]:px-4">
-              <span className="text-sm text-muted">
-                Page {groupPage + 1} of {groupTotalPages} ({groupsPage?.totalElements ?? 0} groups)
-              </span>
-              <div className="flex gap-2 max-[480px]:grid max-[480px]:grid-cols-2 max-[480px]:[&>button]:w-full">
-                <Button
-                  disabled={assigningGroupId !== null || groupPage === 0}
-                  onClick={() => handleGroupPageChange(Math.max(0, groupPage - 1))}
-                  size="sm"
-                  variant="secondary"
+            <Card>
+              <CardContent className="flex min-w-0 flex-wrap items-center justify-between gap-4 max-[680px]:justify-center">
+                <span className="text-sm text-muted max-[680px]:w-full max-[680px]:text-center">
+                  Page {groupPage + 1} of {groupTotalPages} ({groupsPage?.totalElements ?? 0} groups)
+                </span>
+                <nav
+                  aria-label="Assignment group pagination"
+                  className="flex flex-wrap items-center justify-center gap-2"
                 >
-                  Previous
-                </Button>
-                <Button
-                  disabled={
-                    assigningGroupId !== null || groupPage >= groupTotalPages - 1
-                  }
-                  onClick={() => handleGroupPageChange(groupPage + 1)}
-                  size="sm"
-                  variant="secondary"
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+                  <Button
+                    disabled={assigningGroupId !== null || groupPage === 0}
+                    icon={<ChevronLeft size={16} />}
+                    onClick={() =>
+                      handleGroupPageChange(Math.max(0, groupPage - 1))
+                    }
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Previous
+                  </Button>
+
+                  {paginationItems.map((item) =>
+                    typeof item === "number" ? (
+                      <Button
+                        aria-current={item === groupPage ? "page" : undefined}
+                        aria-label={`Go to page ${item + 1}`}
+                        className="min-w-9 px-3"
+                        disabled={assigningGroupId !== null}
+                        key={item}
+                        onClick={() => handleGroupPageChange(item)}
+                        size="sm"
+                        variant={item === groupPage ? "primary" : "secondary"}
+                      >
+                        {item + 1}
+                      </Button>
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="px-1 text-sm font-semibold text-muted"
+                        key={item}
+                      >
+                        …
+                      </span>
+                    ),
+                  )}
+
+                  <Button
+                    disabled={
+                      assigningGroupId !== null ||
+                      groupPage >= groupTotalPages - 1
+                    }
+                    icon={<ChevronRight size={16} />}
+                    onClick={() => handleGroupPageChange(groupPage + 1)}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Next
+                  </Button>
+                </nav>
+              </CardContent>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {pendingUnassignment && (
