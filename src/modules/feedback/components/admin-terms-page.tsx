@@ -269,15 +269,6 @@ function CloseTermModal({ onClose, term }: CloseTermModalProps) {
         Closing this term makes every student group in {term.code} read-only
         and removes it from TV Display. This action cannot be undone from the frontend.
       </p>
-      <div className="rounded-xl border border-border bg-background p-4">
-        <span className="block text-xs font-bold text-muted uppercase">
-          Feedback progress
-        </span>
-        <strong className="mt-1 block text-lg text-foreground">
-          {term.totalSubmittedFeedbacks}/{term.totalExpectedFeedbacks}{" "}
-          submitted
-        </strong>
-      </div>
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700">
           {error}
@@ -359,7 +350,8 @@ function ArchiveTermModal({ onClose, term }: ArchiveTermModalProps) {
           <ul className="m-0 grid gap-2 rounded-xl border border-border bg-background p-4 pl-8 text-muted">
             <li>Pending feedback does not prevent archiving.</li>
             <li>Students assigned to the current OPEN term remain active.</li>
-            <li>Groups, grades, submissions, and feedback history are preserved.</li>
+            <li>Every group in {term.code} becomes inactive.</li>
+            <li>Members, assignments, grades, submissions, and feedback history are preserved.</li>
           </ul>
           <p className="m-0 text-xs text-muted">
             This operation is idempotent and can safely be run again.

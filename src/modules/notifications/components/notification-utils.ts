@@ -213,7 +213,7 @@ export function resolveNotificationDestination(
         return withQuery("/student/feedback", { termId: termId ?? undefined });
       }
       if (role === "MENTOR") return "/mentor/feedback";
-      if (role === "INSTRUCTOR") return "/instructor/groups";
+      if (role === "INSTRUCTOR") return "/instructor/feedback";
       return "/admin/feedback";
     case "NONE":
     case undefined:
@@ -256,7 +256,7 @@ function resolveLegacyNotificationDestination(
       });
     }
     if (role === "MENTOR") return "/mentor/feedback";
-    if (role === "INSTRUCTOR") return "/instructor/groups";
+    if (role === "INSTRUCTOR") return "/instructor/feedback";
     return "/admin/feedback";
   }
 

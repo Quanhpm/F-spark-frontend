@@ -105,6 +105,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     },
     { href: "/instructor/problems", icon: BookOpen, label: "Problems" },
     { href: "/instructor/grading", icon: ClipboardList, label: "Grading" },
+    { href: "/instructor/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/instructor/notifications", icon: Bell, label: "Notifications" },
     { href: "/instructor/profile", icon: UserRound, label: "Profile" },
   ],

@@ -57,6 +57,7 @@ export type AdminFeedbackQuery = PaginationQuery & {
   courseCode?: string;
   targetType?: FeedbackTargetType;
   targetId?: number;
+  targetSearch?: string;
   status?: FeedbackStatus;
 };
 

@@ -40,7 +40,7 @@ type FilterDraft = {
   term: string;
   courseCode: string;
   targetType: "" | FeedbackTargetType;
-  targetId: string;
+  targetSearch: string;
   status: "" | FeedbackStatus;
 };
 
@@ -48,7 +48,7 @@ const EMPTY_FILTERS: FilterDraft = {
   term: "",
   courseCode: "",
   targetType: "",
-  targetId: "",
+  targetSearch: "",
   status: "",
 };
 
@@ -94,20 +94,15 @@ export function AdminFeedbackPage() {
   const [draft, setDraft] = useState<FilterDraft>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<FilterDraft>(EMPTY_FILTERS);
   const [page, setPage] = useState(0);
-  const [filterError, setFilterError] = useState("");
 
   const query = useMemo(() => {
-    const targetId = appliedFilters.targetId
-      ? Number(appliedFilters.targetId)
-      : undefined;
-
     return {
       page,
       size: PAGE_SIZE,
       term: appliedFilters.term || undefined,
       courseCode: appliedFilters.courseCode || undefined,
       targetType: appliedFilters.targetType || undefined,
-      targetId,
+      targetSearch: appliedFilters.targetSearch || undefined,
       status: appliedFilters.status || undefined,
     };
   }, [appliedFilters, page]);
@@ -121,19 +116,13 @@ export function AdminFeedbackPage() {
 
   function handleFilter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFilterError("");
-
-    if (draft.targetId && (!Number.isInteger(Number(draft.targetId)) || Number(draft.targetId) < 1)) {
-      setFilterError("Target ID must be a positive whole number.");
-      return;
-    }
 
     setPage(0);
     setAppliedFilters({
       term: draft.term.trim(),
       courseCode: draft.courseCode.trim(),
       targetType: draft.targetType,
-      targetId: draft.targetId.trim(),
+      targetSearch: draft.targetSearch.trim(),
       status: draft.status,
     });
   }
@@ -141,7 +130,6 @@ export function AdminFeedbackPage() {
   function resetFilters() {
     setDraft(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
-    setFilterError("");
     setPage(0);
   }
 
@@ -180,12 +168,10 @@ export function AdminFeedbackPage() {
               <option value="INSTRUCTOR">Instructor</option>
             </Select>
             <TextInput
-              label="Target ID"
-              min="1"
-              onChange={(event) => updateDraft("targetId", event.target.value)}
-              placeholder="Optional"
-              type="number"
-              value={draft.targetId}
+              label="Mentor / Instructor"
+              onChange={(event) => updateDraft("targetSearch", event.target.value)}
+              placeholder="Name, code, or email"
+              value={draft.targetSearch}
             />
             <Select
               label="Status"
@@ -205,7 +191,6 @@ export function AdminFeedbackPage() {
               </Button>
             </div>
           </form>
-          {filterError && <p className="mt-3 mb-0 text-sm text-red-700">{filterError}</p>}
         </CardContent>
       </Card>
 
