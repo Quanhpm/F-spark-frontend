@@ -3,9 +3,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import {
   BookOpen,
+  Crown,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Eye,
   GraduationCap,
   Loader2,
   Pencil,
@@ -21,6 +23,7 @@ import {
   useAssignGroupInstructor,
   useAssignGroupMentor,
   useAdminGroups,
+  useGroup,
   useUnassignGroupInstructor,
   useUnassignGroupMentor,
 } from "@/modules/groups";
@@ -524,6 +527,115 @@ function AssignmentPanel({
   );
 }
 
+function GroupMembersDialog({
+  groupId,
+  onClose,
+}: {
+  groupId: number;
+  onClose: () => void;
+}) {
+  const groupQuery = useGroup(groupId);
+  const group = groupQuery.data?.data;
+
+  return (
+    <ResponsiveDialog
+      className="min-[761px]:max-w-[720px]"
+      closeLabel="Close group members"
+      description={
+        group
+          ? `Group ${group.groupNo} · ${group.term} · ${group.courseCode}`
+          : "Review the students currently belonging to this group."
+      }
+      mobileMode="fullscreen"
+      onClose={onClose}
+      title={group?.name ?? "Group members"}
+    >
+      {groupQuery.isLoading ? (
+        <LoadingState title="Loading group members" />
+      ) : groupQuery.isError ? (
+        <EmptyState
+          className="min-h-52"
+          description={getLoadErrorMessage(groupQuery.error)}
+          title="Unable to load group members"
+        />
+      ) : !group ? (
+        <EmptyState
+          className="min-h-52"
+          description="The selected group could not be loaded."
+          title="Group unavailable"
+        />
+      ) : group.members.length === 0 ? (
+        <EmptyState
+          className="min-h-52"
+          description="This group currently has no active members."
+          icon={<Users size={22} />}
+          title="Empty group"
+        />
+      ) : (
+        <div className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+            <div className="grid gap-0.5">
+              <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
+                Current membership
+              </span>
+              <span className="text-sm text-foreground">
+                {group.members.length}{" "}
+                {group.members.length === 1 ? "student" : "students"}
+              </span>
+            </div>
+            <Badge tone={group.status === "ACTIVE" ? "success" : "danger"}>
+              {group.status === "ACTIVE" ? "Active" : "Inactive"}
+            </Badge>
+          </div>
+
+          <div className="grid gap-3">
+            {group.members.map((member) => {
+              const isLeader = member.role === "LEADER";
+
+              return (
+                <article
+                  className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-4"
+                  key={member.studentId}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-warm text-sm font-bold text-brand-primary"
+                  >
+                    {getPersonInitials(member.fullName, member.studentCode)}
+                  </span>
+                  <div className="grid min-w-0 flex-1 gap-1">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                      <strong className="break-words text-sm text-foreground">
+                        {member.fullName}
+                      </strong>
+                      <Badge
+                        icon={isLeader ? <Crown size={12} /> : undefined}
+                        size="sm"
+                        tone={isLeader ? "brand" : "neutral"}
+                      >
+                        {isLeader ? "Leader" : "Member"}
+                      </Badge>
+                    </div>
+                    <span className="text-xs font-medium text-muted">
+                      {member.studentCode}
+                    </span>
+                    <a
+                      className="w-fit max-w-full break-all text-xs !text-brand-primary hover:underline"
+                      href={`mailto:${member.email}`}
+                    >
+                      {member.email}
+                    </a>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </ResponsiveDialog>
+  );
+}
+
 export function AdminGroupInstructorPage() {
   const [groupSearchInput, setGroupSearchInput] = useState("");
   const [groupStatus, setGroupStatus] =
@@ -541,6 +653,7 @@ export function AdminGroupInstructorPage() {
   const [assigningGroupId, setAssigningGroupId] = useState<number | null>(null);
   const [pendingUnassignment, setPendingUnassignment] =
     useState<PendingUnassignment | null>(null);
+  const [viewingGroupId, setViewingGroupId] = useState<number | null>(null);
   const [rowFeedback, setRowFeedback] = useState<
     Record<number, RowFeedback | undefined>
   >({});
@@ -861,6 +974,14 @@ export function AdminGroupInstructorPage() {
                         {group.memberCount === 0 && (
                           <Badge tone="warning">Empty group</Badge>
                         )}
+                        <Button
+                          icon={<Eye size={15} />}
+                          onClick={() => setViewingGroupId(group.id)}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          View members
+                        </Button>
                       </div>
                     </header>
 
@@ -1078,6 +1199,13 @@ export function AdminGroupInstructorPage() {
             milestone grades, and contribution history will be preserved.
           </p>
         </ResponsiveDialog>
+      )}
+
+      {viewingGroupId !== null && (
+        <GroupMembersDialog
+          groupId={viewingGroupId}
+          onClose={() => setViewingGroupId(null)}
+        />
       )}
     </div>
   );
