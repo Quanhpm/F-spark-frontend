@@ -70,6 +70,10 @@ export type CreateMentorMeetingRequest = {
   note?: string;
 };
 
+export type BookMentorMeetingRequest = {
+  slotId: number;
+};
+
 export type UpdateMentorMeetingRequest = Partial<CreateMentorMeetingRequest>;
 
 export type SubmitMeetingEvidenceRequest = {

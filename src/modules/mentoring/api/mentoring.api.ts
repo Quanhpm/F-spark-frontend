@@ -10,6 +10,7 @@ import {
 import type { ApiResponse, EmptyApiResponse } from "@/shared/types";
 
 import type {
+  BookMentorMeetingRequest,
   CreateMentorMeetingRequest,
   CreateAvailabilitySlotRequest,
   MentorAvailabilitySlotDto,
@@ -90,6 +91,16 @@ export function getMentorAvailability(groupId: number) {
 }
 
 export function createMeeting(groupId: number, payload: CreateMentorMeetingRequest) {
+  return apiPost<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings`,
+    payload,
+  );
+}
+
+export function bookMeeting(
+  groupId: number,
+  payload: BookMentorMeetingRequest,
+) {
   return apiPost<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings`,
     payload,

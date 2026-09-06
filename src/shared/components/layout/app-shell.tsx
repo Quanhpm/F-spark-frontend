@@ -4,6 +4,7 @@ import {
   Award,
   Bell,
   BookOpen,
+  CalendarDays,
   CalendarClock,
   ClipboardList,
   Database,
@@ -76,6 +77,11 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
   MENTOR: [
     { href: "/mentor/groups", icon: Users, label: "Groups" },
+    {
+      href: "/mentor/availability",
+      icon: CalendarDays,
+      label: "Availability",
+    },
     {
       href: "/mentor/meetings",
       icon: CalendarClock,

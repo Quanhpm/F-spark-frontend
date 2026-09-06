@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { MentorAvailabilityPage } from "@/modules/mentoring";
 
 export default function MentorAvailabilityRoute() {
-  redirect("/mentor/meetings");
+  return <MentorAvailabilityPage />;
 }

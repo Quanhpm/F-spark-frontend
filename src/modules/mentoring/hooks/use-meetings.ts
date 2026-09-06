@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
 
 import {
+  bookMeeting,
   createMeeting,
   cancelMeeting,
   confirmMeeting,
@@ -12,6 +13,32 @@ import {
   submitMeetingEvidence,
 } from "../api";
 import type { CreateMentorMeetingRequest, UpdateMentorMeetingRequest } from "../types";
+
+export function useBookMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId, slotId }: { groupId: number; slotId: number }) =>
+      bookMeeting(groupId, { slotId }),
+    onSuccess: (_response, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.meetings(variables.groupId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.groupAvailability(variables.groupId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.availability(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.myMeetings(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.mentorMeetings(),
+      });
+    },
+  });
+}
 
 export function useMyMeetings() {
   return useQuery({
