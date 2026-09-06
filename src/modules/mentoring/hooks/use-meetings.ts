@@ -6,7 +6,6 @@ import {
   bookMeeting,
   createMeeting,
   cancelMeeting,
-  confirmMeeting,
   getGroupMeetings,
   listMyMeetings,
   updateMeeting,
@@ -114,32 +113,6 @@ export function useSubmitMeetingEvidence() {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
-    },
-  });
-}
-
-export function useConfirmMeeting() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      groupId,
-      meetingId,
-    }: {
-      groupId: number;
-      meetingId: number;
-    }) => confirmMeeting(groupId, meetingId),
-    onSuccess: (_response, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.mentoring.meetings(variables.groupId),
-      });
-      // Also invalidate dashboard mentor meetings
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.dashboard.mentorMeetings(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.mentoring.myMeetings(),
-      });
     },
   });
 }

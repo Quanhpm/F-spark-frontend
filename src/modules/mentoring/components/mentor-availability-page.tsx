@@ -20,7 +20,6 @@ import {
 
 import {
   useCancelSlot,
-  useConfirmMeeting,
   useCreateSlot,
   useMyAvailability,
   useMyMeetings,
@@ -82,7 +81,6 @@ export function MentorAvailabilityPage() {
   const createSlotMutation = useCreateSlot();
   const updateSlotMutation = useUpdateSlot();
   const cancelSlotMutation = useCancelSlot();
-  const confirmMeetingMutation = useConfirmMeeting();
   const selectedSlot =
     selectedEvent?.kind === "SLOT" ? selectedEvent.slot : null;
 
@@ -122,29 +120,6 @@ export function MentorAvailabilityPage() {
     });
   }
 
-  async function handleConfirmSelectedMeeting() {
-    if (selectedEvent?.kind !== "MEETING") return;
-
-    try {
-      const response = await confirmMeetingMutation.mutateAsync({
-        groupId: selectedEvent.meeting.groupId,
-        meetingId: selectedEvent.meeting.id,
-      });
-      const meeting = response.data;
-
-      setSelectedEvent({
-        endAt: meeting.endAt,
-        id: `meeting-${meeting.id}`,
-        kind: "MEETING",
-        meeting,
-        startAt: meeting.startAt,
-        status: meeting.status,
-      });
-    } catch {
-      // React Query exposes the error in the selected-event panel.
-    }
-  }
-
   function requestCancelSlot(slot: MentorAvailabilitySlotDto) {
     setConfirmAction({
       confirmLabel: "Cancel slot",
@@ -173,7 +148,6 @@ export function MentorAvailabilityPage() {
     setWeekStart(startOfWeek(date));
     setCalendarMonth(startOfMonth(date));
     setSelectedEvent(null);
-    confirmMeetingMutation.reset();
   }
 
   function moveWeek(direction: -1 | 1) {
@@ -186,7 +160,6 @@ export function MentorAvailabilityPage() {
     );
     setCalendarMonth(startOfMonth(nextWeekStart));
     setSelectedEvent(null);
-    confirmMeetingMutation.reset();
   }
 
   function moveDay(direction: -1 | 1) {
@@ -298,7 +271,6 @@ export function MentorAvailabilityPage() {
               value={statusFilter}
               onChange={(event) => {
                 setSelectedEvent(null);
-                confirmMeetingMutation.reset();
                 setStatusFilter(event.target.value as CalendarStatusFilter);
               }}
             >
@@ -366,14 +338,7 @@ export function MentorAvailabilityPage() {
                 selectedDateKey={selectedDateKey}
               />
               <SelectedEventPanel
-                confirmError={
-                  confirmMeetingMutation.error
-                    ? getErrorMessage(confirmMeetingMutation.error)
-                    : undefined
-                }
                 event={selectedEvent}
-                isConfirming={confirmMeetingMutation.isPending}
-                onConfirmMeeting={handleConfirmSelectedMeeting}
                 onViewSlotDetails={() => setModal("details")}
               />
             </aside>

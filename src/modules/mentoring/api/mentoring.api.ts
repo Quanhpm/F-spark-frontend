@@ -127,13 +127,6 @@ export function getGroupMeetings(groupId: number) {
   );
 }
 
-export function confirmMeeting(groupId: number, meetingId: number) {
-  return apiPatch<ApiResponse<MentorMeetingDto>>(
-    `/api/groups/${groupId}/mentor/meetings/${meetingId}/confirm`,
-    {},
-  );
-}
-
 export function cancelMeeting(groupId: number, meetingId: number, reason: string) {
   return apiPatch<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings/${meetingId}/cancel`,

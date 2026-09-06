@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   CalendarClock,
   CalendarDays,
@@ -10,7 +9,6 @@ import {
 import { Badge, Button } from "@/shared/components";
 import type { AvailabilityCalendarEvent } from "./availability-calendar.types";
 import {
-  errorPanelClassName,
   formatDate,
   formatTime,
   getCalendarEventStatusTone,
@@ -18,25 +16,12 @@ import {
 } from "./availability-calendar.utils";
 
 export function SelectedEventPanel({
-  confirmError,
   event,
-  isConfirming,
-  onConfirmMeeting,
   onViewSlotDetails,
 }: {
-  confirmError?: string;
   event: AvailabilityCalendarEvent | null;
-  isConfirming: boolean;
-  onConfirmMeeting: () => void;
   onViewSlotDetails: () => void;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(intervalId);
-  }, []);
-
   if (!event) {
     return (
       <section className="grid min-w-0 gap-4 p-4 min-[761px]:p-5">
@@ -53,11 +38,6 @@ export function SelectedEventPanel({
 
   if (event.kind === "MEETING") {
     const { meeting } = event;
-    const hasStarted = new Date(meeting.startAt).getTime() <= now;
-    const mentorConfirmed = meeting.mentorConfirmedAt !== null;
-    const leaderConfirmed = meeting.leaderConfirmedAt !== null;
-    const canConfirm =
-      meeting.status === "SCHEDULED" && hasStarted && !mentorConfirmed;
 
     return (
       <section className="grid min-w-0 gap-4 p-4 min-[761px]:p-5">
@@ -96,21 +76,6 @@ export function SelectedEventPanel({
           </p>
         </div>
 
-        <div className="grid gap-2 rounded-xl border border-border bg-background p-3.5 text-sm">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-muted">Group leader</span>
-            <Badge tone={leaderConfirmed ? "success" : "neutral"}>
-              {leaderConfirmed ? "Confirmed" : "Pending"}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-muted">Mentor</span>
-            <Badge tone={mentorConfirmed ? "success" : "neutral"}>
-              {mentorConfirmed ? "Confirmed" : "Pending"}
-            </Badge>
-          </div>
-        </div>
-
         {meeting.meetLink && <a
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-medium !text-brand-primary transition-colors hover:bg-background hover:!text-brand-primary-hover"
           href={meeting.meetLink}
@@ -121,23 +86,6 @@ export function SelectedEventPanel({
           Open Google Meet
         </a>}
 
-        {confirmError && <div className={errorPanelClassName}>{confirmError}</div>}
-
-        {meeting.status === "SCHEDULED" && (
-          <div className="grid gap-2">
-            <Button
-              disabled={!canConfirm || isConfirming}
-              onClick={onConfirmMeeting}
-              size="sm"
-            >
-              {isConfirming
-                ? "Confirming..."
-                : mentorConfirmed
-                  ? "Mentor confirmed"
-                  : "Confirm meeting"}
-            </Button>
-          </div>
-        )}
       </section>
     );
   }
