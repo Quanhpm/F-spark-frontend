@@ -10,6 +10,7 @@ import {
   MINUTE_IN_MS,
   formatDateTime,
   formatTime,
+  formatTimelineTime,
   getCalendarEventCardClassName,
   getCalendarEventPositionStyle,
   getMinutesFromStartOfDay,
@@ -30,7 +31,7 @@ export function TimelineEventCard({
   const durationMinutes =
     (new Date(event.endAt).getTime() - new Date(event.startAt).getTime()) /
     MINUTE_IN_MS;
-  const isCompact = durationMinutes <= 75;
+  const isCompact = durationMinutes < 45;
   const eventTitle =
     event.kind === "MEETING"
       ? `${event.meeting.groupNo} · ${event.meeting.groupName}`
@@ -43,24 +44,21 @@ export function TimelineEventCard({
         "absolute min-h-9 min-w-0 cursor-pointer overflow-hidden rounded-lg border text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] hover:z-30 hover:shadow-card-interactive focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
         isCompact
           ? "block px-2 py-1.5"
-          : "grid content-start gap-0.5 px-2 py-1.5",
+          : "grid content-center gap-1 px-2 py-1.5",
         getCalendarEventCardClassName(event.status),
       )}
       onClick={() => onSelect(event)}
       style={getCalendarEventPositionStyle(positionedEvent, startHour)}
-      title="Open event details"
+      title={`${eventTitle} · ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}`}
       type="button"
     >
       <span className="truncate text-[11px] leading-tight font-bold">
-        {formatTime(event.startAt)} – {formatTime(event.endAt)}
+        {formatTimelineTime(event.startAt)}–{formatTimelineTime(event.endAt)}
       </span>
       {!isCompact && (
         <>
           <span className="truncate text-[11px] leading-tight font-medium">
             {eventTitle}
-          </span>
-          <span className="truncate text-[10px] leading-tight opacity-75">
-            {event.status}
           </span>
         </>
       )}
@@ -125,12 +123,17 @@ export function TimelineDayCanvas({
       )}
       style={{ height: hourCount * HOUR_HEIGHT }}
     >
-      {Array.from({ length: hourCount + 1 }, (_, index) => (
+      {Array.from({ length: hourCount * 2 + 1 }, (_, index) => (
         <div
           aria-hidden="true"
-          className="absolute inset-x-0 border-t border-border/80"
+          className={cn(
+            "absolute inset-x-0 border-t",
+            index % 2 === 0
+              ? "border-border/80"
+              : "border-dashed border-border/45",
+          )}
           key={index}
-          style={{ top: index * HOUR_HEIGHT }}
+          style={{ top: index * (HOUR_HEIGHT / 2) }}
         />
       ))}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Clock3 } from "lucide-react";
 import { Badge } from "@/shared/components";
 import type { AvailabilityCalendarEvent } from "./availability-calendar.types";
 import {
@@ -37,7 +37,17 @@ export function AvailabilityDayTimeline({
             {formatDayMonth(date)} · {dayEvents.length} calendar events
           </p>
         </div>
-        {isSameDay(date, new Date()) && <Badge tone="brand">Today</Badge>}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            icon={<Clock3 aria-hidden="true" size={13} />}
+            size="sm"
+            tone="neutral"
+          >
+            {String(startHour).padStart(2, "0")}:00–
+            {String(endHour).padStart(2, "0")}:00
+          </Badge>
+          {isSameDay(date, new Date()) && <Badge tone="brand">Today</Badge>}
+        </div>
       </div>
 
       {dayEvents.length === 0 && (
@@ -53,7 +63,7 @@ export function AvailabilityDayTimeline({
         </div>
       )}
 
-      <div className="h-[calc(100dvh-260px)] min-h-[360px] min-w-0 shrink-0 max-h-[720px] overflow-x-hidden overflow-y-auto rounded-xl border border-border">
+      <div className="min-h-[360px] min-w-0 max-h-[calc(100dvh-260px)] overflow-x-hidden overflow-y-auto rounded-xl border border-border lg:max-h-[720px]">
         <div className="grid min-w-[420px] grid-cols-[60px_minmax(0,1fr)]">
           <TimeGutter endHour={endHour} startHour={startHour} />
           <TimelineDayCanvas

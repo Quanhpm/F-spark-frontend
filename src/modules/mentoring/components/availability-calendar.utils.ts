@@ -25,9 +25,11 @@ export const EMPTY_SLOT_FORM: SlotFormState = {
 };
 
 export const DAY_COUNT = 7;
-export const DEFAULT_START_HOUR = 0;
-export const DEFAULT_END_HOUR = 24;
-export const HOUR_HEIGHT = 40;
+export const DEFAULT_START_HOUR = 8;
+export const DEFAULT_END_HOUR = 18;
+export const HOUR_HEIGHT = 64;
+export const MIN_TIMELINE_HOURS = 6;
+export const TIMELINE_PADDING_HOURS = 1;
 export const MINUTE_IN_MS = 60_000;
 export const SLOT_DURATION_MS = 60 * MINUTE_IN_MS;
 export const BUSINESS_TIME_ZONE = "Asia/Ho_Chi_Minh";
@@ -83,6 +85,14 @@ export function getOneHourEndDateTimeLocal(startAt: string): string {
   return toDateTimeLocalValue(
     new Date(startDate.getTime() + SLOT_DURATION_MS),
   );
+}
+
+export function formatTimelineTime(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export function isHalfHourBoundary(value: string): boolean {
@@ -231,19 +241,35 @@ export function getTimelineBounds(events: AvailabilityCalendarEvent[]): {
     ...events.map((event) => getMinutesFromStartOfDay(event.startAt)),
   );
   const latestEnd = Math.max(
-    ...events.map((event) => getMinutesFromStartOfDay(event.endAt)),
+    ...events.map((event) => {
+      const startMinutes = getMinutesFromStartOfDay(event.startAt);
+      const durationMinutes = Math.max(
+        0,
+        (new Date(event.endAt).getTime() -
+          new Date(event.startAt).getTime()) /
+          MINUTE_IN_MS,
+      );
+      return Math.min(24 * 60, startMinutes + durationMinutes);
+    }),
   );
 
-  return {
-    endHour: Math.min(
-      24,
-      Math.max(DEFAULT_END_HOUR, Math.ceil(latestEnd / 60)),
-    ),
-    startHour: Math.max(
-      0,
-      Math.min(DEFAULT_START_HOUR, Math.floor(earliestStart / 60)),
-    ),
-  };
+  let startHour = Math.max(
+    0,
+    Math.floor(earliestStart / 60) - TIMELINE_PADDING_HOURS,
+  );
+  let endHour = Math.min(
+    24,
+    Math.ceil(latestEnd / 60) + TIMELINE_PADDING_HOURS,
+  );
+
+  if (endHour - startHour < MIN_TIMELINE_HOURS) {
+    const missingHours = MIN_TIMELINE_HOURS - (endHour - startHour);
+    startHour = Math.max(0, startHour - Math.floor(missingHours / 2));
+    endHour = Math.min(24, startHour + MIN_TIMELINE_HOURS);
+    startHour = Math.max(0, endHour - MIN_TIMELINE_HOURS);
+  }
+
+  return { endHour, startHour };
 }
 
 export function getCalendarEventStatusTone(status: CalendarEventStatus) {
