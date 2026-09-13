@@ -1,8 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryKeys } from "@/shared/lib";
 
-import { getReceivedFeedback, listAdminFeedback } from "../api";
+import {
+  exportAdminFeedback,
+  getReceivedFeedback,
+  listAdminFeedback,
+} from "../api";
 import type { AdminFeedbackQuery, ReceivedFeedbackQuery } from "../types";
 
 export function useReceivedFeedback(query: ReceivedFeedbackQuery = {}) {
@@ -16,5 +20,11 @@ export function useAdminFeedback(query: AdminFeedbackQuery = {}) {
   return useQuery({
     queryFn: () => listAdminFeedback(query),
     queryKey: queryKeys.feedback.admin(query),
+  });
+}
+
+export function useExportAdminFeedback() {
+  return useMutation({
+    mutationFn: exportAdminFeedback,
   });
 }

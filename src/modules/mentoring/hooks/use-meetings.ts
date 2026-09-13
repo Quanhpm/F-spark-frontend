@@ -6,8 +6,10 @@ import {
   bookMeeting,
   createMeeting,
   cancelMeeting,
+  exportMentorMeetingReport,
   getGroupMeetings,
   listMyMeetings,
+  listMentorReportTerms,
   updateMeeting,
   submitMeetingEvidence,
 } from "../api";
@@ -88,6 +90,23 @@ export function useCreateMeeting() {
         queryKey: queryKeys.mentoring.myMeetings(),
       });
     },
+  });
+}
+
+const mentorReportKeys = {
+  terms: ["mentoring", "meeting-reports", "terms"] as const,
+};
+
+export function useMentorReportTerms() {
+  return useQuery({
+    queryFn: listMentorReportTerms,
+    queryKey: mentorReportKeys.terms,
+  });
+}
+
+export function useExportMentorMeetingReport() {
+  return useMutation({
+    mutationFn: exportMentorMeetingReport,
   });
 }
 

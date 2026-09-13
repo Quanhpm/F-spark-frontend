@@ -2,6 +2,7 @@ import { getMentorGroups } from "@/modules/groups/api";
 import {
   ApiError,
   apiDelete,
+  apiDownload,
   apiGet,
   apiPatch,
   apiPost,
@@ -15,10 +16,23 @@ import type {
   CreateAvailabilitySlotRequest,
   MentorAvailabilitySlotDto,
   MentorMeetingDto,
+  MentorReportTermDto,
   UpdateAvailabilitySlotRequest,
   UpdateMentorMeetingRequest,
   SubmitMeetingEvidenceRequest,
 } from "../types";
+
+export function listMentorReportTerms() {
+  return apiGet<ApiResponse<MentorReportTermDto[]>>(
+    "/api/mentor/meeting-reports/terms",
+  );
+}
+
+export function exportMentorMeetingReport(term: string) {
+  return apiDownload("/api/mentor/meeting-reports/export.xlsx", {
+    query: { term },
+  });
+}
 
 export function listMyAvailability() {
   return apiGet<ApiResponse<MentorAvailabilitySlotDto[]>>(

@@ -1,13 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Edit3, ExternalLink, Plus, XCircle } from "lucide-react";
+import { Download, Edit3, ExternalLink, Plus, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { useMentorGroups } from "@/modules/groups";
 import { Badge, Button, Card, CardContent, CardHeader, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
-import { useCancelMeeting, useCreateMeeting, useMyMeetings, useUpdateMeeting } from "../hooks";
+import {
+  useCancelMeeting,
+  useCreateMeeting,
+  useExportMentorMeetingReport,
+  useMentorReportTerms,
+  useMyMeetings,
+  useUpdateMeeting,
+} from "../hooks";
 import type { MentorMeetingDto } from "../types";
 import { HalfHourDateTimeInput } from "./half-hour-date-time-input";
 
@@ -22,6 +29,15 @@ function dateTimeLocal(value?: string) {
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function oneHourAfter(value: string) {
@@ -47,12 +63,17 @@ export function MentorMeetingsPage() {
   const createMutation = useCreateMeeting();
   const updateMutation = useUpdateMeeting();
   const cancelMutation = useCancelMeeting();
+  const reportTermsQuery = useMentorReportTerms();
+  const exportReportMutation = useExportMentorMeetingReport();
   const [editing, setEditing] = useState<MentorMeetingDto | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [reportTerm, setReportTerm] = useState("");
   const [form, setForm] = useState<FormState>({ groupId: "", startAt: "", endAt: "", meetLink: "", note: "" });
 
   const groups = useMemo(() => groupsQuery.data?.data ?? [], [groupsQuery.data?.data]);
   const meetings = useMemo(() => meetingsQuery.data?.data ?? [], [meetingsQuery.data?.data]);
+  const reportTerms = reportTermsQuery.data?.data ?? [];
+  const selectedReportTerm = reportTerm || reportTerms[0]?.code || "";
   const counts = useMemo(() => meetings.reduce<Record<number, number>>((result, meeting) => {
     if (meeting.status !== "CANCELED") result[meeting.groupId] = (result[meeting.groupId] ?? 0) + 1;
     return result;
@@ -103,10 +124,58 @@ export function MentorMeetingsPage() {
     }
   }
 
+  async function exportMeetingReport() {
+    if (!selectedReportTerm) return;
+
+    try {
+      const blob = await exportReportMutation.mutateAsync(selectedReportTerm);
+      downloadBlob(blob, `mentor-meeting-report-${selectedReportTerm}.xlsx`);
+      toast.success("Meeting report downloaded.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Unable to export the meeting report.",
+      );
+    }
+  }
+
   return (
     <div className="grid gap-6">
       <PageHeader eyebrow="Mentor" title="Meeting schedule & reports" description="Schedule or report up to two meetings for each assigned team." actions={
-        <Button icon={<Plus size={16} />} disabled={eligibleGroups.length === 0} onClick={openCreate}>Add team & time slot</Button>
+        <>
+          <Select
+            aria-label="Report term"
+            disabled={reportTermsQuery.isLoading || reportTerms.length === 0}
+            onChange={(event) => setReportTerm(event.target.value)}
+            shellClassName="w-48 max-[480px]:w-full"
+            value={selectedReportTerm}
+          >
+            {reportTerms.length === 0 && (
+              <option value="">
+                {reportTermsQuery.isError
+                  ? "Unable to load terms"
+                  : reportTermsQuery.isLoading
+                    ? "Loading terms..."
+                    : "No report terms"}
+              </option>
+            )}
+            {reportTerms.map((term) => (
+              <option key={term.code} value={term.code}>
+                {term.code} · {term.status}
+              </option>
+            ))}
+          </Select>
+          <Button
+            disabled={!selectedReportTerm || exportReportMutation.isPending}
+            icon={<Download size={16} />}
+            onClick={() => void exportMeetingReport()}
+            variant="secondary"
+          >
+            {exportReportMutation.isPending ? "Exporting..." : "Export report"}
+          </Button>
+          <Button icon={<Plus size={16} />} disabled={eligibleGroups.length === 0} onClick={openCreate}>Add team & time slot</Button>
+        </>
       } />
 
       {groupsQuery.isLoading || meetingsQuery.isLoading ? <Card isPadded><LoadingState title="Loading meetings" /></Card> :

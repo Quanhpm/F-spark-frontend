@@ -1,8 +1,14 @@
 import type {
+  AcademicTermStatus,
   ISODateTimeString,
   MeetingStatus,
   SlotStatus,
 } from "@/shared/types";
+
+export type MentorReportTermDto = {
+  code: string;
+  status: AcademicTermStatus;
+};
 
 export type MentorAvailabilitySlotDto = {
   id: number;

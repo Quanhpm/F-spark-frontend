@@ -1,4 +1,11 @@
-import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "@/shared/lib";
+import {
+  apiDelete,
+  apiDownload,
+  apiGet,
+  apiPatch,
+  apiPost,
+  apiPut,
+} from "@/shared/lib";
 import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types";
 
 import type {
@@ -69,6 +76,12 @@ export function closeAcademicTerm(term: string) {
   return apiPatch<ApiResponse<AcademicTermResponseDto>>(
     `/api/admin/terms/${encodeURIComponent(term)}/close`,
   );
+}
+
+export function exportAdminFeedback(term: string) {
+  return apiDownload("/api/admin/feedback/export.xlsx", {
+    query: { term },
+  });
 }
 
 export function archiveTermStudents(term: string) {

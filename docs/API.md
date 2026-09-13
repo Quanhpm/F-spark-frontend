@@ -2529,7 +2529,10 @@ token; response van boc trong `ApiResponse<T>` tru khi Swagger ghi khac.
 | GET | `/api/feedback/received` | `term?`, `courseCode?` | Tong hop feedback an danh da nhan |
 | PUT | `/api/feedback/{id}` | `{ rating, comment? }` | Submit hoac cap nhat feedback |
 | GET | `/api/admin/feedback` | `page?`, `size?`, `term?`, `courseCode?`, `targetType?`, `targetId?`, `status?` | Admin xem feedback co danh tinh |
+| GET | `/api/admin/feedback/export.xlsx` | `term`* | Admin tai toan bo feedback SUBMITTED trong ky, tach sheet Mentor/Instructor |
 | GET | `/api/admin/terms` | — | Danh sach ky hoc va tien do feedback |
+| GET | `/api/mentor/meeting-reports/terms` | — | Cac ky co group hoac meeting thuoc mentor hien tai |
+| GET | `/api/mentor/meeting-reports/export.xlsx` | `term`* | Mentor tai bao cao tong hop group va meeting cua mot ky |
 | GET | `/api/terms/available` | — | Danh sach ky hoc OPEN cho student tao group |
 | PATCH | `/api/admin/terms/{term}/close` | — | Dong ky hoc |
 
@@ -2543,6 +2546,11 @@ status va version. `FeedbackReceivedSummaryDto` cua mentor/instructor co
 `AdminFeedbackResponseDto` moi co student, group va target day du danh tinh.
 `AcademicTermResponseDto` co `code`, `status`, `closedAt`, `closedByEmail`,
 `groupCount`, `totalExpectedFeedbacks`, `totalSubmittedFeedbacks`.
+
+Bao cao mentor co hai sheet `Group Summary` va `Meeting Details`, gom ca meeting
+lich su duoc ghi nhan theo mentor thuc hien va cac group hien dang phu trach chua
+co meeting. Bao cao feedback cua admin luon co hai sheet, chi gom feedback
+`SUBMITTED`; cac filter cua bang ngoai `term` khong tac dong den file export.
 
 ### 16. Group Recruitment, Lock & Instructor Assignment
 

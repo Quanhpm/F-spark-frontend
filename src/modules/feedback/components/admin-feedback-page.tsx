@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { MessageSquareText } from "lucide-react";
+import { Download, MessageSquareText } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Badge,
@@ -17,7 +18,11 @@ import {
 import { ApiError, cn } from "@/shared/lib";
 import type { FeedbackStatus, FeedbackTargetType } from "@/shared/types";
 
-import { useAdminFeedback } from "../hooks";
+import {
+  useAcademicTerms,
+  useAdminFeedback,
+  useExportAdminFeedback,
+} from "../hooks";
 import type { AdminFeedbackResponseDto } from "../types";
 import { FeedbackRating } from "./feedback-rating";
 
@@ -67,6 +72,15 @@ function formatDateTime(value: string | null) {
   }).format(new Date(value));
 }
 
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function getTargetName(item: AdminFeedbackResponseDto) {
   if (item.targetType === "MENTOR") {
     return item.mentor?.fullName ?? "Unknown mentor";
@@ -107,8 +121,11 @@ export function AdminFeedbackPage() {
     };
   }, [appliedFilters, page]);
   const feedbackQuery = useAdminFeedback(query);
+  const termsQuery = useAcademicTerms({ page: 0, size: 100 });
+  const exportMutation = useExportAdminFeedback();
   const pageData = feedbackQuery.data?.data;
   const feedbackItems = pageData?.content ?? [];
+  const academicTerms = termsQuery.data?.data.content ?? [];
 
   function updateDraft<K extends keyof FilterDraft>(key: K, value: FilterDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -133,6 +150,23 @@ export function AdminFeedbackPage() {
     setPage(0);
   }
 
+  async function exportSelectedTerm() {
+    const term = draft.term.trim();
+    if (!term) return;
+
+    try {
+      const blob = await exportMutation.mutateAsync(term);
+      downloadBlob(blob, `feedback-${term}.xlsx`);
+      toast.success("Feedback workbook downloaded.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Unable to export feedback.",
+      );
+    }
+  }
+
   return (
     <div className={pageClassName}>
       <PageHeader
@@ -144,12 +178,21 @@ export function AdminFeedbackPage() {
       <Card>
         <CardContent>
           <form className={filterClassName} onSubmit={handleFilter}>
-            <TextInput
+            <Select
+              disabled={termsQuery.isLoading}
               label="Academic term"
               onChange={(event) => updateDraft("term", event.target.value)}
-              placeholder="FALL2026"
               value={draft.term}
-            />
+            >
+              <option value="">
+                {termsQuery.isLoading ? "Loading terms..." : "All terms"}
+              </option>
+              {academicTerms.map((term) => (
+                <option key={term.id} value={term.code}>
+                  {term.code} · {term.status}
+                </option>
+              ))}
+            </Select>
             <TextInput
               label="Course code"
               onChange={(event) => updateDraft("courseCode", event.target.value)}
@@ -184,13 +227,27 @@ export function AdminFeedbackPage() {
               <option value="PENDING">Pending</option>
               <option value="SUBMITTED">Submitted</option>
             </Select>
-            <div className="flex shrink-0 items-center gap-2 max-[640px]:grid max-[640px]:w-full max-[640px]:grid-cols-2">
+            <div className="flex shrink-0 items-center gap-2 max-[640px]:grid max-[640px]:w-full max-[640px]:grid-cols-1">
               <Button type="submit">Apply filters</Button>
               <Button onClick={resetFilters} variant="secondary">
                 Reset
               </Button>
+              <Button
+                disabled={!draft.term || exportMutation.isPending}
+                icon={<Download size={16} />}
+                onClick={() => void exportSelectedTerm()}
+                variant="secondary"
+              >
+                {exportMutation.isPending
+                  ? "Exporting..."
+                  : "Export selected term"}
+              </Button>
             </div>
           </form>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Excel includes every submitted mentor and instructor feedback record
+            in the selected term. The other filters only affect the table below.
+          </p>
         </CardContent>
       </Card>
 
