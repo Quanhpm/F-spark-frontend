@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Inbox,
   LayoutDashboard,
+  LoaderCircle,
   Plus,
+  RotateCcw,
   Search,
   Users,
 } from "lucide-react";
@@ -18,6 +20,7 @@ import {
   EmptyState,
   LoadingState,
   PageHeader,
+  Select,
   TextInput,
 } from "@/shared/components";
 import { ApiError, cn } from "@/shared/lib";
@@ -28,15 +31,17 @@ import {
   useCreateGroup,
   useCreateJoinRequest,
   useDeclineInvitation,
+  useDiscoverGroups,
   useGroup,
-  useGroups,
   useMyGroups,
   useMyInvitations,
   useMyJoinRequests,
+  useRecruitmentRoles,
 } from "../../hooks";
 import { resolveActiveGroup, useActiveGroupStore } from "../../stores";
 import type {
   GroupJoinRequestDto,
+  GroupRecruitmentNeedDto,
   GroupSummaryDto,
   InvitationDto,
 } from "../../types";
@@ -65,11 +70,6 @@ function getErrorMessage(error: unknown) {
     : "Something went wrong. Please try again.";
 }
 
-function optional(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
-}
-
 function buildPendingRequestMap(requests: GroupJoinRequestDto[]) {
   return new Map(
     requests
@@ -91,9 +91,16 @@ export function StudentGroupsPage({
   const [activeSection, setActiveSection] =
     useState<GroupsSection>(initialSection);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [studentGpa, setStudentGpa] = useState("");
+  const [neededRole, setNeededRole] = useState<
+    "" | GroupRecruitmentNeedDto["role"]
+  >("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const discoverListRef = useRef<HTMLDivElement>(null);
+  const discoverSentinelRef = useRef<HTMLDivElement>(null);
   const storedActiveGroupId = useActiveGroupStore(
     (state) => state.activeGroupId,
   );
@@ -103,7 +110,21 @@ export function StudentGroupsPage({
 
   const myGroupsQuery = useMyGroups();
   const myInvitationsQuery = useMyInvitations();
-  const groupsQuery = useGroups({ search: optional(search) });
+  const recruitmentRolesQuery = useRecruitmentRoles();
+  const discoverGroupsQuery = useDiscoverGroups(
+    {
+      name: debouncedSearch || undefined,
+      neededRole: neededRole || undefined,
+      studentGpa: studentGpa ? Number(studentGpa) : undefined,
+    },
+    activeSection === "discover",
+  );
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetchNextPageError,
+    isFetchingNextPage,
+  } = discoverGroupsQuery;
   const myJoinRequestsQuery = useMyJoinRequests();
   const createGroupMutation = useCreateGroup();
   const createJoinRequestMutation = useCreateJoinRequest();
@@ -131,10 +152,7 @@ export function StudentGroupsPage({
     () => buildPendingRequestMap(joinRequests),
     [joinRequests],
   );
-  const myGroupIds = useMemo(
-    () => new Set(myGroups.map((group) => group.id)),
-    [myGroups],
-  );
+  const recruitmentRoles = recruitmentRolesQuery.data?.data ?? [];
   const pendingInvitationCount = invitations.filter(
     (invitation) => invitation.status === "PENDING",
   ).length;
@@ -157,12 +175,102 @@ export function StudentGroupsPage({
     storedActiveGroupId,
   ]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search]);
+
   const recruitingGroups = useMemo(() => {
-    const groups = groupsQuery.data?.data ?? [];
-    return groups.filter(
-      (group) => group.status === "ACTIVE" && !myGroupIds.has(group.id),
+    const groupsById = new Map<number, GroupSummaryDto>();
+    discoverGroupsQuery.data?.pages.forEach((page) => {
+      page.data.content.forEach((group) => groupsById.set(group.id, group));
+    });
+    return Array.from(groupsById.values());
+  }, [discoverGroupsQuery.data?.pages]);
+
+  useEffect(() => {
+    if (activeSection !== "discover") return;
+
+    const root = discoverListRef.current;
+    const sentinel = discoverSentinelRef.current;
+    if (!root || !sentinel || !hasNextPage || isFetchNextPageError) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (
+          entry?.isIntersecting &&
+          hasNextPage &&
+          !isFetchNextPageError &&
+          !isFetchingNextPage
+        ) {
+          void fetchNextPage();
+        }
+      },
+      { root, rootMargin: "240px 0px" },
     );
-  }, [groupsQuery.data?.data, myGroupIds]);
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    activeSection,
+    fetchNextPage,
+    hasNextPage,
+    isFetchNextPageError,
+    isFetchingNextPage,
+    recruitingGroups.length,
+  ]);
+
+  function resetDiscoverSelection() {
+    discoverListRef.current?.scrollTo({ top: 0 });
+    setSelectedGroupId(null);
+  }
+  function updateDiscoverSearch(value: string) {
+    resetDiscoverSelection();
+    setSearch(value);
+  }
+
+  function updateStudentGpa(value: string) {
+    resetDiscoverSelection();
+    if (!value) {
+      setStudentGpa("");
+      return;
+    }
+
+    const parsedValue = Number(value);
+    if (Number.isNaN(parsedValue)) return;
+    if (parsedValue < 0) {
+      setStudentGpa("0");
+      return;
+    }
+    if (parsedValue > 4) {
+      setStudentGpa("4");
+      return;
+    }
+    setStudentGpa(value);
+  }
+
+  function updateNeededRole(value: "" | GroupRecruitmentNeedDto["role"]) {
+    resetDiscoverSelection();
+    setNeededRole(value);
+  }
+
+  function clearDiscoverFilters() {
+    resetDiscoverSelection();
+    setSearch("");
+    setDebouncedSearch("");
+    setStudentGpa("");
+    setNeededRole("");
+  }
+
+  const hasDiscoverFilters = Boolean(
+    search.trim() || studentGpa || neededRole,
+  );
+
 
   function confirmAcceptInvitation(invitation: InvitationDto) {
     setConfirmAction({
@@ -180,19 +288,6 @@ export function StudentGroupsPage({
       onConfirm: () => declineInvitationMutation.mutateAsync(invitation.id),
       title: "Decline invitation",
       tone: "danger",
-    });
-  }
-
-  function confirmCancelJoinRequest(request: GroupJoinRequestDto) {
-    setConfirmAction({
-      confirmLabel: "Cancel request",
-      description: `Cancel your request to join ${request.groupName}?`,
-      onConfirm: () =>
-        cancelJoinRequestMutation.mutateAsync({
-          groupId: request.groupId,
-          requestId: request.id,
-        }),
-      title: "Cancel join request",
     });
   }
 
@@ -337,32 +432,91 @@ export function StudentGroupsPage({
           <Card className="grid min-h-[640px] grid-cols-[minmax(320px,2fr)_minmax(0,3fr)] overflow-hidden max-[1080px]:grid-cols-1">
             {/* ===== LEFT PANEL: Scrollable group list ===== */}
             <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] border-r border-border max-[1080px]:max-h-[460px] max-[1080px]:border-r-0 max-[1080px]:border-b">
-              {/* Search */}
+              {/* Filters */}
               <div className="border-b border-border p-4">
-                <TextInput
-                  icon={<Search size={16} />}
-                  label="Search groups"
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search by group name"
-                  value={search}
-                />
+                <div className="grid gap-3 min-[640px]:grid-cols-3 min-[1081px]:grid-cols-1">
+                  <TextInput
+                    icon={<Search size={16} />}
+                    label="Group name"
+                    onChange={(event) =>
+                      updateDiscoverSearch(event.target.value)
+                    }
+                    placeholder="Search by group name"
+                    value={search}
+                  />
+                  <TextInput
+                    hint="Max 4"
+                    label="Your GPA"
+                    max={4}
+                    min={0}
+                    onChange={(event) => updateStudentGpa(event.target.value)}
+                    placeholder="3.0"
+                    step="0.01"
+                    type="number"
+                    value={studentGpa}
+                  />
+                  <Select
+                    disabled={recruitmentRolesQuery.isLoading}
+                    label="Recruiting position"
+                    onChange={(event) =>
+                      updateNeededRole(
+                        event.target.value as
+                          | ""
+                          | GroupRecruitmentNeedDto["role"],
+                      )
+                    }
+                    value={neededRole}
+                  >
+                    <option value="">
+                      {recruitmentRolesQuery.isLoading
+                        ? "Loading positions..."
+                        : "All positions"}
+                    </option>
+                    {recruitmentRoles.map((role) => (
+                      <option key={role.code} value={role.code}>
+                        {role.displayNameEn || role.displayNameVi || role.code}
+                      </option>
+                    ))}
+                  </Select>
+                  {hasDiscoverFilters && (
+                    <Button
+                      className="justify-self-start"
+                      icon={<RotateCcw size={15} />}
+                      onClick={clearDiscoverFilters}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                  {recruitmentRolesQuery.isError && (
+                    <p className="m-0 text-xs text-red-600 min-[640px]:col-span-full min-[1081px]:col-span-1">
+                      Recruiting positions could not be loaded. Try refreshing
+                      the page.
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Group list with scroll */}
-              <div className="min-h-0 max-h-[calc(100vh-320px)] overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-[1080px]:max-h-[380px]">
-                {groupsQuery.isLoading ? (
+              <div
+                className="min-h-0 max-h-[calc(100vh-320px)] overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-[1080px]:max-h-[380px]"
+                ref={discoverListRef}
+              >
+                {discoverGroupsQuery.isPending ? (
                   <LoadingState className="min-h-48" title="Loading groups" />
-                ) : groupsQuery.error ? (
+                ) : discoverGroupsQuery.isError &&
+                  recruitingGroups.length === 0 ? (
                   <EmptyState
                     className="min-h-48 border-red-200 bg-red-50"
-                    description={getErrorMessage(groupsQuery.error)}
+                    description={getErrorMessage(discoverGroupsQuery.error)}
                     icon={<AlertTriangle size={22} />}
                     title="Unable to load recruiting groups"
                   />
                 ) : recruitingGroups.length === 0 ? (
                   <EmptyState
                     className="min-h-48"
-                    description="Try a different search term or create your own group."
+                    description="Try changing or clearing the filters, or create your own group."
                     icon={<Users size={22} />}
                     title="No recruiting groups found"
                   />
@@ -376,6 +530,39 @@ export function StudentGroupsPage({
                         onClick={setSelectedGroupId}
                       />
                     ))}
+                    <div
+                      aria-hidden="true"
+                      className="h-px w-full"
+                      ref={discoverSentinelRef}
+                    />
+                    {isFetchingNextPage && (
+                      <div
+                        aria-live="polite"
+                        className="inline-flex min-h-14 items-center justify-center gap-2 text-sm text-muted"
+                      >
+                        <LoaderCircle className="animate-spin" size={17} />
+                        Loading more groups...
+                      </div>
+                    )}
+                    {isFetchNextPageError && (
+                      <div className="grid justify-items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-center">
+                        <p className="m-0 text-sm text-red-700">
+                          {getErrorMessage(discoverGroupsQuery.error)}
+                        </p>
+                        <Button
+                          onClick={() => void fetchNextPage()}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    )}
+                    {!hasNextPage && !isFetchNextPageError && (
+                      <p className="m-0 py-2 text-center text-xs text-muted">
+                        You have reached the end of the list.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

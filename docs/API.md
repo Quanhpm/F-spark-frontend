@@ -851,6 +851,30 @@ GET /api/groups
 
 ---
 
+#### 3.1a Discover Groups
+```
+GET /api/groups/discover
+```
+**Auth Required:** Yes (STUDENT only)
+
+**Query Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `page` | integer | No | Zero-based page index; default `0` |
+| `size` | integer | No | Page size from `1` to `100`; default `12` |
+| `name` | string | No | Case-insensitive group-name substring |
+| `studentGpa` | decimal | No | Include groups with no GPA requirement or `requiredGpa <= studentGpa`; range `0` to `4` |
+| `neededRole` | string | No | Exact recruitment role code; matching groups must be unlocked |
+
+Only active groups in an open academic term are returned. Groups containing
+the authenticated student are excluded. Results are ordered by creation time
+and ID descending.
+
+**Response:** `APIResponse<PageResponse<GroupSummaryDto>>`
+
+---
+
 #### 3.2 Get Group Detail
 ```
 GET /api/groups/{id}

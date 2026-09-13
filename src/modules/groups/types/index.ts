@@ -221,6 +221,14 @@ export type CreateJoinRequestDto = {
 
 export type GroupsQuery = Pick<ApiListQuery, "search">;
 
+export type DiscoverGroupsQuery = {
+  page?: number;
+  size?: number;
+  name?: string;
+  studentGpa?: number;
+  neededRole?: GroupRecruitmentNeedDto["role"];
+};
+
 export type AdminGroupStatusFilter = "ACTIVE" | "INACTIVE" | "ALL";
 
 export type AdminGroupsQuery = ApiListQuery & {

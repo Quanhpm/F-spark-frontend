@@ -10,6 +10,7 @@ import type {
   CreateJoinRequestDto,
   AdminGroupsQuery,
   CreateGroupRequest,
+  DiscoverGroupsQuery,
   GroupDetailDto,
   GroupJoinRequestDto,
   GroupsQuery,
@@ -25,6 +26,13 @@ import type {
 
 export function listGroups(query?: GroupsQuery) {
   return apiGet<ApiResponse<GroupSummaryDto[]>>("/api/groups", { query });
+}
+
+export function listDiscoverGroups(query?: DiscoverGroupsQuery) {
+  return apiGet<ApiResponse<PageResponse<GroupSummaryDto>>>(
+    "/api/groups/discover",
+    { query },
+  );
 }
 
 export function listAdminGroups(query?: AdminGroupsQuery) {
