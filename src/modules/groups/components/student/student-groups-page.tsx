@@ -429,7 +429,7 @@ export function StudentGroupsPage({
             title="Discover Groups"
           />
 
-          <Card className="grid min-h-[640px] grid-cols-[minmax(320px,2fr)_minmax(0,3fr)] items-stretch overflow-hidden max-[1080px]:grid-cols-1">
+          <Card className="grid min-h-[640px] grid-cols-[minmax(320px,2fr)_minmax(0,3fr)] items-stretch overflow-clip max-[1080px]:grid-cols-1">
             {/* ===== LEFT PANEL: Scrollable group list ===== */}
             <div className="grid h-full min-h-[640px] grid-rows-[auto_minmax(0,1fr)] border-r border-border max-[1080px]:h-[560px] max-[1080px]:min-h-0 max-[1080px]:border-r-0 max-[1080px]:border-b max-[480px]:h-[520px]">
               {/* Filters */}
@@ -569,7 +569,7 @@ export function StudentGroupsPage({
             </div>
 
             {/* ===== RIGHT PANEL: Full-height group detail ===== */}
-            <div className="min-h-[640px] p-6 max-[1080px]:min-h-0 max-[480px]:p-4">
+            <div className="min-h-[640px] p-6 min-[1081px]:sticky min-[1081px]:top-6 min-[1081px]:self-start max-[1080px]:min-h-0 max-[480px]:p-4">
               <DiscoverGroupDetail
                 groupId={selectedGroupId}
                 onCancelRequest={(request) =>
