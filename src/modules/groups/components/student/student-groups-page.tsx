@@ -15,8 +15,6 @@ import {
   Button,
   Badge,
   Card,
-  CardContent,
-  CardHeader,
   EmptyState,
   LoadingState,
   PageHeader,
@@ -44,7 +42,8 @@ import type {
 } from "../../types";
 import { ActiveGroupWorkspace } from "./active-group-workspace";
 import { ConfirmDialog } from "./confirm-dialog";
-import { GroupCard } from "./group-card";
+import { DiscoverGroupCard } from "./discover-group-card";
+import { DiscoverGroupDetail } from "./discover-group-detail";
 import { GroupDetailModal } from "./group-detail-modal";
 import { GroupFormModal } from "./group-form-modal";
 import { InvitationList } from "./invitation-list";
@@ -59,8 +58,6 @@ type ConfirmAction = {
 };
 
 type GroupsSection = "workspace" | "discover" | "invitations";
-
-const DISCOVER_PAGE_SIZE = 8;
 
 function getErrorMessage(error: unknown) {
   return error instanceof ApiError
@@ -94,7 +91,6 @@ export function StudentGroupsPage({
   const [activeSection, setActiveSection] =
     useState<GroupsSection>(initialSection);
   const [search, setSearch] = useState("");
-  const [discoverPage, setDiscoverPage] = useState(0);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -167,18 +163,6 @@ export function StudentGroupsPage({
       (group) => group.status === "ACTIVE" && !myGroupIds.has(group.id),
     );
   }, [groupsQuery.data?.data, myGroupIds]);
-  const discoverTotalPages = Math.max(
-    1,
-    Math.ceil(recruitingGroups.length / DISCOVER_PAGE_SIZE),
-  );
-  const effectiveDiscoverPage = Math.min(
-    discoverPage,
-    discoverTotalPages - 1,
-  );
-  const visibleRecruitingGroups = useMemo(() => {
-    const start = effectiveDiscoverPage * DISCOVER_PAGE_SIZE;
-    return recruitingGroups.slice(start, start + DISCOVER_PAGE_SIZE);
-  }, [effectiveDiscoverPage, recruitingGroups]);
 
   function confirmAcceptInvitation(invitation: InvitationDto) {
     setConfirmAction({
@@ -277,7 +261,10 @@ export function StudentGroupsPage({
                 : "hover:bg-background/70 hover:text-foreground",
             )}
             key={section.id}
-            onClick={() => setActiveSection(section.id)}
+            onClick={() => {
+              setActiveSection(section.id);
+              setSelectedGroupId(null);
+            }}
             role="tab"
             type="button"
           >
@@ -347,24 +334,22 @@ export function StudentGroupsPage({
             title="Discover Groups"
           />
 
-          <Card>
-            <CardHeader
-              description="Open a group to review its details and send a join request."
-              title="Recruiting Groups"
-            />
-            <CardContent>
-              <div className="grid gap-4">
+          <Card className="grid min-h-[640px] grid-cols-[minmax(320px,2fr)_minmax(0,3fr)] overflow-hidden max-[1080px]:grid-cols-1">
+            {/* ===== LEFT PANEL: Scrollable group list ===== */}
+            <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] border-r border-border max-[1080px]:max-h-[460px] max-[1080px]:border-r-0 max-[1080px]:border-b">
+              {/* Search */}
+              <div className="border-b border-border p-4">
                 <TextInput
                   icon={<Search size={16} />}
                   label="Search groups"
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setDiscoverPage(0);
-                  }}
+                  onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search by group name"
                   value={search}
                 />
+              </div>
 
+              {/* Group list with scroll */}
+              <div className="min-h-0 max-h-[calc(100vh-320px)] overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-[1080px]:max-h-[380px]">
                 {groupsQuery.isLoading ? (
                   <LoadingState className="min-h-48" title="Loading groups" />
                 ) : groupsQuery.error ? (
@@ -382,64 +367,38 @@ export function StudentGroupsPage({
                     title="No recruiting groups found"
                   />
                 ) : (
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4">
-                    {visibleRecruitingGroups.map((group) => (
-                      <GroupCard
+                  <div className="grid gap-3">
+                    {recruitingGroups.map((group) => (
+                      <DiscoverGroupCard
+                        active={selectedGroupId === group.id}
                         group={group}
                         key={group.id}
-                        onCancelRequest={confirmCancelJoinRequest}
-                        onRequestJoin={(selectedGroup) =>
-                          setSelectedGroupId(selectedGroup.id)
-                        }
-                        onViewDetails={setSelectedGroupId}
-                        pendingRequest={pendingRequests.get(group.id) ?? null}
+                        onClick={setSelectedGroupId}
                       />
                     ))}
                   </div>
                 )}
-
-                {recruitingGroups.length > 0 && (
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 max-[560px]:grid">
-                    <span className="break-words text-xs font-medium text-muted">
-                      Showing{" "}
-                      {effectiveDiscoverPage * DISCOVER_PAGE_SIZE + 1}-
-                      {Math.min(
-                        (effectiveDiscoverPage + 1) * DISCOVER_PAGE_SIZE,
-                        recruitingGroups.length,
-                      )}{" "}
-                      of {recruitingGroups.length} groups
-                    </span>
-                    <div className="flex items-center gap-2 max-[560px]:grid max-[560px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] max-[560px]:[&>button]:min-w-0">
-                      <Button
-                        disabled={effectiveDiscoverPage === 0}
-                        onClick={() =>
-                          setDiscoverPage(effectiveDiscoverPage - 1)
-                        }
-                        size="sm"
-                        variant="secondary"
-                      >
-                        Previous
-                      </Button>
-                      <span className="min-w-20 text-center text-xs font-medium text-muted">
-                        Page {effectiveDiscoverPage + 1} of {discoverTotalPages}
-                      </span>
-                      <Button
-                        disabled={
-                          effectiveDiscoverPage >= discoverTotalPages - 1
-                        }
-                        onClick={() =>
-                          setDiscoverPage(effectiveDiscoverPage + 1)
-                        }
-                        size="sm"
-                        variant="secondary"
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
-            </CardContent>
+            </div>
+
+            {/* ===== RIGHT PANEL: Group detail (inline) ===== */}
+            <div className="min-h-0 max-h-[calc(100vh-320px)] overflow-y-auto p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-[1080px]:max-h-none">
+              <DiscoverGroupDetail
+                groupId={selectedGroupId}
+                onCancelRequest={(request) =>
+                  cancelJoinRequestMutation.mutateAsync({
+                    groupId: request.groupId,
+                    requestId: request.id,
+                  })
+                }
+                onRequestJoin={requestJoin}
+                pendingRequest={
+                  selectedGroupId
+                    ? pendingRequests.get(selectedGroupId) ?? null
+                    : null
+                }
+              />
+            </div>
           </Card>
         </div>
       )}
@@ -477,7 +436,7 @@ export function StudentGroupsPage({
         />
       )}
 
-      {selectedGroupId && (
+      {selectedGroupId && activeSection !== "discover" && (
         <GroupDetailModal
           groupId={selectedGroupId}
           onCancelRequest={(request) =>
