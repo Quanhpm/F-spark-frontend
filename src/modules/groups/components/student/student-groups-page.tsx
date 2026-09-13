@@ -98,8 +98,11 @@ export function StudentGroupsPage({
   >("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [isCompactDiscoverLayout, setIsCompactDiscoverLayout] =
+    useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const discoverListRef = useRef<HTMLDivElement>(null);
+  const discoverDetailRef = useRef<HTMLDivElement>(null);
   const discoverSentinelRef = useRef<HTMLDivElement>(null);
   const storedActiveGroupId = useActiveGroupStore(
     (state) => state.activeGroupId,
@@ -182,6 +185,27 @@ export function StudentGroupsPage({
 
     return () => window.clearTimeout(timeoutId);
   }, [search]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1080px)");
+    const updateLayout = () => setIsCompactDiscoverLayout(mediaQuery.matches);
+
+    updateLayout();
+    mediaQuery.addEventListener("change", updateLayout);
+    return () => mediaQuery.removeEventListener("change", updateLayout);
+  }, []);
+
+  useEffect(() => {
+    if (
+      activeSection !== "discover" ||
+      selectedGroupId === null ||
+      isCompactDiscoverLayout
+    ) {
+      return;
+    }
+
+    discoverDetailRef.current?.scrollTo({ top: 0 });
+  }, [activeSection, isCompactDiscoverLayout, selectedGroupId]);
 
   const recruitingGroups = useMemo(() => {
     const groupsById = new Map<number, GroupSummaryDto>();
@@ -429,9 +453,9 @@ export function StudentGroupsPage({
             title="Discover Groups"
           />
 
-          <Card className="grid min-h-[640px] grid-cols-[minmax(320px,2fr)_minmax(0,3fr)] items-stretch overflow-clip max-[1080px]:grid-cols-1">
+          <Card className="grid min-h-[640px] grid-cols-[minmax(320px,2fr)_minmax(0,3fr)] items-stretch overflow-hidden min-[1081px]:sticky min-[1081px]:top-6 min-[1081px]:h-[calc(100dvh-3rem)] max-[1080px]:min-h-0 max-[1080px]:grid-cols-1">
             {/* ===== LEFT PANEL: Scrollable group list ===== */}
-            <div className="grid h-full min-h-[640px] grid-rows-[auto_minmax(0,1fr)] border-r border-border max-[1080px]:h-[560px] max-[1080px]:min-h-0 max-[1080px]:border-r-0 max-[1080px]:border-b max-[480px]:h-[520px]">
+            <div className="grid h-full min-h-[640px] grid-rows-[auto_minmax(0,1fr)] border-r border-border min-[1081px]:min-h-0 max-[1080px]:h-[560px] max-[1080px]:min-h-0 max-[1080px]:border-r-0 max-[1080px]:border-b max-[480px]:h-[520px]">
               {/* Filters */}
               <div className="border-b border-border p-4">
                 <div className="grid gap-3 min-[640px]:grid-cols-3 min-[1081px]:grid-cols-1">
@@ -500,7 +524,7 @@ export function StudentGroupsPage({
 
               {/* Group list with scroll */}
               <div
-                className="min-h-0 overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                className="min-h-0 overflow-y-auto p-4 [scrollbar-gutter:stable]"
                 ref={discoverListRef}
               >
                 {discoverGroupsQuery.isPending ? (
@@ -568,8 +592,11 @@ export function StudentGroupsPage({
               </div>
             </div>
 
-            {/* ===== RIGHT PANEL: Full-height group detail ===== */}
-            <div className="min-h-[640px] p-6 min-[1081px]:sticky min-[1081px]:top-6 min-[1081px]:self-start max-[1080px]:min-h-0 max-[480px]:p-4">
+            {/* ===== RIGHT PANEL: Independently scrollable group detail ===== */}
+            <div
+              className="h-full min-h-0 overflow-y-auto p-6 [scrollbar-gutter:stable] max-[1080px]:hidden"
+              ref={discoverDetailRef}
+            >
               <DiscoverGroupDetail
                 groupId={selectedGroupId}
                 onCancelRequest={(request) =>
@@ -637,6 +664,23 @@ export function StudentGroupsPage({
           pendingRequest={pendingRequests.get(selectedGroupId) ?? null}
         />
       )}
+
+      {selectedGroupId &&
+        activeSection === "discover" &&
+        isCompactDiscoverLayout && (
+          <GroupDetailModal
+            groupId={selectedGroupId}
+            onCancelRequest={(request) =>
+              cancelJoinRequestMutation.mutateAsync({
+                groupId: request.groupId,
+                requestId: request.id,
+              })
+            }
+            onClose={() => setSelectedGroupId(null)}
+            onRequestJoin={requestJoin}
+            pendingRequest={pendingRequests.get(selectedGroupId) ?? null}
+          />
+        )}
 
       {confirmAction && (
         <ConfirmDialog
