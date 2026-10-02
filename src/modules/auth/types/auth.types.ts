@@ -13,10 +13,11 @@ export type GoogleLoginCredentials = {
 
 export type AuthTokens = {
   accessToken: string;
-  refreshToken: string;
   tokenType: string;
   expiresIn: number;
 };
+
+export type AuthTokenResponse = AuthTokens;
 
 export type AuthUser = {
   id: number;

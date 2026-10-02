@@ -18,6 +18,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# test output
+/coverage/
+/playwright-report/
+/test-results/
+
 # system and editor
 .DS_Store
 *.pem

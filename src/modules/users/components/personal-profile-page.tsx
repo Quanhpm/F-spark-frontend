@@ -459,8 +459,9 @@ export function PersonalProfilePage() {
       setPasswordError("Current password is required.");
       return;
     }
-    if (passwordForm.newPassword.length < 6) {
-      setPasswordError("New password must be at least 6 characters.");
+    const passwordLength = Array.from(passwordForm.newPassword).length;
+    if (passwordLength < 15 || passwordLength > 128) {
+      setPasswordError("New password must be between 15 and 128 characters.");
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -635,7 +636,8 @@ export function PersonalProfilePage() {
               <TextInput
                 autoComplete="new-password"
                 label="New password"
-                minLength={6}
+                maxLength={128}
+                minLength={15}
                 onChange={(event) =>
                   updatePasswordField("newPassword", event.target.value)
                 }
@@ -646,7 +648,8 @@ export function PersonalProfilePage() {
               <TextInput
                 autoComplete="new-password"
                 label="Confirm new password"
-                minLength={6}
+                maxLength={128}
+                minLength={15}
                 onChange={(event) =>
                   updatePasswordField("confirmPassword", event.target.value)
                 }

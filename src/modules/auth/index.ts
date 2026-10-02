@@ -4,11 +4,11 @@ export { useCurrentUser } from "./hooks/use-current-user";
 export { useGoogleLogin } from "./hooks/use-google-login";
 export { useLogin } from "./hooks/use-login";
 export { useLogout } from "./hooks/use-logout";
-export { useRefreshSession } from "./hooks/use-refresh-session";
 export { useAuthStore } from "./stores/auth.store";
 export { isAuthSessionValid } from "./utils/auth-session";
 export type {
   AuthSession,
+  AuthTokenResponse,
   AuthTokens,
   AuthUser,
   GoogleLoginCredentials,

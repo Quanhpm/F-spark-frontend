@@ -1,4 +1,8 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const APP_ENV = process.env.NEXT_PUBLIC_APP_ENV;
+const API_BASE_URL =
+  APP_ENV === "staging" || APP_ENV === "production"
+    ? ""
+    : (process.env.NEXT_PUBLIC_API_BASE_URL ?? "");
 
 type PrimitiveQueryValue = string | number | boolean;
 
@@ -66,7 +70,8 @@ function isBodyInit(value: ApiRequestBody): value is BodyInit {
 }
 
 function buildUrl(path: string, query?: QueryParams) {
-  const url = new URL(path, API_BASE_URL);
+  const hasExplicitBaseUrl = Boolean(API_BASE_URL);
+  const url = new URL(path, API_BASE_URL || "http://same-origin.local");
 
   Object.entries(query ?? {}).forEach(([key, value]) => {
     if (value === undefined || value === null || value === "") return;
@@ -79,7 +84,9 @@ function buildUrl(path: string, query?: QueryParams) {
     url.searchParams.set(key, String(value));
   });
 
-  return url.toString();
+  return hasExplicitBaseUrl
+    ? url.toString()
+    : `${url.pathname}${url.search}${url.hash}`;
 }
 
 function buildRequestBody(body: ApiRequestBody) {
@@ -143,6 +150,7 @@ export async function apiRequest<T>(
   const response = await fetch(buildUrl(path, query), {
     ...init,
     body: requestBody,
+    credentials: init.credentials ?? "include",
     headers: requestHeaders,
   });
 

@@ -1,9 +1,18 @@
 import { getCurrentUser, refreshAccessToken } from "../api/auth.api";
-import type { AuthSession, AuthTokens } from "../types/auth.types";
+import type {
+  AuthSession,
+  AuthTokenResponse,
+  AuthTokens,
+} from "../types/auth.types";
 
 export async function createAuthSession(
-  tokens: AuthTokens,
+  tokenResponse: AuthTokenResponse,
 ): Promise<AuthSession> {
+  const tokens: AuthTokens = {
+    accessToken: tokenResponse.accessToken,
+    expiresIn: tokenResponse.expiresIn,
+    tokenType: tokenResponse.tokenType,
+  };
   const userResponse = await getCurrentUser(tokens.accessToken);
 
   return {
@@ -13,10 +22,8 @@ export async function createAuthSession(
   };
 }
 
-export async function refreshAuthSession(
-  session: AuthSession,
-): Promise<AuthSession> {
-  const refreshResponse = await refreshAccessToken(session.tokens.refreshToken);
+export async function refreshAuthSession(): Promise<AuthSession> {
+  const refreshResponse = await refreshAccessToken();
 
   return createAuthSession(refreshResponse.data);
 }

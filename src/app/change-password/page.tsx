@@ -19,7 +19,7 @@ export default function ChangePasswordPage() {
   const router = useRouter();
   const hydrated = useAuthHydrated();
   const session = useAuthStore((state) => state.session);
-  const setSession = useAuthStore((state) => state.setSession);
+  const clearSession = useAuthStore((state) => state.clearSession);
   const changePasswordMutation = useChangeMyPassword();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -40,8 +40,8 @@ export default function ChangePasswordPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    if (newPassword.length < 6) {
-      setError("New password must be at least 6 characters.");
+    if (Array.from(newPassword).length < 15 || Array.from(newPassword).length > 128) {
+      setError("New password must be between 15 and 128 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -60,13 +60,8 @@ export default function ChangePasswordPage() {
           );
         },
         onSuccess: () => {
-          if (!session) return;
-          const nextSession = {
-            ...session,
-            user: { ...session.user, mustChangePassword: false },
-          };
-          setSession(nextSession);
-          router.replace(workspacePath(nextSession.user.role));
+          clearSession();
+          router.replace("/login");
         },
       },
     );
@@ -82,8 +77,8 @@ export default function ChangePasswordPage() {
         </div>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <TextInput label="Current password" onChange={(event) => setCurrentPassword(event.target.value)} required type="password" value={currentPassword} />
-          <TextInput label="New password" minLength={6} onChange={(event) => setNewPassword(event.target.value)} required type="password" value={newPassword} />
-          <TextInput label="Confirm new password" minLength={6} onChange={(event) => setConfirmPassword(event.target.value)} required type="password" value={confirmPassword} />
+          <TextInput label="New password" maxLength={128} minLength={15} onChange={(event) => setNewPassword(event.target.value)} required type="password" value={newPassword} />
+          <TextInput label="Confirm new password" maxLength={128} minLength={15} onChange={(event) => setConfirmPassword(event.target.value)} required type="password" value={confirmPassword} />
           {error && <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</p>}
           <Button disabled={changePasswordMutation.isPending} type="submit">
             {changePasswordMutation.isPending ? "Updating password..." : "Update password"}

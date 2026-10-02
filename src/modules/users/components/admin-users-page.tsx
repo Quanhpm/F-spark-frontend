@@ -401,8 +401,9 @@ function validateForm(form: UserFormState, mode: "create" | "edit") {
     return "Enter a valid email address.";
   }
 
-  if (mode === "create" && form.initialPassword.trim().length < 6) {
-    return "Initial password must be at least 6 characters.";
+  const initialPasswordLength = Array.from(form.initialPassword).length;
+  if (mode === "create" && (initialPasswordLength < 15 || initialPasswordLength > 128)) {
+    return "Initial password must be between 15 and 128 characters.";
   }
 
   if (form.role === "STUDENT") {
@@ -878,8 +879,9 @@ function ResetPasswordModal({
     event.preventDefault();
     setFormError("");
 
-    if (password.trim().length < 6) {
-      setFormError("New password must be at least 6 characters.");
+    const passwordLength = Array.from(password).length;
+    if (passwordLength < 15 || passwordLength > 128) {
+      setFormError("New password must be between 15 and 128 characters.");
       return;
     }
 
