@@ -4,9 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, TextInput } from "@/shared/components";
-import { ApiError } from "@/shared/lib";
 import { useAuthHydrated, useAuthStore } from "@/modules/auth";
 import { useChangeMyPassword } from "@/modules/users/hooks/use-profile";
+import { getPasswordChangeErrorMessage } from "@/modules/users/utils/password-change-error";
 
 function workspacePath(role: "ADMIN" | "STUDENT" | "MENTOR" | "INSTRUCTOR") {
   if (role === "ADMIN") return "/admin/users";
@@ -39,6 +39,10 @@ export default function ChangePasswordPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    if (!currentPassword) {
+      setError("Current password is required.");
+      return;
+    }
     if (Array.from(newPassword).length < 15 || Array.from(newPassword).length > 128) {
       setError("New password must be between 15 and 128 characters.");
       return;
@@ -52,11 +56,7 @@ export default function ChangePasswordPage() {
       { currentPassword, newPassword },
       {
         onError: (mutationError) => {
-          setError(
-            mutationError instanceof ApiError
-              ? mutationError.message
-              : "Unable to change password. Please try again.",
-          );
+          setError(getPasswordChangeErrorMessage(mutationError));
         },
         onSuccess: () => {
           window.location.replace("/login");
@@ -75,7 +75,7 @@ export default function ChangePasswordPage() {
         </div>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <TextInput label="Current password" onChange={(event) => setCurrentPassword(event.target.value)} required type="password" value={currentPassword} />
-          <TextInput label="New password" maxLength={128} minLength={15} onChange={(event) => setNewPassword(event.target.value)} required type="password" value={newPassword} />
+          <TextInput hint="15–128 characters; common passwords are not accepted" label="New password" maxLength={128} minLength={15} onChange={(event) => setNewPassword(event.target.value)} required type="password" value={newPassword} />
           <TextInput label="Confirm new password" maxLength={128} minLength={15} onChange={(event) => setConfirmPassword(event.target.value)} required type="password" value={confirmPassword} />
           {error && <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</p>}
           <Button disabled={changePasswordMutation.isPending} type="submit">

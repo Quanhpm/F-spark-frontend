@@ -28,6 +28,7 @@ import type {
   SelfProfileResponseDto,
   UpdateSelfProfileRequest,
 } from "../types";
+import { getPasswordChangeErrorMessage } from "../utils/password-change-error";
 
 type ProfileFormState = {
   address: string;
@@ -472,7 +473,7 @@ export function PersonalProfilePage() {
       });
       window.location.replace("/login");
     } catch (error) {
-      setPasswordError(getErrorMessage(error));
+      setPasswordError(getPasswordChangeErrorMessage(error));
     } finally {
       passwordBusyRef.current = false;
     }
@@ -616,6 +617,7 @@ export function PersonalProfilePage() {
               />
               <TextInput
                 autoComplete="new-password"
+                hint="15–128 characters; common passwords are not accepted"
                 label="New password"
                 maxLength={128}
                 minLength={15}
