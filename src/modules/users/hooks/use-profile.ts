@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useAuthStore } from "@/modules/auth";
 import { queryKeys } from "@/shared/lib";
 
 import { changeMyPassword, getMyProfile, updateMyProfile } from "../api";
@@ -29,13 +30,15 @@ export function useUpdateMyProfile() {
 
 export function useChangeMyPassword() {
   const queryClient = useQueryClient();
+  const clearSession = useAuthStore((state) => state.clearSession);
 
   return useMutation({
     mutationFn: (payload: ChangeOwnPasswordRequest) =>
       changeMyPassword(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.profile.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+    onSuccess: async () => {
+      clearSession();
+      await queryClient.cancelQueries();
+      queryClient.removeQueries();
     },
   });
 }

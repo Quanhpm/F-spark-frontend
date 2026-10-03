@@ -4,7 +4,6 @@ import type { FormEvent } from "react";
 import { useRef, useState } from "react";
 import { KeyRound, Save, ShieldCheck, UserRound } from "lucide-react";
 
-import { useAuthStore } from "@/modules/auth";
 import {
   Badge,
   Button,
@@ -389,8 +388,6 @@ export function PersonalProfilePage() {
   const profileQuery = useMyProfile();
   const updateProfileMutation = useUpdateMyProfile();
   const changePasswordMutation = useChangeMyPassword();
-  const session = useAuthStore((state) => state.session);
-  const setSession = useAuthStore((state) => state.setSession);
   const profileBusyRef = useRef(false);
   const passwordBusyRef = useRef(false);
   const [profileDraft, setProfileDraft] = useState<ProfileFormState | null>(null);
@@ -398,7 +395,6 @@ export function PersonalProfilePage() {
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const profile = profileQuery.data?.data;
   const profileForm =
@@ -453,7 +449,6 @@ export function PersonalProfilePage() {
     if (passwordBusyRef.current) return;
 
     setPasswordError("");
-    setPasswordSuccess("");
 
     if (!passwordForm.currentPassword) {
       setPasswordError("Current password is required.");
@@ -475,15 +470,7 @@ export function PersonalProfilePage() {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      setPasswordForm(EMPTY_PASSWORD_FORM);
-      setPasswordSuccess("Your password has been changed.");
-
-      if (session) {
-        setSession({
-          ...session,
-          user: { ...session.user, mustChangePassword: false },
-        });
-      }
+      window.location.replace("/login");
     } catch (error) {
       setPasswordError(getErrorMessage(error));
     } finally {
@@ -616,12 +603,6 @@ export function PersonalProfilePage() {
                 {passwordError}
               </p>
             )}
-            {passwordSuccess && (
-              <p className="m-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {passwordSuccess}
-              </p>
-            )}
-
             <div className="grid grid-cols-3 gap-4 max-[860px]:grid-cols-1">
               <TextInput
                 autoComplete="current-password"

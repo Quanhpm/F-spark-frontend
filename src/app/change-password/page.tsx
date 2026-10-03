@@ -19,7 +19,6 @@ export default function ChangePasswordPage() {
   const router = useRouter();
   const hydrated = useAuthHydrated();
   const session = useAuthStore((state) => state.session);
-  const clearSession = useAuthStore((state) => state.clearSession);
   const changePasswordMutation = useChangeMyPassword();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -60,8 +59,7 @@ export default function ChangePasswordPage() {
           );
         },
         onSuccess: () => {
-          clearSession();
-          router.replace("/login");
+          window.location.replace("/login");
         },
       },
     );
