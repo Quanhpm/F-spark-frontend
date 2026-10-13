@@ -87,6 +87,8 @@ export function useTransferLeadership() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.groups.detail(variables.groupId),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 }

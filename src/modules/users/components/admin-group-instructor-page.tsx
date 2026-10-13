@@ -28,6 +28,7 @@ import {
   useDeleteAdminGroup,
   useGroup,
   useRemoveMember,
+  useTransferLeadership,
   useUnassignGroupInstructor,
   useUnassignGroupMentor,
 } from "@/modules/groups";
@@ -552,7 +553,9 @@ function GroupMembersDialog({
   const groupQuery = useGroup(groupId);
   const group = groupQuery.data?.data;
   const removeMemberMutation = useRemoveMember();
+  const transferLeadershipMutation = useTransferLeadership();
   const [pendingMember, setPendingMember] = useState<GroupMemberDto | null>(null);
+  const [pendingLeader, setPendingLeader] = useState<GroupMemberDto | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
   async function handleConfirmRemove() {
@@ -577,13 +580,33 @@ function GroupMembersDialog({
     }
   }
 
+  async function handleConfirmLeader() {
+    if (!pendingLeader || !group) return;
+
+    setMutationError(null);
+    try {
+      await transferLeadershipMutation.mutateAsync({
+        groupId,
+        payload: { studentId: pendingLeader.studentId },
+      });
+      setPendingLeader(null);
+      await groupQuery.refetch();
+    } catch (error) {
+      setPendingLeader(null);
+      setMutationError(getMutationErrorMessage(error));
+    }
+  }
+
+  const isChangingMembership =
+    removeMemberMutation.isPending || transferLeadershipMutation.isPending;
+
   return (
     <>
       <ResponsiveDialog
         className="min-[761px]:max-w-[720px]"
         closeLabel="Close group members"
-        closeOnBackdrop={!pendingMember && !removeMemberMutation.isPending}
-        closeOnEscape={!pendingMember && !removeMemberMutation.isPending}
+        closeOnBackdrop={!pendingMember && !pendingLeader && !isChangingMembership}
+        closeOnEscape={!pendingMember && !pendingLeader && !isChangingMembership}
         description={
           group
             ? `Group ${group.groupNo} · ${group.term} · ${group.courseCode}`
@@ -591,7 +614,7 @@ function GroupMembersDialog({
         }
         mobileMode="fullscreen"
         onClose={() => {
-          if (!pendingMember && !removeMemberMutation.isPending) onClose();
+          if (!pendingMember && !pendingLeader && !isChangingMembership) onClose();
         }}
         title={group?.name ?? "Group members"}
       >
@@ -676,18 +699,34 @@ function GroupMembersDialog({
                         {member.email}
                       </a>
                     </div>
-                    <Button
-                      disabled={removeMemberMutation.isPending}
-                      icon={<UserRoundX size={15} />}
-                      onClick={() => {
-                        setMutationError(null);
-                        setPendingMember(member);
-                      }}
-                      size="sm"
-                      variant="danger"
-                    >
-                      Remove
-                    </Button>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                      {!isLeader && (
+                        <Button
+                          disabled={isChangingMembership}
+                          icon={<Crown size={15} />}
+                          onClick={() => {
+                            setMutationError(null);
+                            setPendingLeader(member);
+                          }}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          Make leader
+                        </Button>
+                      )}
+                      <Button
+                        disabled={isChangingMembership}
+                        icon={<UserRoundX size={15} />}
+                        onClick={() => {
+                          setMutationError(null);
+                          setPendingMember(member);
+                        }}
+                        size="sm"
+                        variant="danger"
+                      >
+                        Remove
+                      </Button>
+                    </div>
                   </article>
                 );
               })}
@@ -732,6 +771,43 @@ function GroupMembersDialog({
               : pendingMember.role === "LEADER"
                 ? "This member is the leader. The earliest remaining member will automatically become the new leader."
                 : "This student will be removed from the group."}
+          </p>
+        </ResponsiveDialog>
+      )}
+
+      {pendingLeader && group && (
+        <ResponsiveDialog
+          closeLabel="Cancel leader change"
+          closeOnBackdrop={!transferLeadershipMutation.isPending}
+          closeOnEscape={!transferLeadershipMutation.isPending}
+          description={`${pendingLeader.fullName} · ${pendingLeader.studentCode}`}
+          footer={
+            <>
+              <Button
+                disabled={transferLeadershipMutation.isPending}
+                onClick={() => setPendingLeader(null)}
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={transferLeadershipMutation.isPending}
+                icon={<Crown size={16} />}
+                onClick={handleConfirmLeader}
+              >
+                {transferLeadershipMutation.isPending
+                  ? "Updating..."
+                  : "Make leader"}
+              </Button>
+            </>
+          }
+          onClose={() => {
+            if (!transferLeadershipMutation.isPending) setPendingLeader(null);
+          }}
+          title="Change group leader?"
+        >
+          <p className="m-0 text-sm leading-6 text-muted">
+            This student will become the group leader. Every other member will be changed to the member role.
           </p>
         </ResponsiveDialog>
       )}
