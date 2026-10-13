@@ -42,6 +42,10 @@ export function listAdminGroups(query?: AdminGroupsQuery) {
   );
 }
 
+export function deleteAdminGroup(groupId: number) {
+  return apiDelete<EmptyApiResponse>(`/api/admin/groups/${groupId}`);
+}
+
 export function getGroup(groupId: number) {
   return apiGet<ApiResponse<GroupDetailDto>>(`/api/groups/${groupId}`);
 }

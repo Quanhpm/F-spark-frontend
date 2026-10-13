@@ -4,6 +4,7 @@ import { queryKeys } from "@/shared/lib";
 
 import {
   createGroup,
+  deleteAdminGroup,
   leaveGroup,
   removeMember,
   transferLeadership,
@@ -106,6 +107,22 @@ export function useRemoveMember() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.groups.detail(variables.groupId),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    },
+  });
+}
+
+export function useDeleteAdminGroup() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (groupId: number) => deleteAdminGroup(groupId),
+    onSuccess: (_response, groupId) => {
+      queryClient.removeQueries({ queryKey: queryKeys.groups.detail(groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groups.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 }

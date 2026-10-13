@@ -12,6 +12,7 @@ import {
   Loader2,
   Pencil,
   Search,
+  Trash2,
   UserRoundPlus,
   UserRoundX,
   Users,
@@ -20,10 +21,13 @@ import {
 
 import {
   type AdminGroupStatusFilter,
+  type GroupMemberDto,
   useAssignGroupInstructor,
   useAssignGroupMentor,
   useAdminGroups,
+  useDeleteAdminGroup,
   useGroup,
+  useRemoveMember,
   useUnassignGroupInstructor,
   useUnassignGroupMentor,
 } from "@/modules/groups";
@@ -110,6 +114,15 @@ type PendingUnassignment = {
   role: "instructor" | "mentor";
 };
 
+type PendingGroupDeletion = {
+  courseCode: string;
+  groupId: number;
+  groupName: string;
+  groupNo: string;
+  memberCount: number;
+  term: string;
+};
+
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed || undefined;
@@ -131,7 +144,7 @@ function getLoadErrorMessage(error: unknown) {
 function getMutationErrorMessage(error: unknown) {
   return error instanceof ApiError
     ? error.message
-    : "Unable to save the assignment change. Please try again.";
+    : "Unable to complete this group change. Please try again.";
 }
 
 function getUserDisplayName(user: AdminUserSummaryDto) {
@@ -530,109 +543,199 @@ function AssignmentPanel({
 function GroupMembersDialog({
   groupId,
   onClose,
+  onGroupDeleted,
 }: {
   groupId: number;
   onClose: () => void;
+  onGroupDeleted: () => void;
 }) {
   const groupQuery = useGroup(groupId);
   const group = groupQuery.data?.data;
+  const removeMemberMutation = useRemoveMember();
+  const [pendingMember, setPendingMember] = useState<GroupMemberDto | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+
+  async function handleConfirmRemove() {
+    if (!pendingMember || !group) return;
+
+    const deletesGroup = group.members.length === 1;
+    setMutationError(null);
+    try {
+      await removeMemberMutation.mutateAsync({
+        groupId,
+        studentId: pendingMember.studentId,
+      });
+      setPendingMember(null);
+      if (deletesGroup) {
+        onGroupDeleted();
+        return;
+      }
+      await groupQuery.refetch();
+    } catch (error) {
+      setPendingMember(null);
+      setMutationError(getMutationErrorMessage(error));
+    }
+  }
 
   return (
-    <ResponsiveDialog
-      className="min-[761px]:max-w-[720px]"
-      closeLabel="Close group members"
-      description={
-        group
-          ? `Group ${group.groupNo} · ${group.term} · ${group.courseCode}`
-          : "Review the students currently belonging to this group."
-      }
-      mobileMode="fullscreen"
-      onClose={onClose}
-      title={group?.name ?? "Group members"}
-    >
-      {groupQuery.isLoading ? (
-        <LoadingState title="Loading group members" />
-      ) : groupQuery.isError ? (
-        <EmptyState
-          className="min-h-52"
-          description={getLoadErrorMessage(groupQuery.error)}
-          title="Unable to load group members"
-        />
-      ) : !group ? (
-        <EmptyState
-          className="min-h-52"
-          description="The selected group could not be loaded."
-          title="Group unavailable"
-        />
-      ) : group.members.length === 0 ? (
-        <EmptyState
-          className="min-h-52"
-          description="This group currently has no active members."
-          icon={<Users size={22} />}
-          title="Empty group"
-        />
-      ) : (
-        <div className="grid gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
-            <div className="grid gap-0.5">
-              <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-                Current membership
-              </span>
-              <span className="text-sm text-foreground">
-                {group.members.length}{" "}
-                {group.members.length === 1 ? "student" : "students"}
-              </span>
+    <>
+      <ResponsiveDialog
+        className="min-[761px]:max-w-[720px]"
+        closeLabel="Close group members"
+        closeOnBackdrop={!pendingMember && !removeMemberMutation.isPending}
+        closeOnEscape={!pendingMember && !removeMemberMutation.isPending}
+        description={
+          group
+            ? `Group ${group.groupNo} · ${group.term} · ${group.courseCode}`
+            : "Review the students currently belonging to this group."
+        }
+        mobileMode="fullscreen"
+        onClose={() => {
+          if (!pendingMember && !removeMemberMutation.isPending) onClose();
+        }}
+        title={group?.name ?? "Group members"}
+      >
+        {mutationError && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {mutationError}
+          </div>
+        )}
+        {groupQuery.isLoading ? (
+          <LoadingState title="Loading group members" />
+        ) : groupQuery.isError ? (
+          <EmptyState
+            className="min-h-52"
+            description={getLoadErrorMessage(groupQuery.error)}
+            title="Unable to load group members"
+          />
+        ) : !group ? (
+          <EmptyState
+            className="min-h-52"
+            description="The selected group could not be loaded."
+            title="Group unavailable"
+          />
+        ) : group.members.length === 0 ? (
+          <EmptyState
+            className="min-h-52"
+            description="This group currently has no active members."
+            icon={<Users size={22} />}
+            title="Empty group"
+          />
+        ) : (
+          <div className="grid gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+              <div className="grid gap-0.5">
+                <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
+                  Current membership
+                </span>
+                <span className="text-sm text-foreground">
+                  {group.members.length}{" "}
+                  {group.members.length === 1 ? "student" : "students"}
+                </span>
+              </div>
+              <Badge tone={group.status === "ACTIVE" ? "success" : "danger"}>
+                {group.status === "ACTIVE" ? "Active" : "Inactive"}
+              </Badge>
             </div>
-            <Badge tone={group.status === "ACTIVE" ? "success" : "danger"}>
-              {group.status === "ACTIVE" ? "Active" : "Inactive"}
-            </Badge>
-          </div>
 
-          <div className="grid gap-3">
-            {group.members.map((member) => {
-              const isLeader = member.role === "LEADER";
+            <div className="grid gap-3">
+              {group.members.map((member) => {
+                const isLeader = member.role === "LEADER";
 
-              return (
-                <article
-                  className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-4"
-                  key={member.studentId}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-warm text-sm font-bold text-brand-primary"
+                return (
+                  <article
+                    className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-4"
+                    key={member.studentId}
                   >
-                    {getPersonInitials(member.fullName, member.studentCode)}
-                  </span>
-                  <div className="grid min-w-0 flex-1 gap-1">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <strong className="break-words text-sm text-foreground">
-                        {member.fullName}
-                      </strong>
-                      <Badge
-                        icon={isLeader ? <Crown size={12} /> : undefined}
-                        size="sm"
-                        tone={isLeader ? "brand" : "neutral"}
-                      >
-                        {isLeader ? "Leader" : "Member"}
-                      </Badge>
-                    </div>
-                    <span className="text-xs font-medium text-muted">
-                      {member.studentCode}
-                    </span>
-                    <a
-                      className="w-fit max-w-full break-all text-xs !text-brand-primary hover:underline"
-                      href={`mailto:${member.email}`}
+                    <span
+                      aria-hidden="true"
+                      className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-warm text-sm font-bold text-brand-primary"
                     >
-                      {member.email}
-                    </a>
-                  </div>
-                </article>
-              );
-            })}
+                      {getPersonInitials(member.fullName, member.studentCode)}
+                    </span>
+                    <div className="grid min-w-0 flex-1 gap-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <strong className="break-words text-sm text-foreground">
+                          {member.fullName}
+                        </strong>
+                        <Badge
+                          icon={isLeader ? <Crown size={12} /> : undefined}
+                          size="sm"
+                          tone={isLeader ? "brand" : "neutral"}
+                        >
+                          {isLeader ? "Leader" : "Member"}
+                        </Badge>
+                      </div>
+                      <span className="text-xs font-medium text-muted">
+                        {member.studentCode}
+                      </span>
+                      <a
+                        className="w-fit max-w-full break-all text-xs !text-brand-primary hover:underline"
+                        href={`mailto:${member.email}`}
+                      >
+                        {member.email}
+                      </a>
+                    </div>
+                    <Button
+                      disabled={removeMemberMutation.isPending}
+                      icon={<UserRoundX size={15} />}
+                      onClick={() => {
+                        setMutationError(null);
+                        setPendingMember(member);
+                      }}
+                      size="sm"
+                      variant="danger"
+                    >
+                      Remove
+                    </Button>
+                  </article>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+      </ResponsiveDialog>
+
+      {pendingMember && group && (
+        <ResponsiveDialog
+          closeLabel="Cancel member removal"
+          closeOnBackdrop={!removeMemberMutation.isPending}
+          closeOnEscape={!removeMemberMutation.isPending}
+          description={`${pendingMember.fullName} · ${pendingMember.studentCode}`}
+          footer={
+            <>
+              <Button
+                disabled={removeMemberMutation.isPending}
+                onClick={() => setPendingMember(null)}
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={removeMemberMutation.isPending}
+                icon={<UserRoundX size={16} />}
+                onClick={handleConfirmRemove}
+                variant="danger"
+              >
+                {removeMemberMutation.isPending ? "Removing..." : "Remove member"}
+              </Button>
+            </>
+          }
+          onClose={() => {
+            if (!removeMemberMutation.isPending) setPendingMember(null);
+          }}
+          title="Remove group member"
+        >
+          <p className="m-0 text-sm leading-6 text-muted">
+            {group.members.length === 1
+              ? "This is the last member. If the group has no academic data, the entire group will be permanently deleted."
+              : pendingMember.role === "LEADER"
+                ? "This member is the leader. The earliest remaining member will automatically become the new leader."
+                : "This student will be removed from the group."}
+          </p>
+        </ResponsiveDialog>
       )}
-    </ResponsiveDialog>
+    </>
   );
 }
 
@@ -653,6 +756,8 @@ export function AdminGroupInstructorPage() {
   const [assigningGroupId, setAssigningGroupId] = useState<number | null>(null);
   const [pendingUnassignment, setPendingUnassignment] =
     useState<PendingUnassignment | null>(null);
+  const [pendingGroupDeletion, setPendingGroupDeletion] =
+    useState<PendingGroupDeletion | null>(null);
   const [viewingGroupId, setViewingGroupId] = useState<number | null>(null);
   const [rowFeedback, setRowFeedback] = useState<
     Record<number, RowFeedback | undefined>
@@ -668,6 +773,7 @@ export function AdminGroupInstructorPage() {
   const assignMentorMutation = useAssignGroupMentor();
   const unassignInstructorMutation = useUnassignGroupInstructor();
   const unassignMentorMutation = useUnassignGroupMentor();
+  const deleteGroupMutation = useDeleteAdminGroup();
   const groupsPage = groupsQuery.data?.data;
   const groups = groupsPage?.content ?? [];
   const groupTotalPages = groupsPage?.totalPages ?? 0;
@@ -837,6 +943,25 @@ export function AdminGroupInstructorPage() {
     }
   }
 
+  async function handleConfirmDeleteGroup() {
+    if (!pendingGroupDeletion) return;
+
+    const { groupId } = pendingGroupDeletion;
+    setRowFeedback((current) => ({ ...current, [groupId]: undefined }));
+    try {
+      await deleteGroupMutation.mutateAsync(groupId);
+      setPendingGroupDeletion(null);
+      if (viewingGroupId === groupId) setViewingGroupId(null);
+      await groupsQuery.refetch();
+    } catch (error) {
+      setPendingGroupDeletion(null);
+      setFeedback(groupId, {
+        message: getMutationErrorMessage(error),
+        tone: "error",
+      });
+    }
+  }
+
   const isUnassigning =
     unassignInstructorMutation.isPending || unassignMentorMutation.isPending;
 
@@ -981,6 +1106,23 @@ export function AdminGroupInstructorPage() {
                           variant="secondary"
                         >
                           View members
+                        </Button>
+                        <Button
+                          icon={<Trash2 size={15} />}
+                          onClick={() =>
+                            setPendingGroupDeletion({
+                              courseCode: group.courseCode,
+                              groupId: group.id,
+                              groupName: group.name,
+                              groupNo: group.groupNo,
+                              memberCount: group.memberCount,
+                              term: group.term,
+                            })
+                          }
+                          size="sm"
+                          variant="danger"
+                        >
+                          Delete group
                         </Button>
                       </div>
                     </header>
@@ -1201,10 +1343,51 @@ export function AdminGroupInstructorPage() {
         </ResponsiveDialog>
       )}
 
+      {pendingGroupDeletion && (
+        <ResponsiveDialog
+          closeLabel="Cancel group deletion"
+          closeOnBackdrop={!deleteGroupMutation.isPending}
+          closeOnEscape={!deleteGroupMutation.isPending}
+          description={`${pendingGroupDeletion.term} · ${pendingGroupDeletion.courseCode} · Group ${pendingGroupDeletion.groupNo}`}
+          footer={
+            <>
+              <Button
+                disabled={deleteGroupMutation.isPending}
+                onClick={() => setPendingGroupDeletion(null)}
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={deleteGroupMutation.isPending}
+                icon={<Trash2 size={16} />}
+                onClick={handleConfirmDeleteGroup}
+                variant="danger"
+              >
+                {deleteGroupMutation.isPending ? "Deleting..." : "Delete permanently"}
+              </Button>
+            </>
+          }
+          onClose={() => {
+            if (!deleteGroupMutation.isPending) setPendingGroupDeletion(null);
+          }}
+          title={`Delete ${pendingGroupDeletion.groupName}?`}
+        >
+          <p className="m-0 text-sm leading-6 text-muted">
+            This permanently deletes the group and its {pendingGroupDeletion.memberCount}{" "}
+            {pendingGroupDeletion.memberCount === 1 ? "member" : "members"}. Student accounts are kept. Groups with academic data cannot be deleted.
+          </p>
+        </ResponsiveDialog>
+      )}
+
       {viewingGroupId !== null && (
         <GroupMembersDialog
           groupId={viewingGroupId}
           onClose={() => setViewingGroupId(null)}
+          onGroupDeleted={() => {
+            setViewingGroupId(null);
+            void groupsQuery.refetch();
+          }}
         />
       )}
     </div>
