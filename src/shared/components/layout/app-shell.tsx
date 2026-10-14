@@ -51,6 +51,16 @@ type NavItem = {
   label: string;
 };
 
+const ADMIN_VERSION_LABEL = "Version 8";
+
+function AdminVersionBadge() {
+  return (
+    <span className="shrink-0 rounded-full border border-brand-primary/20 bg-[#fff3ed] px-2 py-1 text-[11px] font-semibold leading-none text-brand-primary">
+      {ADMIN_VERSION_LABEL}
+    </span>
+  );
+}
+
 const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ADMIN: [
     { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -240,12 +250,15 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
       <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
       <aside className="sticky top-0 flex h-svh flex-col justify-between gap-6 overflow-y-auto border-r border-border bg-surface px-4 py-[22px] max-[960px]:hidden">
         <div className="flex min-w-0 flex-col gap-6">
-          <Link
-            className="inline-flex min-w-0 items-center px-2"
-            href={navItems[0].href}
-          >
-            <BrandLogo variant="sidebar" />
-          </Link>
+          <div className="flex min-w-0 items-center justify-between gap-2 px-2">
+            <Link
+              className="inline-flex min-w-0 items-center"
+              href={navItems[0].href}
+            >
+              <BrandLogo variant="sidebar" />
+            </Link>
+            {role === "ADMIN" && <AdminVersionBadge />}
+          </div>
 
           <nav className="grid min-w-0 content-start gap-1.5" aria-label="Workspace navigation">
             {navItems.map((item) => {
@@ -358,13 +371,16 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
           >
             <div className="flex min-w-0 flex-col gap-4">
               <div className="flex min-w-0 items-center justify-between gap-3">
-                <Link
-                  className="inline-flex min-h-11 min-w-0 items-center px-1"
-                  href={navItems[0].href}
-                  onClick={() => setNavigationOpenedAtPath(null)}
-                >
-                  <BrandLogo variant="sidebar" />
-                </Link>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Link
+                    className="inline-flex min-h-11 min-w-0 items-center px-1"
+                    href={navItems[0].href}
+                    onClick={() => setNavigationOpenedAtPath(null)}
+                  >
+                    <BrandLogo variant="sidebar" />
+                  </Link>
+                  {role === "ADMIN" && <AdminVersionBadge />}
+                </div>
                 <Button
                   aria-label="Close workspace navigation"
                   className="size-11 shrink-0 px-0"

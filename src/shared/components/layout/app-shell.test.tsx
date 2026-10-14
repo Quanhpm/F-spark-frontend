@@ -65,6 +65,20 @@ describe("AppShell route guard", () => {
       "href",
       "/admin/users",
     );
+    expect(screen.getByText("Version 8")).toBeInTheDocument();
+  });
+
+  it("does not render the admin version badge for another role", () => {
+    authState.hydrated = true;
+    authState.session = {
+      expiresAt: Date.now() + 60_000,
+      user: { mustChangePassword: false, role: "STUDENT" },
+    };
+
+    render(<AppShell role="STUDENT">Student content</AppShell>);
+
+    expect(screen.getByText("Student content")).toBeInTheDocument();
+    expect(screen.queryByText("Version 8")).not.toBeInTheDocument();
   });
 
   it("blocks a valid session from a different role", () => {
