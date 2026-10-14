@@ -151,6 +151,23 @@ export function MentorMeetingsPage() {
     }
   }
 
+  async function cancelMeeting(meeting: MentorMeetingDto) {
+    try {
+      await cancelMutation.mutateAsync({
+        groupId: meeting.groupId,
+        meetingId: meeting.id,
+        reason: "Canceled by mentor",
+      });
+      toast.success("Meeting canceled.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Unable to cancel the meeting.",
+      );
+    }
+  }
+
   return (
     <div className="grid gap-6">
       <PageHeader eyebrow="Mentor" title="Meeting records & reports" description="Record meetings held outside the booking flow so students can submit evidence." actions={
@@ -208,7 +225,7 @@ export function MentorMeetingsPage() {
                     {meeting.evidenceImageUrl && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View meeting evidence</a>}
                     {meeting.status === "SCHEDULED" && !meeting.evidenceImageUrl && <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="secondary" icon={<Edit3 size={14} />} onClick={() => openEdit(meeting)}>Edit</Button>
-                      <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => cancelMutation.mutate({ groupId: group.id, meetingId: meeting.id, reason: "Canceled by mentor" })}>Cancel</Button>
+                      <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => void cancelMeeting(meeting)}>Cancel</Button>
                     </div>}
                   </article>
                 ))}
