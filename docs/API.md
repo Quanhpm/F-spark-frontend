@@ -2089,7 +2089,7 @@ POST /api/groups/{groupId}/mentor/meetings
 }
 ```
 
-The group leader must book at least 6 hours before `startAt`; exactly 6 hours before is allowed. Mentors may create or time-edit slots and direct meetings with a duration of either 1 hour or 2 hours 15 minutes.
+The group leader must book at least 6 hours before `startAt`; exactly 6 hours before is allowed. Mentors may create or time-edit availability slots with a duration of either 1 hour or 2 hours 15 minutes. When no `slotId` is supplied, the assigned mentor uses this endpoint to record a meeting arranged outside the booking flow so students can submit evidence after it ends; this is not a new availability booking.
 
 **Response:** `APIResponse<MentorMeetingDto>`
 

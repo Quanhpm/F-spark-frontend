@@ -280,7 +280,7 @@ export function MeetingBookingSection({
                   <EmptyState title="Unable to load meeting reports" />
                 ) : meetings.length === 0 ? (
                   <EmptyState
-                    description="Booked or mentor-created meetings will appear here."
+                    description="Booked meetings and external meetings recorded by the mentor will appear here."
                     title="No meetings yet"
                   />
                 ) : (
@@ -314,7 +314,7 @@ export function MeetingBookingSection({
                                     : "warning"
                               }
                             >
-                              {meeting.status}
+                              {canSubmit ? "AWAITING EVIDENCE" : meeting.status}
                             </Badge>
                           </div>
                           {meeting.meetLink && (
