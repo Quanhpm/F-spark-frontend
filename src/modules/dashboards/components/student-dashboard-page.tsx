@@ -20,7 +20,7 @@ import {
   LoadingState,
   PageHeader,
 } from "@/shared/components";
-import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
+import { getGroupMentors, resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 import { ApiError, cn } from "@/shared/lib";
 
 import {
@@ -166,7 +166,7 @@ function GroupProgressCard({ group }: { group: DashboardGroupProgressDto }) {
       </div>
       <div className="grid min-w-0 gap-1 text-sm text-muted">
         <span className="break-words">
-          Mentor: {group.mentorName ?? "Unassigned"}
+          Mentors: {getGroupMentors(group).map((item) => item.mentor.fullName).join(", ") || "Unassigned"}
         </span>
         <span className="break-words">Next due: {formatDate(group.nextDueAt)}</span>
       </div>

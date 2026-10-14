@@ -3,7 +3,7 @@
 import { BookOpen, GraduationCap, Target, UserRound, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { useGroup } from "@/modules/groups";
+import { getGroupMentors, useGroup } from "@/modules/groups";
 import {
   Badge,
   EmptyState,
@@ -181,7 +181,10 @@ export function GroupDetailDialog({
             <SectionTitle icon={<GraduationCap size={18} />}>Phụ trách group</SectionTitle>
             <dl className="m-0 grid gap-3 min-[761px]:grid-cols-3">
               <InfoItem label="Instructor" value={group.instructorName} />
-              <InfoItem label="Mentor" value={group.mentor?.fullName} />
+              <InfoItem
+                label="Mentors"
+                value={getGroupMentors(group).map((item) => item.mentor.fullName).join(", ") || null}
+              />
               <InfoItem label="Group leader" value={group.leader?.fullName} />
             </dl>
           </section>

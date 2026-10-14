@@ -36,6 +36,7 @@ import {
   useClaimInstructorGroup,
   useInstructorGroupBoard,
 } from "../../hooks";
+import { getGroupMentors } from "../../utils/group-mentors";
 import type {
   InstructorGroupAssignmentFilter,
   InstructorGroupBoardItemDto,
@@ -254,7 +255,7 @@ function GroupCard({
             Mentor
           </dt>
           <dd className="m-0 break-words text-foreground">
-            {group.mentorName || "Not assigned"}
+            {getGroupMentors(group).map((item) => item.mentor.fullName).join(", ") || "Not assigned"}
           </dd>
         </div>
         <div className="col-span-2 grid gap-1 max-[520px]:col-span-1">

@@ -86,6 +86,7 @@ export type GroupSummaryDto = {
   mentorAccountId: number | null;
   mentorCode: string | null;
   mentorName: string | null;
+  mentors?: GroupMentorDto[];
   instructorId: number | null;
   instructorAccountId: number | null;
   instructorCode: string | null;
@@ -123,6 +124,7 @@ export type GroupDetailDto = {
   status: GroupStatus;
   mentor: MentorProfileDto | null;
   mentorAccountId: number | null;
+  mentors?: GroupMentorDto[];
   instructorId: number | null;
   instructorAccountId: number | null;
   instructorCode: string | null;
@@ -131,6 +133,20 @@ export type GroupDetailDto = {
   members: GroupMemberDto[];
   selectedProblem: SelectedProblemSummaryDto | null;
   recruitmentNeeds: GroupRecruitmentNeedDto[];
+};
+
+export type GroupMentorDto = {
+  accountId: number | null;
+  mentor: MentorProfileDto;
+};
+
+export type GroupWithMentors = {
+  mentor?: MentorProfileDto | null;
+  mentorAccountId?: number | null;
+  mentorCode?: string | null;
+  mentorId?: number | null;
+  mentorName?: string | null;
+  mentors?: GroupMentorDto[];
 };
 
 export type InvitationDto = {

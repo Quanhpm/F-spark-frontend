@@ -21,6 +21,7 @@ import {
   PageHeader,
 } from "@/shared/components";
 import { ApiError, cn } from "@/shared/lib";
+import { getGroupMentors } from "@/modules/groups";
 
 import { useAdminDashboard } from "../hooks";
 import { AdminOverviewSection } from "./admin-overview-section";
@@ -679,6 +680,9 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
         <tbody>
           {visibleItems.map((item, index) => {
             const record = item as DashboardRecord;
+            const mentorNames = getGroupMentors(item)
+              .map((assignment) => assignment.mentor.fullName)
+              .join(", ");
             const progress = getNumber(record, [
               "progressPercent",
               "completionPercent",
@@ -703,7 +707,7 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
                   </div>
                 </td>
                 <td className={mutedCellClassName}>
-                  {getString(record, ["mentorName"], "-")}
+                  {mentorNames || getString(record, ["mentorName"], "-")}
                 </td>
                 <td className={tableCellClassName}>
                   <ProgressValue value={progress} />
@@ -721,6 +725,9 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
       <div className={mobileListClassName}>
         {visibleItems.map((item, index) => {
           const record = item as DashboardRecord;
+          const mentorNames = getGroupMentors(item)
+            .map((assignment) => assignment.mentor.fullName)
+            .join(", ");
           const progress = getNumber(record, [
             "progressPercent",
             "completionPercent",
@@ -757,7 +764,7 @@ function GroupsTable({ items }: { items: AdminDashboardGroupProgressDto[] }) {
                 <div className={mobileMetadataItemClassName}>
                   <span className={mobileMetadataLabelClassName}>Mentor</span>
                   <span className={mobileMetadataValueClassName}>
-                    {getString(record, ["mentorName"], "-")}
+                    {mentorNames || getString(record, ["mentorName"], "-")}
                   </span>
                 </div>
               </div>

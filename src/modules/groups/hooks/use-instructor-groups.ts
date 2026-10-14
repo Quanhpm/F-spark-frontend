@@ -72,6 +72,7 @@ function patchGroupSummaryFromDetail(
     mentorCode: detail.mentor?.mentorCode ?? null,
     mentorId: detail.mentor?.id ?? null,
     mentorName: detail.mentor?.fullName ?? null,
+    mentors: detail.mentors,
   };
 }
 
@@ -174,8 +175,10 @@ export function useUnassignGroupMentor() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ groupId }: UnassignGroupRoleVariables) =>
-      unassignGroupMentor(groupId),
+    mutationFn: ({ groupId, mentorAccountId }: UnassignGroupRoleVariables) => {
+      if (!mentorAccountId) throw new Error("Mentor account ID is required");
+      return unassignGroupMentor(groupId, mentorAccountId);
+    },
     onSuccess: (response, variables) => {
       updateCachedGroupLists(queryClient, response.data);
       invalidateAssignmentCaches(queryClient, variables.groupId);

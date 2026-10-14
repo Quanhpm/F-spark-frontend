@@ -13,6 +13,7 @@ import { ApiError, cn } from "@/shared/lib";
 
 import { useGroup } from "../../hooks";
 import type { GroupJoinRequestDto, GroupSummaryDto } from "../../types";
+import { getGroupMentors } from "../../utils/group-mentors";
 import { RecruitmentNeeds } from "../recruitment-needs";
 
 type DiscoverGroupDetailProps = {
@@ -89,6 +90,7 @@ function GroupDetailContent({
           mentorCode: group.mentor?.mentorCode ?? null,
           mentorId: group.mentor?.id ?? null,
           mentorName: group.mentor?.fullName ?? null,
+          mentors: group.mentors,
           name: group.name,
           projectName: group.projectName,
           recruitmentNeeds: group.recruitmentNeeds,
@@ -168,7 +170,10 @@ function GroupDetailContent({
               : "Not assigned"
           }
         />
-        <InfoItem label="Mentor" value={group.mentor?.fullName} />
+        <InfoItem
+          label="Mentors"
+          value={getGroupMentors(group).map((item) => item.mentor.fullName).join(", ") || null}
+        />
         <InfoItem label="Required GPA" value={group.requiredGpa} />
         <InfoItem label="Target grade" value={group.targetGrade} />
       </div>

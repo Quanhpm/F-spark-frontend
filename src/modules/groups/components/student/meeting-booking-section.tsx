@@ -29,6 +29,7 @@ import {
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import type { GroupDetailDto } from "../../types";
+import { getGroupMentors } from "../../utils/group-mentors";
 import {
   BOOKING_LEAD_TIME_MESSAGE,
   canBookMentorSlot,
@@ -70,8 +71,10 @@ export function MeetingBookingSection({
   group,
 }: MeetingBookingSectionProps) {
   const meetingsQuery = useGroupMeetings(group.id);
+  const assignedMentors = getGroupMentors(group);
+  const mentorNames = assignedMentors.map((item) => item.mentor.fullName).join(", ");
   const availabilityQuery = useMentorAvailabilityForGroup(
-    group.mentor ? group.id : null,
+    assignedMentors.length > 0 ? group.id : null,
   );
   const bookingMutation = useBookMeeting();
   const evidenceMutation = useSubmitMeetingEvidence();
@@ -154,14 +157,14 @@ export function MeetingBookingSection({
       <Card>
         <CardHeader
           description={
-            group.mentor
-              ? `Assigned mentor: ${group.mentor.fullName}`
+            assignedMentors.length > 0
+              ? `Assigned mentors: ${mentorNames}`
               : "A mentor must be assigned before meetings can be booked."
           }
           title="Mentor meetings"
         />
         <CardContent className="grid min-w-0 gap-6">
-          {!group.mentor ? (
+          {assignedMentors.length === 0 ? (
             <EmptyState
               icon={<CalendarClock size={22} />}
               title="No mentor assigned"
@@ -175,7 +178,7 @@ export function MeetingBookingSection({
                       Upcoming availability
                     </h3>
                     <p className="m-0 text-sm text-muted">
-                      Choose a published time from {group.mentor.fullName}.
+                      Choose a published time from either assigned mentor.
                     </p>
                   </div>
                   <Badge tone={meetingLimitReached ? "warning" : "neutral"}>
@@ -207,7 +210,7 @@ export function MeetingBookingSection({
                   />
                 ) : availableSlots.length === 0 ? (
                   <EmptyState
-                    description="Your mentor has not published any future slots."
+                    description="Your mentors have not published any future slots."
                     title="No available slots"
                   />
                 ) : (

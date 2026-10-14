@@ -19,6 +19,8 @@ export type DashboardStatsDto = {
   progressPercent: number;
 };
 
+import type { GroupMentorDto } from "@/modules/groups";
+
 export type DashboardGroupProgressDto = {
   groupId: number;
   term: string;
@@ -30,6 +32,7 @@ export type DashboardGroupProgressDto = {
   mentorId: number | null;
   mentorCode: string | null;
   mentorName: string | null;
+  mentors?: GroupMentorDto[];
   memberCount: number;
   totalTasks: number;
   completedTasks: number;
@@ -144,6 +147,7 @@ export type AdminDashboardGroupProgressDto = DashboardRecord & {
   projectName?: string | null;
   leaderName?: string | null;
   mentorName?: string | null;
+  mentors?: GroupMentorDto[];
   memberCount?: number | null;
   progressPercent?: number | null;
   completedTaskCount?: number | null;

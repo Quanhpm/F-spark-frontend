@@ -46,8 +46,8 @@ export function assignGroupMentor(
   groupId: number,
   payload: AssignMentorRequest,
 ) {
-  return apiPatch<ApiResponse<InstructorAssignedGroupDetailDto>>(
-    `/api/groups/${groupId}/mentor`,
+  return apiPost<ApiResponse<InstructorAssignedGroupDetailDto>>(
+    `/api/groups/${groupId}/mentors`,
     payload,
   );
 }
@@ -58,8 +58,8 @@ export function unassignGroupInstructor(groupId: number) {
   );
 }
 
-export function unassignGroupMentor(groupId: number) {
+export function unassignGroupMentor(groupId: number, mentorAccountId: number) {
   return apiDelete<ApiResponse<InstructorAssignedGroupDetailDto>>(
-    `/api/groups/${groupId}/mentor`,
+    `/api/groups/${groupId}/mentors/${mentorAccountId}`,
   );
 }

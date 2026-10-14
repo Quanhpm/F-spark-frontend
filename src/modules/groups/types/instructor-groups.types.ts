@@ -1,4 +1,4 @@
-import type { GroupDetailDto, GroupSummaryDto } from ".";
+import type { GroupDetailDto, GroupMentorDto, GroupSummaryDto } from ".";
 import type { PageResponse } from "@/shared/types";
 
 export type InstructorGroupsQuery = {
@@ -59,6 +59,7 @@ export type InstructorGroupBoardItemDto = {
   mentorId: number | null;
   mentorCode: string | null;
   mentorName: string | null;
+  mentors?: GroupMentorDto[];
   instructorId: number | null;
   instructorCode: string | null;
   instructorName: string | null;
@@ -94,6 +95,7 @@ export type AssignGroupMentorVariables = {
 
 export type UnassignGroupRoleVariables = {
   groupId: number;
+  mentorAccountId?: number;
 };
 
 export type InstructorGroupSummaryDto = GroupSummaryDto;

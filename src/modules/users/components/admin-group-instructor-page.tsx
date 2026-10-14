@@ -21,7 +21,9 @@ import {
 
 import {
   type AdminGroupStatusFilter,
+  type GroupMentorDto,
   type GroupMemberDto,
+  getGroupMentors,
   useAssignGroupInstructor,
   useAssignGroupMentor,
   useAdminGroups,
@@ -113,6 +115,7 @@ type PendingUnassignment = {
   groupName: string;
   personName: string;
   role: "instructor" | "mentor";
+  mentorAccountId?: number;
 };
 
 type PendingGroupDeletion = {
@@ -163,6 +166,7 @@ type UserSearchComboboxProps = {
   placeholder: string;
   role: Extract<UserRole, "INSTRUCTOR" | "MENTOR">;
   value: string;
+  excludedUserIds?: number[];
 };
 
 function UserSearchCombobox({
@@ -172,6 +176,7 @@ function UserSearchCombobox({
   placeholder,
   role,
   value,
+  excludedUserIds = [],
 }: UserSearchComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -199,7 +204,9 @@ function UserSearchCombobox({
     },
     { enabled: isOpen && !disabled },
   );
-  const users = usersQuery.data?.data.content ?? [];
+  const users = (usersQuery.data?.data.content ?? []).filter(
+    (user) => !excludedUserIds.includes(user.id),
+  );
   const effectiveSelectedUser =
     selectedUser && value === String(selectedUser.id) ? selectedUser : null;
 
@@ -536,6 +543,111 @@ function AssignmentPanel({
             </Button>
           </div>
         </div>
+      )}
+    </section>
+  );
+}
+
+type MentorAssignmentPanelProps = {
+  assignments: GroupMentorDto[];
+  blockedReason?: string;
+  disabled: boolean;
+  onAdd: () => Promise<boolean>;
+  onChange: (value: string) => void;
+  onRemove: (assignment: GroupMentorDto) => void;
+  pending: boolean;
+  value: string;
+};
+
+function MentorAssignmentPanel({
+  assignments,
+  blockedReason,
+  disabled,
+  onAdd,
+  onChange,
+  onRemove,
+  pending,
+  value,
+}: MentorAssignmentPanelProps) {
+  const atLimit = assignments.length >= 2;
+
+  return (
+    <section className="grid h-full min-w-0 content-start gap-4 rounded-2xl border border-border bg-background p-4">
+      <div className="flex items-center gap-3">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800">
+          <BookOpen size={20} />
+        </span>
+        <div className="grid min-w-0 gap-0.5">
+          <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
+            Mentors
+          </span>
+          <span className="text-sm font-semibold text-foreground">
+            {assignments.length}/2 assigned
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        {assignments.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-surface/50 p-3 text-sm text-muted">
+            No mentor assigned
+          </div>
+        ) : (
+          assignments.map((assignment) => (
+            <div
+              className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-3"
+              key={assignment.accountId ?? assignment.mentor.id}
+            >
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-800">
+                {getPersonInitials(assignment.mentor.fullName, "ME")}
+              </span>
+              <div className="grid min-w-0 flex-1 gap-0.5">
+                <span className="truncate text-sm font-semibold text-foreground">
+                  {assignment.mentor.fullName}
+                </span>
+                <span className="truncate text-xs text-muted">
+                  {assignment.mentor.mentorCode || assignment.mentor.email}
+                  {assignment.mentor.status !== "ACTIVE" ? " · Inactive" : ""}
+                </span>
+              </div>
+              {assignment.accountId != null && (
+                <Button
+                  aria-label={`Remove ${assignment.mentor.fullName}`}
+                  disabled={disabled || pending}
+                  icon={<UserRoundX size={15} />}
+                  onClick={() => onRemove(assignment)}
+                  size="sm"
+                  variant="danger"
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <UserSearchCombobox
+        ariaLabel="Choose mentor"
+        disabled={disabled || pending || atLimit || Boolean(blockedReason)}
+        excludedUserIds={assignments.flatMap((item) =>
+          item.accountId == null ? [] : [item.accountId],
+        )}
+        onChange={onChange}
+        placeholder={atLimit ? "Maximum 2 mentors assigned" : "Choose active mentor"}
+        role="MENTOR"
+        value={value}
+      />
+      <Button
+        disabled={disabled || pending || atLimit || Boolean(blockedReason) || !value}
+        icon={pending ? <Loader2 className="animate-spin" size={16} /> : <UserRoundPlus size={16} />}
+        onClick={() => void onAdd()}
+        size="sm"
+      >
+        {pending ? "Adding..." : "Add mentor"}
+      </Button>
+      {atLimit && (
+        <p className="m-0 text-xs text-muted">A group can have at most 2 mentors.</p>
       )}
     </section>
   );
@@ -943,7 +1055,7 @@ export function AdminGroupInstructorPage() {
 
   async function handleAssignMentor(
     groupId: number,
-    currentMentorAccountId: number | null,
+    mentorAssignments: GroupMentorDto[],
   ) {
     const mentorId = Number(selectedMentorIds[groupId]);
 
@@ -955,7 +1067,7 @@ export function AdminGroupInstructorPage() {
       return false;
     }
 
-    if (mentorId === currentMentorAccountId) {
+    if (mentorAssignments.some((item) => item.accountId === mentorId)) {
       setFeedback(groupId, {
         message: "This mentor is already assigned to the group.",
         tone: "error",
@@ -1000,7 +1112,10 @@ export function AdminGroupInstructorPage() {
       if (role === "instructor") {
         await unassignInstructorMutation.mutateAsync({ groupId });
       } else {
-        await unassignMentorMutation.mutateAsync({ groupId });
+        await unassignMentorMutation.mutateAsync({
+          groupId,
+          mentorAccountId: pendingUnassignment.mentorAccountId,
+        });
       }
       setPendingUnassignment(null);
       await groupsQuery.refetch();
@@ -1120,14 +1235,10 @@ export function AdminGroupInstructorPage() {
               const selectedMentorId = selectedMentorIds[group.id] ?? "";
               const currentInstructorAccountId =
                 group.instructorAccountId ?? group.instructorId;
-              const currentMentorAccountId =
-                group.mentorAccountId ?? group.mentorId;
+              const mentorAssignments = getGroupMentors(group);
               const isSameInstructor =
                 Boolean(selectedInstructorId) &&
                 Number(selectedInstructorId) === currentInstructorAccountId;
-              const isSameMentor =
-                Boolean(selectedMentorId) &&
-                Number(selectedMentorId) === currentMentorAccountId;
               const isCurrentRowPending = assigningGroupId === group.id;
               const feedback = rowFeedback[group.id];
               const blockedReason =
@@ -1211,18 +1322,12 @@ export function AdminGroupInstructorPage() {
                     )}
 
                     <div className="grid min-w-0 grid-cols-2 gap-3 max-[620px]:grid-cols-1">
-                      <AssignmentPanel
+                      <MentorAssignmentPanel
+                        assignments={mentorAssignments}
                         blockedReason={blockedReason}
-                        currentCode={group.mentorCode}
-                        currentName={
-                          group.mentorName ??
-                          (currentMentorAccountId ? "Assigned mentor" : null)
-                        }
                         disabled={assigningGroupId !== null}
-                        groupName={group.name}
-                        isSameSelection={isSameMentor}
-                        onAssign={() =>
-                          handleAssignMentor(group.id, currentMentorAccountId)
+                        onAdd={() =>
+                          handleAssignMentor(group.id, mentorAssignments)
                         }
                         onChange={(value) => {
                           setSelectedMentorIds((current) => ({
@@ -1234,22 +1339,16 @@ export function AdminGroupInstructorPage() {
                             [group.id]: undefined,
                           }));
                         }}
-                        onUnassign={
-                          currentMentorAccountId
-                            ? () =>
-                                setPendingUnassignment({
-                                  groupId: group.id,
-                                  groupName: group.name,
-                                  personName:
-                                    group.mentorName ??
-                                    group.mentorCode ??
-                                    "the current mentor",
-                                  role: "mentor",
-                                })
-                            : undefined
+                        onRemove={(assignment) =>
+                          setPendingUnassignment({
+                            groupId: group.id,
+                            groupName: group.name,
+                            mentorAccountId: assignment.accountId ?? undefined,
+                            personName: assignment.mentor.fullName,
+                            role: "mentor",
+                          })
                         }
                         pending={isCurrentRowPending}
-                        role="MENTOR"
                         value={selectedMentorId}
                       />
                       <AssignmentPanel
