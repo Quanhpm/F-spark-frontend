@@ -29,6 +29,10 @@ import {
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import type { GroupDetailDto } from "../../types";
+import {
+  BOOKING_LEAD_TIME_MESSAGE,
+  canBookMentorSlot,
+} from "./meeting-booking.utils";
 
 type MeetingBookingSectionProps = {
   canBook: boolean;
@@ -121,6 +125,13 @@ export function MeetingBookingSection({
   async function confirmBooking() {
     if (!bookingSlot) return;
 
+    const currentTime = Date.now();
+    if (!canBookMentorSlot(bookingSlot.startAt, currentTime)) {
+      setNow(currentTime);
+      toast.error(BOOKING_LEAD_TIME_MESSAGE);
+      return;
+    }
+
     try {
       await bookingMutation.mutateAsync({
         groupId: group.id,
@@ -201,40 +212,60 @@ export function MeetingBookingSection({
                   />
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">
-                    {availableSlots.map((slot) => (
-                      <article
-                        className="grid min-w-0 gap-3 rounded-xl border border-border bg-background p-4"
-                        key={slot.id}
-                      >
-                        <div className="flex min-w-0 items-start gap-3">
-                          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-brand-primary">
-                            <Clock3 size={18} />
-                          </span>
-                          <div className="grid min-w-0 gap-1">
-                            <strong className="break-words text-sm text-foreground">
-                              {formatDate(slot.startAt)}
-                            </strong>
-                            <span className="text-sm text-muted">
-                              {formatTime(slot.startAt)}–{formatTime(slot.endAt)}
+                    {availableSlots.map((slot) => {
+                      const bookingWindowOpen = canBookMentorSlot(
+                        slot.startAt,
+                        now,
+                      );
+
+                      return (
+                        <article
+                          className="grid min-w-0 gap-3 rounded-xl border border-border bg-background p-4"
+                          key={slot.id}
+                        >
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-brand-primary">
+                              <Clock3 size={18} />
                             </span>
+                            <div className="grid min-w-0 gap-1">
+                              <strong className="break-words text-sm text-foreground">
+                                {formatDate(slot.startAt)}
+                              </strong>
+                              <span className="text-sm text-muted">
+                                {formatTime(slot.startAt)}–
+                                {formatTime(slot.endAt)}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        {slot.note && (
-                          <p className="m-0 break-words text-sm text-muted">
-                            {slot.note}
-                          </p>
-                        )}
-                        {canBook && !meetingLimitReached && (
-                          <Button
-                            disabled={bookingMutation.isPending}
-                            onClick={() => setBookingSlot(slot)}
-                            size="sm"
-                          >
-                            Book this slot
-                          </Button>
-                        )}
-                      </article>
-                    ))}
+                          {slot.note && (
+                            <p className="m-0 break-words text-sm text-muted">
+                              {slot.note}
+                            </p>
+                          )}
+                          {canBook && !meetingLimitReached && (
+                            <div className="grid gap-2">
+                              <Button
+                                disabled={
+                                  bookingMutation.isPending ||
+                                  !bookingWindowOpen
+                                }
+                                onClick={() => setBookingSlot(slot)}
+                                size="sm"
+                              >
+                                {bookingWindowOpen
+                                  ? "Book this slot"
+                                  : "Booking closed"}
+                              </Button>
+                              {!bookingWindowOpen && (
+                                <p className="m-0 text-xs leading-5 text-amber-700">
+                                  {BOOKING_LEAD_TIME_MESSAGE}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -376,7 +407,10 @@ export function MeetingBookingSection({
                 Cancel
               </Button>
               <Button
-                disabled={bookingMutation.isPending}
+                disabled={
+                  bookingMutation.isPending ||
+                  !canBookMentorSlot(bookingSlot.startAt, now)
+                }
                 onClick={confirmBooking}
               >
                 {bookingMutation.isPending ? "Booking..." : "Confirm booking"}
@@ -390,6 +424,11 @@ export function MeetingBookingSection({
             This availability slot will be reserved for {group.name} and will
             count toward the group&apos;s two-meeting limit.
           </p>
+          {!canBookMentorSlot(bookingSlot.startAt, now) && (
+            <p className="m-0 mt-3 text-sm leading-6 text-amber-700">
+              {BOOKING_LEAD_TIME_MESSAGE}
+            </p>
+          )}
         </ResponsiveDialog>
       )}
     </>

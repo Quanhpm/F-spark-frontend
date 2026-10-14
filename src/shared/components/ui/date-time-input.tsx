@@ -6,7 +6,9 @@ import type { InputHTMLAttributes } from "react";
 import { cn } from "@/shared/lib";
 
 type DateTimeInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  error?: string;
   fieldClassName?: string;
+  hint?: string;
   label?: string;
   shellClassName?: string;
   type?: "date" | "datetime-local" | "time";
@@ -14,7 +16,9 @@ type DateTimeInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & 
 
 export function DateTimeInput({
   className,
+  error,
   fieldClassName,
+  hint,
   id,
   label,
   onClick,
@@ -25,6 +29,7 @@ export function DateTimeInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const generatedId = useId();
   const inputId = id ?? generatedId;
+  const descriptionId = hint || error ? `${inputId}-description` : undefined;
 
   function openPicker() {
     const input = inputRef.current;
@@ -63,6 +68,8 @@ export function DateTimeInput({
         }}
       >
         <input
+          aria-describedby={descriptionId}
+          aria-invalid={Boolean(error)}
           className={cn(
             "h-full min-w-0 flex-1 cursor-pointer border-0 bg-transparent font-sans text-base text-foreground outline-0 min-[761px]:text-sm",
             className,
@@ -77,6 +84,19 @@ export function DateTimeInput({
           {...props}
         />
       </span>
+      {hint && !error && (
+        <span className="text-xs text-muted" id={descriptionId}>
+          {hint}
+        </span>
+      )}
+      {error && (
+        <span
+          className="text-xs leading-[1.45] text-red-600"
+          id={descriptionId}
+        >
+          {error}
+        </span>
+      )}
     </div>
   );
 }

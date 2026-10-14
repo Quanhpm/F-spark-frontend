@@ -3,19 +3,28 @@
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
 import { CalendarClock } from "lucide-react";
-import { Button, ResponsiveDialog, TextInput } from "@/shared/components";
+import {
+  Button,
+  DateTimeInput,
+  ResponsiveDialog,
+  Select,
+  TextInput,
+} from "@/shared/components";
 import { getMinimumDateTimeLocal } from "@/shared/lib";
 import type { MentorAvailabilitySlotDto } from "../types";
 import type { SlotFormState } from "./availability-calendar.types";
-import { HalfHourDateTimeInput } from "./half-hour-date-time-input";
 import {
   EMPTY_SLOT_FORM,
+  DEFAULT_SLOT_DURATION_MINUTES,
   createFormFromSlot,
   errorPanelClassName,
   getErrorMessage,
-  getOneHourEndDateTimeLocal,
-  isHalfHourBoundary,
-  SLOT_DURATION_MS,
+  getSlotEndDateTimeLocal,
+  getSlotDurationMinutes,
+  isWholeMinute,
+  MINUTE_IN_MS,
+  SLOT_DURATION_OPTIONS,
+  type SlotDurationMinutes,
   validateSlotForm,
 } from "./availability-calendar.utils";
 
@@ -34,15 +43,21 @@ export function SlotFormModal({
   const [form, setForm] = useState<SlotFormState>(() =>
     slot ? createFormFromSlot(slot) : EMPTY_SLOT_FORM,
   );
+  const [durationMinutes, setDurationMinutes] = useState<SlotDurationMinutes>(
+    () =>
+      slot
+        ? getSlotDurationMinutes(slot.startAt, slot.endAt)
+        : DEFAULT_SLOT_DURATION_MINUTES,
+  );
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const minimumDateTime = getMinimumDateTimeLocal();
-  const invalidStartBoundary =
-    Boolean(form.startAt) && !isHalfHourBoundary(form.startAt);
+  const invalidStartPrecision =
+    Boolean(form.startAt) && !isWholeMinute(form.startAt);
   const invalidDuration =
     Boolean(form.startAt && form.endAt) &&
     new Date(form.endAt).getTime() - new Date(form.startAt).getTime() !==
-      SLOT_DURATION_MS;
+      durationMinutes * MINUTE_IN_MS;
 
   function updateField<K extends keyof SlotFormState>(
     field: K,
@@ -54,8 +69,16 @@ export function SlotFormModal({
   function updateStartAt(startAt: string) {
     setForm((current) => ({
       ...current,
-      endAt: getOneHourEndDateTimeLocal(startAt),
+      endAt: getSlotEndDateTimeLocal(startAt, durationMinutes),
       startAt,
+    }));
+  }
+
+  function updateDuration(nextDuration: SlotDurationMinutes) {
+    setDurationMinutes(nextDuration);
+    setForm((current) => ({
+      ...current,
+      endAt: getSlotEndDateTimeLocal(current.startAt, nextDuration),
     }));
   }
 
@@ -103,7 +126,7 @@ export function SlotFormModal({
               !form.startAt ||
               !form.endAt ||
               !form.meetLink.trim() ||
-              invalidStartBoundary ||
+              invalidStartPrecision ||
               invalidDuration
             }
             form={formId}
@@ -125,25 +148,40 @@ export function SlotFormModal({
       >
         {formError && <div className={errorPanelClassName}>{formError}</div>}
         <p className="m-0 text-sm text-muted">
-          Each slot lasts 60 minutes and must start at minute 00 or 30.
+          Choose a 1-hour or 2-hour-15-minute slot starting at any minute.
         </p>
-        <HalfHourDateTimeInput
+        <DateTimeInput
           error={
-            invalidStartBoundary
-              ? "Choose a time ending in :00 or :30."
+            invalidStartPrecision
+              ? "Choose a start time without seconds."
               : undefined
           }
-          hint="Only times ending in :00 or :30 can be selected."
+          hint="Choose any date and minute."
           label="Start"
           min={minimumDateTime}
-          onChange={updateStartAt}
+          onChange={(event) => updateStartAt(event.target.value)}
           required
+          step={60}
+          type="datetime-local"
           value={form.startAt}
         />
+        <Select
+          label="Duration"
+          onChange={(event) =>
+            updateDuration(Number(event.target.value) as SlotDurationMinutes)
+          }
+          value={durationMinutes}
+        >
+          {SLOT_DURATION_OPTIONS.map((minutes) => (
+            <option key={minutes} value={minutes}>
+              {minutes === 60 ? "1 hour" : "2 hours 15 minutes"}
+            </option>
+          ))}
+        </Select>
         <TextInput
           error={
             invalidDuration
-              ? "End must be exactly 60 minutes after start."
+              ? "End must match the selected duration."
               : undefined
           }
           hint="Calculated automatically"

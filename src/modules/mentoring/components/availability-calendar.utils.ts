@@ -31,7 +31,9 @@ export const HOUR_HEIGHT = 64;
 export const MIN_TIMELINE_HOURS = 6;
 export const TIMELINE_PADDING_HOURS = 1;
 export const MINUTE_IN_MS = 60_000;
-export const SLOT_DURATION_MS = 60 * MINUTE_IN_MS;
+export const SLOT_DURATION_OPTIONS = [60, 135] as const;
+export type SlotDurationMinutes = (typeof SLOT_DURATION_OPTIONS)[number];
+export const DEFAULT_SLOT_DURATION_MINUTES: SlotDurationMinutes = 135;
 export const BUSINESS_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
 export const pageClassName = "grid min-w-0 gap-6";
@@ -78,12 +80,33 @@ export function toIsoDateTime(value: string): string {
   return new Date(value).toISOString();
 }
 
-export function getOneHourEndDateTimeLocal(startAt: string): string {
+export function getSlotEndDateTimeLocal(
+  startAt: string,
+  durationMinutes: SlotDurationMinutes = DEFAULT_SLOT_DURATION_MINUTES,
+): string {
   const startDate = new Date(startAt);
   if (Number.isNaN(startDate.getTime())) return "";
 
   return toDateTimeLocalValue(
-    new Date(startDate.getTime() + SLOT_DURATION_MS),
+    new Date(startDate.getTime() + durationMinutes * MINUTE_IN_MS),
+  );
+}
+
+export function getSlotDurationMinutes(
+  startAt: string,
+  endAt: string,
+): SlotDurationMinutes {
+  const durationMinutes =
+    (new Date(endAt).getTime() - new Date(startAt).getTime()) / MINUTE_IN_MS;
+
+  return SLOT_DURATION_OPTIONS.includes(durationMinutes as SlotDurationMinutes)
+    ? (durationMinutes as SlotDurationMinutes)
+    : DEFAULT_SLOT_DURATION_MINUTES;
+}
+
+export function isSupportedSlotDurationMs(durationMs: number): boolean {
+  return SLOT_DURATION_OPTIONS.some(
+    (durationMinutes) => durationMs === durationMinutes * MINUTE_IN_MS,
   );
 }
 
@@ -95,11 +118,10 @@ export function formatTimelineTime(value: string): string {
   }).format(new Date(value));
 }
 
-export function isHalfHourBoundary(value: string): boolean {
+export function isWholeMinute(value: string): boolean {
   const date = new Date(value);
   return (
     Number.isFinite(date.getTime()) &&
-    (date.getMinutes() === 0 || date.getMinutes() === 30) &&
     date.getSeconds() === 0 &&
     date.getMilliseconds() === 0
   );
@@ -421,12 +443,12 @@ export function validateSlotForm(form: SlotFormState): string | null {
     return "End time must be in the future.";
   }
 
-  if (!isHalfHourBoundary(form.startAt)) {
-    return "Availability slots must start on the hour or half hour.";
+  if (!isWholeMinute(form.startAt)) {
+    return "Availability slots must start on a whole minute.";
   }
 
-  if (endAt - startAt !== SLOT_DURATION_MS) {
-    return "Availability slots must last exactly 60 minutes.";
+  if (!isSupportedSlotDurationMs(endAt - startAt)) {
+    return "Availability slots must last exactly 1 hour or 2 hours 15 minutes.";
   }
 
   if (

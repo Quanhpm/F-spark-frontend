@@ -2011,12 +2011,14 @@ POST /api/mentor/availability
 **Request Body:**
 ```json
 {
-  "startAt": "2025-07-01T09:00:00Z",    // required, format: date-time
-  "endAt": "2025-07-01T10:00:00Z",      // required, format: date-time
+  "startAt": "2025-07-01T09:17:00Z",    // required, any whole minute
+  "endAt": "2025-07-01T11:32:00Z",      // required, exactly 2h15m after startAt
   "meetLink": "https://meet.google.com/abc-defg-hij",  // required, regex: ^https://meet\.google\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}$
   "note": "Office hours"                 // optional, maxLength: 500
 }
 ```
+
+The slot must start and end on the same `Asia/Ho_Chi_Minh` calendar day.
 
 **Response:** `APIResponse<MentorAvailabilitySlotDto>`
 
@@ -2033,8 +2035,8 @@ PATCH /api/mentor/availability/{id}
 **Request Body:**
 ```json
 {
-  "startAt": "2025-07-01T10:00:00Z",     // optional
-  "endAt": "2025-07-01T11:00:00Z",       // optional
+  "startAt": "2025-07-01T10:23:00Z",     // optional, any whole minute
+  "endAt": "2025-07-01T12:38:00Z",       // optional, exactly 2h15m after startAt
   "meetLink": "https://meet.google.com/xyz-abcd-efg",  // optional, same regex pattern
   "note": "Updated note"                  // optional, maxLength: 500
 }
@@ -2064,7 +2066,7 @@ DELETE /api/mentor/availability/{id}
 GET /api/groups/{groupId}/mentor/availability
 ```
 **Auth Required:** Yes (Group members)
-**Description:** Returns AVAILABLE slots of the assigned mentor, sorted chronologically.
+**Description:** Returns future AVAILABLE slots of the assigned mentor, sorted chronologically. Slots remain visible after their booking deadline so the UI can show them as closed.
 
 **Path Parameters:** `groupId` (long)
 
@@ -2086,6 +2088,8 @@ POST /api/groups/{groupId}/mentor/meetings
   "slotId": 1                // required, long — the availability slot ID to book
 }
 ```
+
+The group leader must book at least 6 hours before `startAt`; exactly 6 hours before is allowed. Mentors may create or time-edit slots and direct meetings with a duration of either 1 hour or 2 hours 15 minutes.
 
 **Response:** `APIResponse<MentorMeetingDto>`
 

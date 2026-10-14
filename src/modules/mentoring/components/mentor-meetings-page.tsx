@@ -5,7 +5,7 @@ import { Download, Edit3, ExternalLink, Plus, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { useMentorGroups } from "@/modules/groups";
-import { Badge, Button, Card, CardContent, CardHeader, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
+import { Badge, Button, Card, CardContent, CardHeader, DateTimeInput, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import {
   useCancelMeeting,
@@ -16,9 +16,16 @@ import {
   useUpdateMeeting,
 } from "../hooks";
 import type { MentorMeetingDto } from "../types";
-import { HalfHourDateTimeInput } from "./half-hour-date-time-input";
-
-const MEETING_DURATION_MS = 60 * 60 * 1000;
+import {
+  DEFAULT_SLOT_DURATION_MINUTES,
+  getBusinessDateKey,
+  getSlotEndDateTimeLocal,
+  getSlotDurationMinutes,
+  isWholeMinute,
+  MINUTE_IN_MS,
+  SLOT_DURATION_OPTIONS,
+  type SlotDurationMinutes,
+} from "./availability-calendar.utils";
 
 function dateTimeLocal(value?: string) {
   if (!value) return "";
@@ -40,22 +47,7 @@ function downloadBlob(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
-function oneHourAfter(value: string) {
-  if (!value) return "";
-  const start = new Date(value);
-  if (Number.isNaN(start.getTime())) return "";
-  return dateTimeLocal(new Date(start.getTime() + MEETING_DURATION_MS).toISOString());
-}
-
-function isHalfHourBoundary(value: string) {
-  if (!value) return false;
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) &&
-    (date.getMinutes() === 0 || date.getMinutes() === 30) &&
-    date.getSeconds() === 0 && date.getMilliseconds() === 0;
-}
-
-type FormState = { groupId: string; startAt: string; endAt: string; meetLink: string; note: string };
+type FormState = { groupId: string; startAt: string; endAt: string; meetLink: string; note: string; durationMinutes: SlotDurationMinutes };
 
 export function MentorMeetingsPage() {
   const groupsQuery = useMentorGroups();
@@ -68,7 +60,7 @@ export function MentorMeetingsPage() {
   const [editing, setEditing] = useState<MentorMeetingDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [reportTerm, setReportTerm] = useState("");
-  const [form, setForm] = useState<FormState>({ groupId: "", startAt: "", endAt: "", meetLink: "", note: "" });
+  const [form, setForm] = useState<FormState>({ groupId: "", startAt: "", endAt: "", meetLink: "", note: "", durationMinutes: DEFAULT_SLOT_DURATION_MINUTES });
 
   const groups = useMemo(() => groupsQuery.data?.data ?? [], [groupsQuery.data?.data]);
   const meetings = useMemo(() => meetingsQuery.data?.data ?? [], [meetingsQuery.data?.data]);
@@ -79,33 +71,52 @@ export function MentorMeetingsPage() {
     return result;
   }, {}), [meetings]);
   const eligibleGroups = groups.filter((group) => (counts[group.id] ?? 0) < 2);
-  const invalidStartBoundary = Boolean(form.startAt) && !isHalfHourBoundary(form.startAt);
+  const invalidStartPrecision = Boolean(form.startAt) && !isWholeMinute(form.startAt);
   const invalidDuration = Boolean(form.startAt && form.endAt) &&
-    new Date(form.endAt).getTime() - new Date(form.startAt).getTime() !== MEETING_DURATION_MS;
+    new Date(form.endAt).getTime() - new Date(form.startAt).getTime() !== form.durationMinutes * MINUTE_IN_MS;
+  const crossesBusinessDay = Boolean(form.startAt && form.endAt) &&
+    getBusinessDateKey(form.startAt) !== getBusinessDateKey(form.endAt);
 
   function openCreate() {
     setEditing(null);
-    setForm({ groupId: eligibleGroups[0]?.id.toString() ?? "", startAt: "", endAt: "", meetLink: "", note: "" });
+    setForm({ groupId: eligibleGroups[0]?.id.toString() ?? "", startAt: "", endAt: "", meetLink: "", note: "", durationMinutes: DEFAULT_SLOT_DURATION_MINUTES });
     setShowForm(true);
   }
 
   function openEdit(meeting: MentorMeetingDto) {
     const startAt = dateTimeLocal(meeting.startAt);
     setEditing(meeting);
-    setForm({ groupId: meeting.groupId.toString(), startAt, endAt: dateTimeLocal(meeting.endAt), meetLink: meeting.meetLink ?? "", note: meeting.note ?? "" });
+    const endAt = dateTimeLocal(meeting.endAt);
+    setForm({ groupId: meeting.groupId.toString(), startAt, endAt, meetLink: meeting.meetLink ?? "", note: meeting.note ?? "", durationMinutes: getSlotDurationMinutes(startAt, endAt) });
     setShowForm(true);
   }
 
   function updateStartAt(startAt: string) {
-    setForm((value) => ({ ...value, startAt, endAt: oneHourAfter(startAt) }));
+    setForm((value) => ({
+      ...value,
+      startAt,
+      endAt: getSlotEndDateTimeLocal(startAt, value.durationMinutes),
+    }));
+  }
+
+  function updateDuration(durationMinutes: SlotDurationMinutes) {
+    setForm((value) => ({
+      ...value,
+      durationMinutes,
+      endAt: getSlotEndDateTimeLocal(value.startAt, durationMinutes),
+    }));
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!isHalfHourBoundary(form.startAt) || !form.endAt || invalidDuration) {
-      toast.error(invalidDuration
-        ? "Meetings must last exactly 60 minutes."
-        : "Choose a meeting start time ending in :00 or :30.");
+    if (!isWholeMinute(form.startAt) || !form.endAt || invalidDuration || crossesBusinessDay) {
+      toast.error(
+        crossesBusinessDay
+          ? "Meetings must start and end on the same day."
+          : invalidDuration
+            ? "Meetings must match the selected duration."
+            : "Choose a meeting start time without seconds.",
+      );
       return;
     }
     const payload = {
@@ -207,14 +218,17 @@ export function MentorMeetingsPage() {
         </div>
       )}
 
-      {showForm && <ResponsiveDialog title={editing ? "Edit mentor meeting" : "Add team & time slot"} description="Meetings last 60 minutes and start at minute 00 or 30." onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartBoundary || invalidDuration}>Save meeting</Button></>}>
+      {showForm && <ResponsiveDialog title={editing ? "Edit mentor meeting" : "Add team & time slot"} description="Choose a 1-hour or 2-hour-15-minute meeting starting at any minute." onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartPrecision || invalidDuration || crossesBusinessDay}>Save meeting</Button></>}>
         <form id="mentor-meeting-form" className="grid gap-4" onSubmit={submit}>
           <Select label="Team" value={form.groupId} disabled={Boolean(editing)} onChange={(event) => setForm((value) => ({ ...value, groupId: event.target.value }))} required>
             {eligibleGroups.map((group) => <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({counts[group.id] ?? 0}/2)</option>)}
             {editing && !eligibleGroups.some((group) => group.id === editing.groupId) && <option value={editing.groupId}>{editing.groupNo} · {editing.groupName}</option>}
           </Select>
-          <HalfHourDateTimeInput error={invalidStartBoundary ? "Choose a time ending in :00 or :30." : undefined} hint="Only times ending in :00 or :30 can be selected." label="Start time" required value={form.startAt} onChange={updateStartAt} />
-          <TextInput error={invalidDuration ? "End must be exactly 60 minutes after start." : undefined} hint="Calculated automatically after changing start time" label="End time" type="datetime-local" readOnly value={form.endAt} />
+          <DateTimeInput error={invalidStartPrecision ? "Choose a start time without seconds." : undefined} hint="Choose any date and minute." label="Start time" required step={60} type="datetime-local" value={form.startAt} onChange={(event) => updateStartAt(event.target.value)} />
+          <Select label="Duration" value={form.durationMinutes} onChange={(event) => updateDuration(Number(event.target.value) as SlotDurationMinutes)}>
+            {SLOT_DURATION_OPTIONS.map((minutes) => <option key={minutes} value={minutes}>{minutes === 60 ? "1 hour" : "2 hours 15 minutes"}</option>)}
+          </Select>
+          <TextInput error={crossesBusinessDay ? "Meetings must start and end on the same day." : invalidDuration ? "End must match the selected duration." : undefined} hint="Calculated automatically from start time and duration" label="End time" type="datetime-local" readOnly value={form.endAt} />
           <TextInput label="Meeting link" placeholder="https://meet.google.com/abc-defg-hij" required type="url" value={form.meetLink} onChange={(event) => setForm((value) => ({ ...value, meetLink: event.target.value }))} />
           <TextInput label="Note (optional)" maxLength={500} value={form.note} onChange={(event) => setForm((value) => ({ ...value, note: event.target.value }))} />
         </form>
