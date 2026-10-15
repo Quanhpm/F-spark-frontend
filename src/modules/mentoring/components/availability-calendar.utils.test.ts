@@ -28,28 +28,20 @@ describe("availability calendar time rules", () => {
     vi.useRealTimers();
   });
 
-  it("calculates either supported end time from any minute", () => {
-    expect(SLOT_DURATION_OPTIONS).toEqual([60, 135]);
-    expect(getSlotEndDateTimeLocal("2026-10-14T09:17", 60)).toBe(
-      "2026-10-14T10:17",
-    );
+  it("calculates the 2-hour-15-minute end time from any minute", () => {
+    expect(SLOT_DURATION_OPTIONS).toEqual([135]);
     expect(getSlotEndDateTimeLocal("2026-10-14T09:17", 135)).toBe(
       "2026-10-14T11:32",
     );
   });
 
-  it("accepts both durations and rejects unsupported durations", () => {
+  it("accepts only the 2-hour-15-minute duration", () => {
     expect(
       validateSlotForm(form("2026-10-14T09:17", "2026-10-14T10:17")),
-    ).toBeNull();
+    ).toBe("Availability slots must last exactly 2 hours 15 minutes.");
     expect(
       validateSlotForm(form("2026-10-14T09:17", "2026-10-14T11:32")),
     ).toBeNull();
-    expect(
-      validateSlotForm(form("2026-10-14T09:17", "2026-10-14T10:47")),
-    ).toBe(
-      "Availability slots must last exactly 1 hour or 2 hours 15 minutes.",
-    );
   });
 
   it("rejects a slot whose calculated end is on the next business day", () => {

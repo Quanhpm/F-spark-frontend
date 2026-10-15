@@ -34,3 +34,13 @@ export function getGroupMentors(group: GroupWithMentors): GroupMentorDto[] {
     return true;
   });
 }
+
+export function formatGroupMentorContacts(group: GroupWithMentors): string {
+  return getGroupMentors(group)
+    .map(({ mentor }) => {
+      const name = mentor.fullName?.trim() || "Assigned mentor";
+      const email = mentor.email?.trim();
+      return email ? `${name} (${email})` : name;
+    })
+    .join(", ");
+}

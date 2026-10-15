@@ -127,12 +127,21 @@ describe("MeetingBookingSection", () => {
   it("keeps late slots visible but disables booking with a six-hour message", () => {
     const group = {
       id: 10,
-      mentor: { fullName: "Mentor One" },
+      mentor: {
+        email: "mentor.one@example.com",
+        fullName: "Mentor One",
+      },
       name: "Team Alpha",
       studentReadOnly: false,
     } as GroupDetailDto;
 
     render(<MeetingBookingSection canBook group={group} />);
+
+    expect(
+      screen.getByText(
+        "Assigned mentors: Mentor One (mentor.one@example.com)",
+      ),
+    ).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "Book this slot" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Booking closed" })).toBeDisabled();

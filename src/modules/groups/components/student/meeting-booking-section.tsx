@@ -29,7 +29,10 @@ import {
 } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import type { GroupDetailDto } from "../../types";
-import { getGroupMentors } from "../../utils/group-mentors";
+import {
+  formatGroupMentorContacts,
+  getGroupMentors,
+} from "../../utils/group-mentors";
 import {
   BOOKING_LEAD_TIME_MESSAGE,
   canBookMentorSlot,
@@ -72,7 +75,7 @@ export function MeetingBookingSection({
 }: MeetingBookingSectionProps) {
   const meetingsQuery = useGroupMeetings(group.id);
   const assignedMentors = getGroupMentors(group);
-  const mentorNames = assignedMentors.map((item) => item.mentor.fullName).join(", ");
+  const mentorContacts = formatGroupMentorContacts(group);
   const availabilityQuery = useMentorAvailabilityForGroup(
     assignedMentors.length > 0 ? group.id : null,
   );
@@ -158,7 +161,7 @@ export function MeetingBookingSection({
         <CardHeader
           description={
             assignedMentors.length > 0
-              ? `Assigned mentors: ${mentorNames}`
+              ? `Assigned mentors: ${mentorContacts}`
               : "A mentor must be assigned before meetings can be booked."
           }
           title="Mentor meetings"

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { getGroupMentors } from "../utils/group-mentors";
+import {
+  formatGroupMentorContacts,
+  getGroupMentors,
+} from "../utils/group-mentors";
 
 const mentor = (id: number, name: string) => ({
   id,
@@ -38,5 +41,24 @@ describe("getGroupMentors", () => {
 
   it("returns an empty list when no mentor is assigned", () => {
     expect(getGroupMentors({})).toEqual([]);
+  });
+
+  it("formats mentor names with their email addresses", () => {
+    expect(
+      formatGroupMentorContacts({
+        mentors: [
+          { accountId: 101, mentor: mentor(1, "First") },
+          { accountId: 102, mentor: mentor(2, "Second") },
+        ],
+      }),
+    ).toBe("First (1@example.com), Second (2@example.com)");
+  });
+
+  it("keeps the mentor name when legacy data has no email", () => {
+    expect(
+      formatGroupMentorContacts({
+        mentor: { ...mentor(1, "Legacy"), email: "" },
+      }),
+    ).toBe("Legacy");
   });
 });

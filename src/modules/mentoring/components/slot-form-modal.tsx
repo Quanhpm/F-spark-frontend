@@ -20,7 +20,6 @@ import {
   errorPanelClassName,
   getErrorMessage,
   getSlotEndDateTimeLocal,
-  getSlotDurationMinutes,
   isWholeMinute,
   MINUTE_IN_MS,
   SLOT_DURATION_OPTIONS,
@@ -40,15 +39,19 @@ export function SlotFormModal({
   slot?: MentorAvailabilitySlotDto;
 }) {
   const formId = useId();
-  const [form, setForm] = useState<SlotFormState>(() =>
-    slot ? createFormFromSlot(slot) : EMPTY_SLOT_FORM,
-  );
-  const [durationMinutes, setDurationMinutes] = useState<SlotDurationMinutes>(
-    () =>
-      slot
-        ? getSlotDurationMinutes(slot.startAt, slot.endAt)
-        : DEFAULT_SLOT_DURATION_MINUTES,
-  );
+  const [form, setForm] = useState<SlotFormState>(() => {
+    const initialForm = slot ? createFormFromSlot(slot) : EMPTY_SLOT_FORM;
+    return initialForm.startAt
+      ? {
+          ...initialForm,
+          endAt: getSlotEndDateTimeLocal(
+            initialForm.startAt,
+            DEFAULT_SLOT_DURATION_MINUTES,
+          ),
+        }
+      : initialForm;
+  });
+  const durationMinutes: SlotDurationMinutes = DEFAULT_SLOT_DURATION_MINUTES;
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const minimumDateTime = getMinimumDateTimeLocal();
@@ -71,14 +74,6 @@ export function SlotFormModal({
       ...current,
       endAt: getSlotEndDateTimeLocal(startAt, durationMinutes),
       startAt,
-    }));
-  }
-
-  function updateDuration(nextDuration: SlotDurationMinutes) {
-    setDurationMinutes(nextDuration);
-    setForm((current) => ({
-      ...current,
-      endAt: getSlotEndDateTimeLocal(current.startAt, nextDuration),
     }));
   }
 
@@ -148,7 +143,7 @@ export function SlotFormModal({
       >
         {formError && <div className={errorPanelClassName}>{formError}</div>}
         <p className="m-0 text-sm text-muted">
-          Choose a 1-hour or 2-hour-15-minute slot starting at any minute.
+          Each availability slot lasts 2 hours 15 minutes and can start at any minute.
         </p>
         <DateTimeInput
           error={
@@ -166,15 +161,13 @@ export function SlotFormModal({
           value={form.startAt}
         />
         <Select
+          disabled
           label="Duration"
-          onChange={(event) =>
-            updateDuration(Number(event.target.value) as SlotDurationMinutes)
-          }
           value={durationMinutes}
         >
           {SLOT_DURATION_OPTIONS.map((minutes) => (
             <option key={minutes} value={minutes}>
-              {minutes === 60 ? "1 hour" : "2 hours 15 minutes"}
+              2 hours 15 minutes
             </option>
           ))}
         </Select>

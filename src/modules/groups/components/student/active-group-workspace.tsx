@@ -26,7 +26,7 @@ import type {
   GroupDetailDto,
   GroupMemberDto,
 } from "../../types";
-import { getGroupMentors } from "../../utils/group-mentors";
+import { formatGroupMentorContacts } from "../../utils/group-mentors";
 import { ConfirmDialog } from "./confirm-dialog";
 import { GroupFormModal } from "./group-form-modal";
 import { InvitationList } from "./invitation-list";
@@ -278,7 +278,7 @@ export function ActiveGroupWorkspace({
               />
               <InfoItem
                 label="Mentors"
-                value={getGroupMentors(group).map((item) => item.mentor.fullName).join(", ") || null}
+                value={formatGroupMentorContacts(group) || null}
               />
             </div>
             <div className="rounded-xl border border-border bg-background p-4">

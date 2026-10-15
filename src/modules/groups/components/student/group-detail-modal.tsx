@@ -13,7 +13,7 @@ import { ApiError, cn } from "@/shared/lib";
 
 import { useGroup } from "../../hooks";
 import type { GroupJoinRequestDto, GroupSummaryDto } from "../../types";
-import { getGroupMentors } from "../../utils/group-mentors";
+import { formatGroupMentorContacts } from "../../utils/group-mentors";
 import { RecruitmentNeeds } from "../recruitment-needs";
 
 type GroupDetailModalProps = {
@@ -162,7 +162,7 @@ export function GroupDetailModal({
                 />
                 <InfoItem
                   label="Mentors"
-                  value={getGroupMentors(group).map((item) => item.mentor.fullName).join(", ") || null}
+                  value={formatGroupMentorContacts(group) || null}
                 />
                 <InfoItem label="Required GPA" value={group.requiredGpa} />
                 <InfoItem label="Target grade" value={group.targetGrade} />

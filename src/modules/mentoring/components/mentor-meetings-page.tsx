@@ -20,7 +20,6 @@ import {
   DEFAULT_SLOT_DURATION_MINUTES,
   getBusinessDateKey,
   getSlotEndDateTimeLocal,
-  getSlotDurationMinutes,
   isWholeMinute,
   MINUTE_IN_MS,
   SLOT_DURATION_OPTIONS,
@@ -88,8 +87,8 @@ export function MentorMeetingsPage() {
   function openEdit(meeting: MentorMeetingDto) {
     const startAt = dateTimeLocal(meeting.startAt);
     setEditing(meeting);
-    const endAt = dateTimeLocal(meeting.endAt);
-    setForm({ groupId: meeting.groupId.toString(), startAt, endAt, meetLink: meeting.meetLink ?? "", note: meeting.note ?? "", durationMinutes: getSlotDurationMinutes(startAt, endAt) });
+    const endAt = getSlotEndDateTimeLocal(startAt, DEFAULT_SLOT_DURATION_MINUTES);
+    setForm({ groupId: meeting.groupId.toString(), startAt, endAt, meetLink: meeting.meetLink ?? "", note: meeting.note ?? "", durationMinutes: DEFAULT_SLOT_DURATION_MINUTES });
     setShowForm(true);
   }
 
@@ -98,14 +97,6 @@ export function MentorMeetingsPage() {
       ...value,
       startAt,
       endAt: getSlotEndDateTimeLocal(startAt, value.durationMinutes),
-    }));
-  }
-
-  function updateDuration(durationMinutes: SlotDurationMinutes) {
-    setForm((value) => ({
-      ...value,
-      durationMinutes,
-      endAt: getSlotEndDateTimeLocal(value.startAt, durationMinutes),
     }));
   }
 
@@ -247,8 +238,8 @@ export function MentorMeetingsPage() {
             {editing && !eligibleGroups.some((group) => group.id === editing.groupId) && <option value={editing.groupId}>{editing.groupNo} · {editing.groupName}</option>}
           </Select>
           <DateTimeInput error={invalidStartPrecision ? "Choose a start time without seconds." : undefined} hint="Choose any date and minute." label="Start time" required step={60} type="datetime-local" value={form.startAt} onChange={(event) => updateStartAt(event.target.value)} />
-          <Select label="Duration" value={form.durationMinutes} onChange={(event) => updateDuration(Number(event.target.value) as SlotDurationMinutes)}>
-            {SLOT_DURATION_OPTIONS.map((minutes) => <option key={minutes} value={minutes}>{minutes === 60 ? "1 hour" : "2 hours 15 minutes"}</option>)}
+          <Select disabled label="Duration" value={form.durationMinutes}>
+            {SLOT_DURATION_OPTIONS.map((minutes) => <option key={minutes} value={minutes}>2 hours 15 minutes</option>)}
           </Select>
           <TextInput error={crossesBusinessDay ? "Meetings must start and end on the same day." : invalidDuration ? "End must match the selected duration." : undefined} hint="Calculated automatically from start time and duration" label="End time" type="datetime-local" readOnly value={form.endAt} />
           <TextInput label="Meeting or reference link" placeholder="https://meet.google.com/abc-defg-hij" required type="url" value={form.meetLink} onChange={(event) => setForm((value) => ({ ...value, meetLink: event.target.value }))} />
