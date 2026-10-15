@@ -1260,54 +1260,69 @@ export function AdminGroupInstructorPage() {
                   key={group.id}
                 >
                   <CardContent className="grid gap-5">
-                    <header className="flex min-w-0 flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
-                      <div className="grid min-w-0 gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <h2 className="m-0 min-w-0 break-words text-xl font-bold text-foreground">
-                            {group.name}
-                          </h2>
-                          <Badge tone="neutral">Group {group.groupNo}</Badge>
+                    <header className="grid min-w-0 gap-4 border-b border-border pb-5">
+                      <div className="flex min-w-0 items-start justify-between gap-4 max-[520px]:flex-col">
+                        <div className="grid min-w-0 gap-2">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <h2 className="m-0 min-w-0 break-words text-xl font-bold text-foreground">
+                              {group.name}
+                            </h2>
+                            <Badge tone="neutral">Group {group.groupNo}</Badge>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
+                            <span className="inline-flex items-center gap-1.5">
+                              <BookOpen size={15} />
+                              {group.term} · {group.courseCode}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <Users size={15} />
+                              {group.memberCount}{" "}
+                              {group.memberCount === 1 ? "member" : "members"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-                          <span className="inline-flex items-center gap-1.5">
-                            <BookOpen size={15} />
-                            {group.term} · {group.courseCode}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <Users size={15} />
-                            {group.memberCount}{" "}
-                            {group.memberCount === 1 ? "member" : "members"}
-                          </span>
+
+                        <div className="flex shrink-0 flex-wrap justify-end gap-2 max-[520px]:justify-start">
+                          <Badge
+                            tone={group.status === "ACTIVE" ? "success" : "danger"}
+                          >
+                            {group.status === "ACTIVE" ? "Active" : "Inactive"}
+                          </Badge>
+                          {group.memberCount === 0 && (
+                            <Badge tone="warning">Empty group</Badge>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Badge
-                          tone={group.status === "ACTIVE" ? "success" : "danger"}
-                        >
-                          {group.status === "ACTIVE" ? "Active" : "Inactive"}
-                        </Badge>
-                        {group.memberCount === 0 && (
-                          <Badge tone="warning">Empty group</Badge>
-                        )}
+
+                      <div
+                        aria-label={`Actions for ${group.name}`}
+                        className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-background p-2.5 max-[620px]:grid-cols-1"
+                        role="group"
+                      >
+                        <div className="grid min-w-0 grid-cols-[repeat(2,max-content)] gap-2 max-[620px]:grid-cols-2 max-[440px]:grid-cols-1">
+                          <Button
+                            className="max-[620px]:w-full"
+                            icon={<Eye size={15} />}
+                            onClick={() => setViewingGroupId(group.id)}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            View members
+                          </Button>
+                          <Button
+                            className="max-[620px]:w-full"
+                            icon={<FileImage size={15} />}
+                            onClick={() =>
+                              router.push(`/admin/meeting-evidence?groupId=${group.id}`)
+                            }
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Meeting evidence
+                          </Button>
+                        </div>
                         <Button
-                          icon={<Eye size={15} />}
-                          onClick={() => setViewingGroupId(group.id)}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          View members
-                        </Button>
-                        <Button
-                          icon={<FileImage size={15} />}
-                          onClick={() =>
-                            router.push(`/admin/meeting-evidence?groupId=${group.id}`)
-                          }
-                          size="sm"
-                          variant="secondary"
-                        >
-                          Meeting evidence
-                        </Button>
-                        <Button
+                          className="max-[620px]:w-full"
                           icon={<Trash2 size={15} />}
                           onClick={() =>
                             setPendingGroupDeletion({
