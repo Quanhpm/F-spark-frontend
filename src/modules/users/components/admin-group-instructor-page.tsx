@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  FileImage,
   GraduationCap,
   Loader2,
   Pencil,
@@ -18,6 +19,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import {
   type AdminGroupStatusFilter,
@@ -928,6 +930,7 @@ function GroupMembersDialog({
 }
 
 export function AdminGroupInstructorPage() {
+  const router = useRouter();
   const [groupSearchInput, setGroupSearchInput] = useState("");
   const [groupStatus, setGroupStatus] =
     useState<AdminGroupStatusFilter>("ACTIVE");
@@ -1293,6 +1296,16 @@ export function AdminGroupInstructorPage() {
                           variant="secondary"
                         >
                           View members
+                        </Button>
+                        <Button
+                          icon={<FileImage size={15} />}
+                          onClick={() =>
+                            router.push(`/admin/meeting-evidence?groupId=${group.id}`)
+                          }
+                          size="sm"
+                          variant="secondary"
+                        >
+                          Meeting evidence
                         </Button>
                         <Button
                           icon={<Trash2 size={15} />}

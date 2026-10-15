@@ -1,5 +1,6 @@
 export { MentorAvailabilityPage } from "./mentor-availability-page";
 export { MentorMeetingsPage } from "./mentor-meetings-page";
+export { AdminMeetingEvidencePage } from "./admin-meeting-evidence-page";
 export { AvailabilityDayTimeline } from "./availability-day-timeline";
 export { AvailabilityWeekTimeline } from "./availability-week-timeline";
 export { ConfirmDialog } from "./confirm-dialog";

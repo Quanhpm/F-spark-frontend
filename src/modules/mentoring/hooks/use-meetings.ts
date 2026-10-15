@@ -8,12 +8,24 @@ import {
   cancelMeeting,
   exportMentorMeetingReport,
   getGroupMeetings,
+  listAdminMeetings,
   listMyMeetings,
   listMentorReportTerms,
   updateMeeting,
   submitMeetingEvidence,
 } from "../api";
-import type { CreateMentorMeetingRequest, UpdateMentorMeetingRequest } from "../types";
+import type {
+  AdminMeetingsQuery,
+  CreateMentorMeetingRequest,
+  UpdateMentorMeetingRequest,
+} from "../types";
+
+export function useAdminMeetings(query: AdminMeetingsQuery = {}) {
+  return useQuery({
+    queryFn: () => listAdminMeetings(query),
+    queryKey: queryKeys.mentoring.adminMeetings(query),
+  });
+}
 
 export function useBookMeeting() {
   const queryClient = useQueryClient();

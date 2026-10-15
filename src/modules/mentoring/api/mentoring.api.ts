@@ -8,9 +8,10 @@ import {
   apiPost,
   apiPut,
 } from "@/shared/lib";
-import type { ApiResponse, EmptyApiResponse } from "@/shared/types";
+import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types";
 
 import type {
+  AdminMeetingsQuery,
   BookMentorMeetingRequest,
   CreateMentorMeetingRequest,
   CreateAvailabilitySlotRequest,
@@ -138,6 +139,13 @@ export function submitMeetingEvidence(groupId: number, meetingId: number, payloa
 export function getGroupMeetings(groupId: number) {
   return apiGet<ApiResponse<MentorMeetingDto[]>>(
     `/api/groups/${groupId}/mentor/meetings`,
+  );
+}
+
+export function listAdminMeetings(query: AdminMeetingsQuery = {}) {
+  return apiGet<ApiResponse<PageResponse<MentorMeetingDto>>>(
+    "/api/admin/meetings",
+    { query },
   );
 }
 

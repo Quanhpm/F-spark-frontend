@@ -55,6 +55,17 @@ export type MentorMeetingDto = {
   updatedAt: ISODateTimeString;
 };
 
+export type AdminMeetingEvidenceFilter = "ALL" | "SUBMITTED" | "MISSING";
+
+export type AdminMeetingsQuery = {
+  page?: number;
+  size?: number;
+  search?: string;
+  status?: MeetingStatus | "ALL";
+  evidence?: AdminMeetingEvidenceFilter;
+  groupId?: number;
+};
+
 export type CreateAvailabilitySlotRequest = {
   startAt: ISODateTimeString;
   endAt: ISODateTimeString;

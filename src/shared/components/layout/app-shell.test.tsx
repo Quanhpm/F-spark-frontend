@@ -65,6 +65,9 @@ describe("AppShell route guard", () => {
       "href",
       "/admin/users",
     );
+    expect(
+      screen.getByRole("link", { name: "Meeting evidence" }),
+    ).toHaveAttribute("href", "/admin/meeting-evidence");
     expect(screen.getByText("Version 8")).toBeInTheDocument();
   });
 
