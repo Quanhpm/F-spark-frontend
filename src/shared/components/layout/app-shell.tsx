@@ -52,7 +52,7 @@ type NavItem = {
   label: string;
 };
 
-const ADMIN_VERSION_LABEL = "Version 8";
+const ADMIN_VERSION_LABEL = "Version 9";
 
 function AdminVersionBadge() {
   return (
