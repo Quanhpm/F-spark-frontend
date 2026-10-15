@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download, Edit3, ExternalLink, Plus, XCircle } from "lucide-react";
+import { Download, Edit3, ExternalLink, Plus, RotateCcw, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { useMentorGroups } from "@/modules/groups";
@@ -26,6 +26,7 @@ import {
   SLOT_DURATION_OPTIONS,
   type SlotDurationMinutes,
 } from "./availability-calendar.utils";
+import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 
 function dateTimeLocal(value?: string) {
   if (!value) return "";
@@ -58,6 +59,7 @@ export function MentorMeetingsPage() {
   const reportTermsQuery = useMentorReportTerms();
   const exportReportMutation = useExportMentorMeetingReport();
   const [editing, setEditing] = useState<MentorMeetingDto | null>(null);
+  const [reopening, setReopening] = useState<MentorMeetingDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [reportTerm, setReportTerm] = useState("");
   const [form, setForm] = useState<FormState>({ groupId: "", startAt: "", endAt: "", meetLink: "", note: "", durationMinutes: DEFAULT_SLOT_DURATION_MINUTES });
@@ -223,6 +225,9 @@ export function MentorMeetingsPage() {
                       <Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{meeting.status === "SCHEDULED" && new Date(meeting.endAt).getTime() <= Date.now() ? "AWAITING EVIDENCE" : meeting.status}</Badge>
                     </div>
                     {meeting.evidenceImageUrl && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View meeting evidence</a>}
+                    {meeting.status === "COMPLETED" && <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setReopening(meeting)}>Undo completion</Button>
+                    </div>}
                     {meeting.status === "SCHEDULED" && !meeting.evidenceImageUrl && <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="secondary" icon={<Edit3 size={14} />} onClick={() => openEdit(meeting)}>Edit</Button>
                       <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => void cancelMeeting(meeting)}>Cancel</Button>
@@ -250,6 +255,7 @@ export function MentorMeetingsPage() {
           <TextInput label="Note (optional)" maxLength={500} value={form.note} onChange={(event) => setForm((value) => ({ ...value, note: event.target.value }))} />
         </form>
       </ResponsiveDialog>}
+      {reopening && <ReopenMeetingDialog meeting={reopening} onClose={() => setReopening(null)} />}
     </div>
   );
 }

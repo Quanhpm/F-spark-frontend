@@ -11,6 +11,8 @@ import {
   listAdminMeetings,
   listMyMeetings,
   listMentorReportTerms,
+  getMeetingReopenHistory,
+  reopenMeeting,
   updateMeeting,
   submitMeetingEvidence,
 } from "../api";
@@ -178,5 +180,51 @@ export function useCancelMeeting() {
         queryKey: queryKeys.mentoring.myMeetings(),
       });
     },
+  });
+}
+
+export function useReopenMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      meetingId,
+      reason,
+    }: {
+      groupId: number;
+      meetingId: number;
+      reason: string;
+    }) => reopenMeeting(groupId, meetingId, { reason }),
+    onSettled: (_response, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.meetings(variables.groupId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.myMeetings(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.mentorMeetings(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.adminMeetingsAll(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.mentoring.meetingReopenHistory(variables.meetingId),
+      });
+    },
+  });
+}
+
+export function useMeetingReopenHistory(meetingId: number | null) {
+  return useQuery({
+    enabled: meetingId !== null,
+    queryFn: () => {
+      if (meetingId === null) throw new Error("A meeting id is required.");
+      return getMeetingReopenHistory(meetingId);
+    },
+    queryKey: meetingId === null
+      ? [...queryKeys.mentoring.adminMeetingsAll(), "empty", "reopen-history"]
+      : queryKeys.mentoring.meetingReopenHistory(meetingId),
   });
 }

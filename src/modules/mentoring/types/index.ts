@@ -55,6 +55,26 @@ export type MentorMeetingDto = {
   updatedAt: ISODateTimeString;
 };
 
+export type ReopenMeetingRequest = {
+  reason: string;
+};
+
+export type MeetingReopenEventDto = {
+  id: number;
+  meetingId: number;
+  reopenedByAccountId: number | null;
+  reopenedByEmail: string;
+  reopenedByRole: "ADMIN" | "MENTOR";
+  reason: string;
+  previousEvidenceImageUrl: string | null;
+  previousEvidenceSubmittedByStudentId: number | null;
+  previousEvidenceSubmittedByStudentCode: string | null;
+  previousEvidenceSubmittedByStudentName: string | null;
+  previousEvidenceSubmittedAt: ISODateTimeString | null;
+  previousCompletedAt: ISODateTimeString | null;
+  reopenedAt: ISODateTimeString;
+};
+
 export type AdminMeetingEvidenceFilter = "ALL" | "SUBMITTED" | "MISSING";
 
 export type AdminMeetingsQuery = {

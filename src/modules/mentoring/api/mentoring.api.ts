@@ -17,6 +17,8 @@ import type {
   CreateAvailabilitySlotRequest,
   MentorAvailabilitySlotDto,
   MentorMeetingDto,
+  MeetingReopenEventDto,
+  ReopenMeetingRequest,
   MentorReportTermDto,
   UpdateAvailabilitySlotRequest,
   UpdateMentorMeetingRequest,
@@ -153,5 +155,18 @@ export function cancelMeeting(groupId: number, meetingId: number, reason: string
   return apiPatch<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings/${meetingId}/cancel`,
     { reason },
+  );
+}
+
+export function reopenMeeting(groupId: number, meetingId: number, payload: ReopenMeetingRequest) {
+  return apiPatch<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/reopen`,
+    payload,
+  );
+}
+
+export function getMeetingReopenHistory(meetingId: number) {
+  return apiGet<ApiResponse<MeetingReopenEventDto[]>>(
+    `/api/admin/meetings/${meetingId}/reopen-history`,
   );
 }

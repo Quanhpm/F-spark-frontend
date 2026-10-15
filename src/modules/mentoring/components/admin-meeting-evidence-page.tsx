@@ -5,6 +5,8 @@ import {
   ChevronRight,
   ExternalLink,
   FileImage,
+  History,
+  RotateCcw,
   Search,
   X,
 } from "lucide-react";
@@ -30,6 +32,8 @@ import type {
   AdminMeetingEvidenceFilter,
   MentorMeetingDto,
 } from "../types";
+import { MeetingReopenHistoryDialog } from "./meeting-reopen-history-dialog";
+import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 
 const PAGE_SIZE = 20;
 
@@ -104,7 +108,15 @@ function EvidenceDetails({ meeting }: { meeting: MentorMeetingDto }) {
   );
 }
 
-function MeetingCard({ meeting }: { meeting: MentorMeetingDto }) {
+function MeetingCard({
+  meeting,
+  onHistory,
+  onReopen,
+}: {
+  meeting: MentorMeetingDto;
+  onHistory: () => void;
+  onReopen: () => void;
+}) {
   return (
     <article className="grid gap-4 rounded-xl border border-border bg-surface p-4 min-[761px]:hidden">
       <div className="flex min-w-0 items-start justify-between gap-3">
@@ -135,6 +147,16 @@ function MeetingCard({ meeting }: { meeting: MentorMeetingDto }) {
       <div className="border-t border-border pt-3">
         <EvidenceDetails meeting={meeting} />
       </div>
+      <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+        {meeting.status === "COMPLETED" && (
+          <Button icon={<RotateCcw size={14} />} onClick={onReopen} size="sm" variant="secondary">
+            Reopen
+          </Button>
+        )}
+        <Button icon={<History size={14} />} onClick={onHistory} size="sm" variant="ghost">
+          Reopen history
+        </Button>
+      </div>
     </article>
   );
 }
@@ -149,6 +171,8 @@ export function AdminMeetingEvidencePage() {
   const [status, setStatus] = useState<MeetingStatus | "ALL">("ALL");
   const [evidence, setEvidence] = useState<AdminMeetingEvidenceFilter>("ALL");
   const [page, setPage] = useState(0);
+  const [reopening, setReopening] = useState<MentorMeetingDto | null>(null);
+  const [historyMeeting, setHistoryMeeting] = useState<MentorMeetingDto | null>(null);
 
   const query = useMemo(
     () => ({
@@ -283,6 +307,7 @@ export function AdminMeetingEvidencePage() {
                   <th className="px-5 py-3 font-bold">Status</th>
                   <th className="px-5 py-3 font-bold">Booked by</th>
                   <th className="px-5 py-3 font-bold">Evidence</th>
+                  <th className="px-5 py-3 font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -311,13 +336,32 @@ export function AdminMeetingEvidencePage() {
                       {meeting.bookedByStudentName ?? "Recorded externally by mentor"}
                     </td>
                     <td className="px-5 py-4"><EvidenceDetails meeting={meeting} /></td>
+                    <td className="px-5 py-4">
+                      <div className="flex min-w-40 flex-col items-start gap-2">
+                        {meeting.status === "COMPLETED" && (
+                          <Button icon={<RotateCcw size={14} />} onClick={() => setReopening(meeting)} size="sm" variant="secondary">
+                            Reopen
+                          </Button>
+                        )}
+                        <Button icon={<History size={14} />} onClick={() => setHistoryMeeting(meeting)} size="sm" variant="ghost">
+                          Reopen history
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="grid gap-3 p-4 min-[761px]:hidden">
-            {meetings.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} />)}
+            {meetings.map((meeting) => (
+              <MeetingCard
+                key={meeting.id}
+                meeting={meeting}
+                onHistory={() => setHistoryMeeting(meeting)}
+                onReopen={() => setReopening(meeting)}
+              />
+            ))}
           </div>
         </Card>
       )}
@@ -353,6 +397,10 @@ export function AdminMeetingEvidencePage() {
       <span className="sr-only" aria-live="polite">
         {meetingsQuery.isFetching && !meetingsQuery.isLoading ? "Refreshing meetings" : ""}
       </span>
+      {reopening && <ReopenMeetingDialog meeting={reopening} onClose={() => setReopening(null)} />}
+      {historyMeeting && (
+        <MeetingReopenHistoryDialog meeting={historyMeeting} onClose={() => setHistoryMeeting(null)} />
+      )}
     </div>
   );
 }
