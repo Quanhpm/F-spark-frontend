@@ -81,6 +81,11 @@ describe("AdminUsersPage export", () => {
     await user.click(screen.getByRole("button", { name: "Export users" }));
 
     const dialog = screen.getByRole("dialog", { name: "Export users" });
+    expect(
+      within(dialog).getByText(
+        /student, mentor, or instructor code, full name, and email/i,
+      ),
+    ).toBeInTheDocument();
     expect(within(dialog).queryByRole("option", { name: "Admin" })).not.toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Export CSV" })).toBeDisabled();
     expect(within(dialog).getByRole("option", { name: "All statuses" })).toBeInTheDocument();

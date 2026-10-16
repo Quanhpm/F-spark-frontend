@@ -1133,8 +1133,8 @@ function ExportUsersModal({ onClose, onSubmit }: ExportUsersModalProps) {
           <option value="LOCKED">Locked</option>
         </Select>
         <p className="m-0 text-sm leading-relaxed text-muted">
-          The file contains only account ID, full name, and email, encoded as
-          UTF-8 with BOM for Excel and WPS.
+          The file contains only the student, mentor, or instructor code, full
+          name, and email, encoded as UTF-8 with BOM for Excel and WPS.
         </p>
       </form>
     </ResponsiveDialog>
