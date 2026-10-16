@@ -83,7 +83,7 @@ describe("AdminUsersPage export", () => {
     const dialog = screen.getByRole("dialog", { name: "Export users" });
     expect(
       within(dialog).getByText(
-        /student, mentor, or instructor code, full name, and email/i,
+        /student, mentor, or instructor code, full name, email, and last login time/i,
       ),
     ).toBeInTheDocument();
     expect(within(dialog).queryByRole("option", { name: "Admin" })).not.toBeInTheDocument();
