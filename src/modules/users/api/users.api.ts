@@ -1,5 +1,6 @@
 import {
   apiDelete,
+  apiDownload,
   apiGet,
   apiPatch,
   apiPost,
@@ -12,6 +13,7 @@ import type {
   AdminUserSummaryDto,
   ChangePasswordByEmailRequest,
   CreateAdminUserRequest,
+  ExportAdminUsersQuery,
   ResetUserPasswordRequest,
   UpdateAdminUserRequest,
 } from "../types";
@@ -21,6 +23,10 @@ export function listAdminUsers(query?: AdminUsersQuery) {
     "/api/admin/users",
     { query },
   );
+}
+
+export function exportAdminUsers(query: ExportAdminUsersQuery) {
+  return apiDownload("/api/admin/users/export.csv", { query });
 }
 
 export function getAdminUser(userId: number) {

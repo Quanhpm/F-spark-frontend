@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { queryKeys } from "@/shared/lib";
 
-import { listAdminUsers } from "../api";
-import type { AdminUsersQuery } from "../types";
+import { exportAdminUsers, listAdminUsers } from "../api";
+import type { AdminUsersQuery, ExportAdminUsersQuery } from "../types";
 
 export function useAdminUsers(
   query: AdminUsersQuery = {},
@@ -13,5 +13,11 @@ export function useAdminUsers(
     enabled: options.enabled,
     queryFn: () => listAdminUsers(query),
     queryKey: queryKeys.users.list(query),
+  });
+}
+
+export function useExportAdminUsers() {
+  return useMutation({
+    mutationFn: (query: ExportAdminUsersQuery) => exportAdminUsers(query),
   });
 }

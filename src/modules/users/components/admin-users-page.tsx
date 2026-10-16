@@ -1,6 +1,7 @@
 "use client";
 
 import { ApiError, cn } from "@/shared/lib";
+import { toast } from "sonner";
 import {
   Badge,
   Button,
@@ -15,6 +16,7 @@ import {
 } from "@/shared/components";
 import type { Gender, UserRole, UserStatus } from "@/shared/types";
 import {
+  Download,
   KeyRound,
   Pencil,
   Plus,
@@ -25,7 +27,10 @@ import {
 import { FormEvent, useId, useMemo, useState } from "react";
 
 import { useAdminUser } from "../hooks/use-admin-user";
-import { useAdminUsers } from "../hooks/use-admin-users";
+import {
+  useAdminUsers,
+  useExportAdminUsers,
+} from "../hooks/use-admin-users";
 import {
   useCreateAdminUser,
   useDeleteAdminUser,
@@ -36,6 +41,8 @@ import type {
   AdminUserDetailDto,
   AdminUserSummaryDto,
   CreateAdminUserRequest,
+  ExportAdminUsersQuery,
+  ExportableUserRole,
   InstructorProfileInput,
   MentorProfileInput,
   StudentGroupMembershipDto,
@@ -152,6 +159,23 @@ function getErrorMessage(error: unknown) {
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function getUserExportFileName(query: ExportAdminUsersQuery) {
+  const role = query.role.toLowerCase();
+  const status = query.status?.toLowerCase() ?? "all";
+  return `users-${role}-${status}.csv`;
 }
 
 function formatDateTime(value: string | null) {
@@ -1020,11 +1044,109 @@ function DeleteUserModal({ onClose, onConfirm, user }: DeleteUserModalProps) {
   );
 }
 
+type ExportUsersModalProps = {
+  onClose: () => void;
+  onSubmit: (query: ExportAdminUsersQuery) => Promise<unknown>;
+};
+
+function ExportUsersModal({ onClose, onSubmit }: ExportUsersModalProps) {
+  const [role, setRole] = useState<"" | ExportableUserRole>("");
+  const [status, setStatus] = useState<"" | UserStatus>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const formId = useId();
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!role || isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit({
+        role,
+        status: status || undefined,
+      });
+      onClose();
+    } catch {
+      // The parent displays the API error as a toast and the dialog stays open.
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <ResponsiveDialog
+      bodyClassName="p-0"
+      className="min-[761px]:max-w-[480px]"
+      description="Choose one user role and an optional account status. The CSV includes every matching account."
+      footer={
+        <>
+          <Button
+            disabled={isSubmitting}
+            onClick={onClose}
+            variant="secondary"
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={!role || isSubmitting}
+            form={formId}
+            icon={<Download size={16} />}
+            type="submit"
+          >
+            {isSubmitting ? "Exporting..." : "Export CSV"}
+          </Button>
+        </>
+      }
+      onClose={() => {
+        if (!isSubmitting) onClose();
+      }}
+      title="Export users"
+    >
+      <form
+        className="grid gap-[18px] p-4 min-[481px]:p-6"
+        id={formId}
+        onSubmit={handleSubmit}
+      >
+        <Select
+          label="Role"
+          onChange={(event) =>
+            setRole(event.target.value as "" | ExportableUserRole)
+          }
+          required
+          value={role}
+        >
+          <option value="">Choose a role</option>
+          <option value="STUDENT">Student</option>
+          <option value="MENTOR">Mentor</option>
+          <option value="INSTRUCTOR">Instructor</option>
+        </Select>
+        <Select
+          label="Status"
+          onChange={(event) =>
+            setStatus(event.target.value as "" | UserStatus)
+          }
+          value={status}
+        >
+          <option value="">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+          <option value="LOCKED">Locked</option>
+        </Select>
+        <p className="m-0 text-sm leading-relaxed text-muted">
+          The file contains only account ID, full name, and email, encoded as
+          UTF-8 with BOM for Excel and WPS.
+        </p>
+      </form>
+    </ResponsiveDialog>
+  );
+}
+
 export function AdminUsersPage() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<"" | UserRole>("");
   const [status, setStatus] = useState<"" | UserStatus>("");
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit" | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUserSummaryDto | null>(
     null,
@@ -1046,6 +1168,7 @@ export function AdminUsersPage() {
   );
 
   const usersQuery = useAdminUsers(query);
+  const exportUsersMutation = useExportAdminUsers();
   const selectedUserQuery = useAdminUser(
     mode === "edit" ? selectedUser?.id : null,
   );
@@ -1071,19 +1194,41 @@ export function AdminUsersPage() {
     });
   }
 
+  async function handleExportUsers(exportQuery: ExportAdminUsersQuery) {
+    try {
+      const blob = await exportUsersMutation.mutateAsync(exportQuery);
+      downloadBlob(blob, getUserExportFileName(exportQuery));
+      toast.success("User CSV downloaded.");
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Unable to export users.",
+      );
+      throw error;
+    }
+  }
+
   return (
     <div className={pageClassName}>
       <PageHeader
         actions={
-          <Button
-            icon={<Plus size={16} />}
-            onClick={() => {
-              setSelectedUser(null);
-              setMode("create");
-            }}
-          >
-            Create user
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              icon={<Download size={16} />}
+              onClick={() => setIsExportOpen(true)}
+              variant="secondary"
+            >
+              Export users
+            </Button>
+            <Button
+              icon={<Plus size={16} />}
+              onClick={() => {
+                setSelectedUser(null);
+                setMode("create");
+              }}
+            >
+              Create user
+            </Button>
+          </div>
         }
         description="Manage account access, role assignment, statuses, and password resets."
         eyebrow="Admin"
@@ -1349,6 +1494,13 @@ export function AdminUsersPage() {
             setSelectedUser(null);
           }}
           onSubmit={handleSubmitForm}
+        />
+      )}
+
+      {isExportOpen && (
+        <ExportUsersModal
+          onClose={() => setIsExportOpen(false)}
+          onSubmit={handleExportUsers}
         />
       )}
 

@@ -114,6 +114,13 @@ export type AdminUsersQuery = ApiListQuery & {
   status?: UserStatus;
 };
 
+export type ExportableUserRole = Exclude<UserRole, "ADMIN">;
+
+export type ExportAdminUsersQuery = {
+  role: ExportableUserRole;
+  status?: UserStatus;
+};
+
 export type StudentProfileInput = {
   studentCode: string;
   fullName: string;
