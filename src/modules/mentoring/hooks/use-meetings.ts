@@ -13,6 +13,7 @@ import {
   getGroupMeetings,
   listAdminMeetings,
   listMyMeetings,
+  listMyCalendarMeetings,
   listMentorReportTerms,
   getMeetingReopenHistory,
   reopenMeeting,
@@ -23,6 +24,7 @@ import type {
   AdminMeetingsQuery,
   CreateMentorMeetingRequest,
   UpdateMentorMeetingRequest,
+  MentorMeetingReportQuery,
 } from "../types";
 
 export function useAdminMeetings(query: AdminMeetingsQuery = {}) {
@@ -49,8 +51,9 @@ export function useBookMeeting() {
         queryKey: queryKeys.mentoring.availability(),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.mentoring.myMeetings(),
+        queryKey: queryKeys.mentoring.myMeetingsAll(),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.mentorMeetings(),
       });
@@ -58,10 +61,24 @@ export function useBookMeeting() {
   });
 }
 
-export function useMyMeetings() {
+export function useMyMeetings(query: MentorMeetingReportQuery) {
+  const isTimeDependentFilter =
+    query.filter === "UPCOMING" ||
+    query.filter === "NEEDS_MY_CONFIRMATION" ||
+    query.filter === "AWAITING_EVIDENCE";
+
   return useQuery({
-    queryFn: listMyMeetings,
-    queryKey: queryKeys.mentoring.myMeetings(),
+    enabled: query.term.trim().length > 0,
+    queryFn: () => listMyMeetings(query),
+    queryKey: queryKeys.mentoring.myMeetings(query),
+    refetchInterval: isTimeDependentFilter ? 30_000 : false,
+  });
+}
+
+export function useMyCalendarMeetings() {
+  return useQuery({
+    queryFn: listMyCalendarMeetings,
+    queryKey: queryKeys.mentoring.myCalendarMeetings(),
   });
 }
 
@@ -104,8 +121,9 @@ export function useCreateMeeting() {
         queryKey: queryKeys.mentoring.availability(),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.mentoring.myMeetings(),
+        queryKey: queryKeys.mentoring.myMeetingsAll(),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
     },
   });
 }
@@ -134,7 +152,8 @@ export function useUpdateMeeting() {
       updateMeeting(groupId, meetingId, payload),
     onSuccess: (_response, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
     },
   });
@@ -147,7 +166,8 @@ export function useSubmitMeetingEvidence() {
       submitMeetingEvidence(groupId, meetingId, { imageUrl }),
     onSuccess: (_response, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
     },
   });
@@ -160,7 +180,8 @@ export function useDeleteMeetingEvidence() {
       deleteMeetingEvidence(groupId, meetingId),
     onSettled: (_response, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
     },
@@ -174,7 +195,8 @@ export function useConfirmMeeting() {
       confirmMeeting(groupId, meetingId),
     onSettled: (_response, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
     },
@@ -188,7 +210,8 @@ export function useUndoMeetingConfirmation() {
       undoMeetingConfirmation(groupId, meetingId),
     onSettled: (_response, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
     },
@@ -222,8 +245,9 @@ export function useCancelMeeting() {
         queryKey: queryKeys.dashboard.mentorMeetings(),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.mentoring.myMeetings(),
+        queryKey: queryKeys.mentoring.myMeetingsAll(),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
     },
   });
 }
@@ -246,8 +270,9 @@ export function useReopenMeeting() {
         queryKey: queryKeys.mentoring.meetings(variables.groupId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.mentoring.myMeetings(),
+        queryKey: queryKeys.mentoring.myMeetingsAll(),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.mentorMeetings(),
       });

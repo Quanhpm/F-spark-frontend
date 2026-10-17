@@ -5,7 +5,7 @@ import { CheckCircle2, Download, Edit3, ExternalLink, Plus, RotateCcw, XCircle }
 import { toast } from "sonner";
 
 import { useAuthStore } from "@/modules/auth";
-import { isMeetingOwnedByCurrentMentor, useMentorGroups } from "@/modules/groups";
+import { isMeetingOwnedByCurrentMentor } from "@/modules/groups";
 import { Badge, Button, Card, CardContent, CardHeader, DateTimeInput, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import {
@@ -16,7 +16,7 @@ import {
   useMyMeetings,
   useUpdateMeeting,
 } from "../hooks";
-import type { MentorMeetingDto } from "../types";
+import type { MentorMeetingDto, MentorMeetingReportFilter } from "../types";
 import {
   DEFAULT_SLOT_DURATION_MINUTES,
   formatMentorIdentity,
@@ -57,8 +57,6 @@ type FormState = { groupId: string; startAt: string; endAt: string; meetLink: st
 
 export function MentorMeetingsPage() {
   const currentUser = useAuthStore((state) => state.session?.user);
-  const groupsQuery = useMentorGroups();
-  const meetingsQuery = useMyMeetings();
   const createMutation = useCreateMeeting();
   const updateMutation = useUpdateMeeting();
   const cancelMutation = useCancelMeeting();
@@ -70,23 +68,37 @@ export function MentorMeetingsPage() {
   const [undoingConfirmation, setUndoingConfirmation] = useState<MentorMeetingDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [reportTerm, setReportTerm] = useState("");
+  const [meetingFilter, setMeetingFilter] =
+    useState<MentorMeetingReportFilter>("ALL");
   const [now, setNow] = useState(() => Date.now());
   const [form, setForm] = useState<FormState>({ groupId: "", startAt: "", endAt: "", meetLink: "", note: "", durationMinutes: DEFAULT_SLOT_DURATION_MINUTES });
 
-  const groups = useMemo(() => groupsQuery.data?.data ?? [], [groupsQuery.data?.data]);
-  const meetings = useMemo(() => meetingsQuery.data?.data ?? [], [meetingsQuery.data?.data]);
-  const reportTerms = reportTermsQuery.data?.data ?? [];
-  const selectedReportTerm = reportTerm || reportTerms[0]?.code || "";
-  const counts = useMemo(() => meetings.reduce<Record<number, number>>((result, meeting) => {
-    if (meeting.status !== "CANCELED") result[meeting.groupId] = (result[meeting.groupId] ?? 0) + 1;
-    return result;
-  }, {}), [meetings]);
-  const eligibleGroups = groups.filter((group) => (counts[group.id] ?? 0) < 2);
+  const reportTerms = useMemo(
+    () => reportTermsQuery.data?.data ?? [],
+    [reportTermsQuery.data?.data],
+  );
+  const termOptions = reportTerms;
+  const selectedReportTerm =
+    termOptions.find((term) => term.code === reportTerm)?.code ??
+    termOptions[0]?.code ??
+    "";
+  const meetingsQuery = useMyMeetings({
+    filter: meetingFilter,
+    term: selectedReportTerm,
+  });
+  const reportView = meetingsQuery.data?.data;
+  const filteredGroups = reportView?.groups ?? [];
+  const eligibleGroupOptions = reportView?.recordableGroups ?? [];
+  const eligibleGroups = eligibleGroupOptions.map((option) => option.group);
+  const recordableCounts = new Map(
+    eligibleGroupOptions.map((option) => [option.group.id, option.activeMeetingCount]),
+  );
   const invalidStartPrecision = Boolean(form.startAt) && !isWholeMinute(form.startAt);
   const invalidDuration = Boolean(form.startAt && form.endAt) &&
     new Date(form.endAt).getTime() - new Date(form.startAt).getTime() !== form.durationMinutes * MINUTE_IN_MS;
   const crossesBusinessDay = Boolean(form.startAt && form.endAt) &&
     getBusinessDateKey(form.startAt) !== getBusinessDateKey(form.endAt);
+  const visibleMeetingCount = reportView?.totalMatchedMeetings ?? 0;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -182,12 +194,12 @@ export function MentorMeetingsPage() {
         <>
           <Select
             aria-label="Report term"
-            disabled={reportTermsQuery.isLoading || reportTerms.length === 0}
+            disabled={termOptions.length === 0}
             onChange={(event) => setReportTerm(event.target.value)}
             shellClassName="w-48 max-[480px]:w-full"
             value={selectedReportTerm}
           >
-            {reportTerms.length === 0 && (
+            {termOptions.length === 0 && (
               <option value="">
                 {reportTermsQuery.isError
                   ? "Unable to load terms"
@@ -196,9 +208,9 @@ export function MentorMeetingsPage() {
                     : "No report terms"}
               </option>
             )}
-            {reportTerms.map((term) => (
+            {termOptions.map((term) => (
               <option key={term.code} value={term.code}>
-                {term.code} · {term.status}
+                {term.code}{term.status ? ` · ${term.status}` : ""}
               </option>
             ))}
           </Select>
@@ -214,13 +226,49 @@ export function MentorMeetingsPage() {
         </>
       } />
 
-      {groupsQuery.isLoading || meetingsQuery.isLoading ? <Card isPadded><LoadingState title="Loading meetings" /></Card> :
-       groupsQuery.isError || meetingsQuery.isError ? <Card isPadded><EmptyState title="Unable to load meetings" /></Card> :
-       groups.length === 0 ? <Card isPadded><EmptyState title="No assigned teams" description="Teams will appear after an admin assigns them to you." /></Card> : (
-        <div className="grid gap-5">
-          {groups.map((group) => {
-            const groupMeetings = meetings.filter((meeting) => meeting.groupId === group.id);
-            const used = counts[group.id] ?? 0;
+      <Card isPadded>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <Select
+            aria-label="Meeting status"
+            label="Meeting status"
+            onChange={(event) =>
+              setMeetingFilter(event.target.value as MentorMeetingReportFilter)
+            }
+            shellClassName="w-64 max-[480px]:w-full"
+            value={meetingFilter}
+          >
+            <option value="ALL">All meetings</option>
+            <option value="UPCOMING">Upcoming</option>
+            <option value="NEEDS_MY_CONFIRMATION">Needs my confirmation</option>
+            <option value="AWAITING_EVIDENCE">Awaiting evidence</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELED">Canceled</option>
+          </Select>
+          <span className="text-sm text-muted">
+            {visibleMeetingCount} {visibleMeetingCount === 1 ? "meeting" : "meetings"}
+          </span>
+        </div>
+      </Card>
+
+      {meetingsQuery.isLoading || reportTermsQuery.isLoading ? <Card isPadded><LoadingState title="Loading meetings" /></Card> :
+       meetingsQuery.isError || reportTermsQuery.isError ? <Card isPadded><EmptyState title="Unable to load meetings" /></Card> :
+       termOptions.length === 0 ? <Card isPadded><EmptyState title="No assigned teams" description="Teams will appear after an admin assigns them to you." /></Card> :
+       reportView?.assignedGroupCount === 0 ? <Card isPadded><EmptyState title={`No assigned groups in ${selectedReportTerm}`} description="You can still export historical meeting data for this term when available." /></Card> : (
+        filteredGroups.length === 0 ? (
+          <Card isPadded>
+            <EmptyState
+              actions={
+                <Button onClick={() => setMeetingFilter("ALL")} variant="secondary">
+                  Show all meetings
+                </Button>
+              }
+              description="Try another status or show all meetings."
+              title="No meetings match this filter"
+            />
+          </Card>
+        ) : <div className="grid gap-5">
+          {filteredGroups.map(({ group, meetings: groupMeetings, activeMeetingCount }) => {
+            const used = activeMeetingCount;
             return <Card key={group.id}>
               <CardHeader title={`${group.groupNo} · ${group.name}`} description={`${group.term} / ${group.courseCode}`} actions={<Badge tone={used >= 2 ? "warning" : "neutral"}>{used}/2 slots</Badge>} />
               <CardContent className="grid gap-3">
@@ -266,7 +314,7 @@ export function MentorMeetingsPage() {
       {showForm && <ResponsiveDialog title={editing ? "Edit meeting record" : "Record external meeting"} description={editing ? `Mentor: ${formatMentorIdentity(editing)}` : "Record a meeting arranged outside the booking flow. Students can submit evidence after the recorded end time."} onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartPrecision || invalidDuration || crossesBusinessDay}>Save record</Button></>}>
         <form id="mentor-meeting-form" className="grid gap-4" onSubmit={submit}>
           <Select label="Team" value={form.groupId} disabled={Boolean(editing)} onChange={(event) => setForm((value) => ({ ...value, groupId: event.target.value }))} required>
-            {eligibleGroups.map((group) => <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({counts[group.id] ?? 0}/2)</option>)}
+            {eligibleGroups.map((group) => <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({recordableCounts.get(group.id) ?? 0}/2)</option>)}
             {editing && !eligibleGroups.some((group) => group.id === editing.groupId) && <option value={editing.groupId}>{editing.groupNo} · {editing.groupName}</option>}
           </Select>
           <DateTimeInput error={invalidStartPrecision ? "Choose a start time without seconds." : undefined} hint="Choose any date and minute." label="Start time" required step={60} type="datetime-local" value={form.startAt} onChange={(event) => updateStartAt(event.target.value)} />

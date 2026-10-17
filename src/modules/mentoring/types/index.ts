@@ -4,10 +4,42 @@ import type {
   MeetingStatus,
   SlotStatus,
 } from "@/shared/types";
+import type { GroupSummaryDto } from "@/modules/groups";
 
 export type MentorReportTermDto = {
   code: string;
   status: AcademicTermStatus;
+};
+
+export type MentorMeetingReportFilter =
+  | "ALL"
+  | "UPCOMING"
+  | "NEEDS_MY_CONFIRMATION"
+  | "AWAITING_EVIDENCE"
+  | "COMPLETED"
+  | "CANCELED";
+
+export type MentorMeetingReportQuery = {
+  term: string;
+  filter: MentorMeetingReportFilter;
+};
+
+export type MentorMeetingGroupOptionDto = {
+  group: GroupSummaryDto;
+  activeMeetingCount: number;
+};
+
+export type MentorMeetingReportGroupDto = MentorMeetingGroupOptionDto & {
+  meetings: MentorMeetingDto[];
+};
+
+export type MentorMeetingReportViewDto = {
+  term: string;
+  filter: MentorMeetingReportFilter;
+  assignedGroupCount: number;
+  totalMatchedMeetings: number;
+  groups: MentorMeetingReportGroupDto[];
+  recordableGroups: MentorMeetingGroupOptionDto[];
 };
 
 export type MentorAvailabilitySlotDto = {

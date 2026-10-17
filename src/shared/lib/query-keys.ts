@@ -72,7 +72,11 @@ export const queryKeys = {
       [...queryKeys.mentoring.adminMeetingsAll(), filters ?? {}] as const,
     meetingReopenHistory: (meetingId: number) =>
       [...queryKeys.mentoring.adminMeetingsAll(), meetingId, "reopen-history"] as const,
-    myMeetings: () => [...queryKeys.mentoring.all, "meetings", "me"] as const,
+    myMeetingsAll: () => [...queryKeys.mentoring.all, "meetings", "me"] as const,
+    myMeetings: (filters?: QueryFilters) =>
+      [...queryKeys.mentoring.myMeetingsAll(), filters ?? {}] as const,
+    myCalendarMeetings: () =>
+      [...queryKeys.mentoring.all, "meetings", "calendar"] as const,
     groupAvailability: (groupId: number) =>
       [...queryKeys.mentoring.all, "groups", groupId, "availability"] as const,
     meetings: (groupId: number) =>

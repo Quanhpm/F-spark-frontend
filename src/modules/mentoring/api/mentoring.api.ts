@@ -1,6 +1,4 @@
-import { getMentorGroups } from "@/modules/groups/api";
 import {
-  ApiError,
   apiDelete,
   apiDownload,
   apiGet,
@@ -20,6 +18,8 @@ import type {
   MeetingReopenEventDto,
   ReopenMeetingRequest,
   MentorReportTermDto,
+  MentorMeetingReportQuery,
+  MentorMeetingReportViewDto,
   UpdateAvailabilitySlotRequest,
   UpdateMentorMeetingRequest,
   SubmitMeetingEvidenceRequest,
@@ -43,39 +43,17 @@ export function listMyAvailability() {
   );
 }
 
-export async function listMyMeetings() {
-  const groupsResponse = await getMentorGroups();
-  const groupIds = groupsResponse.data.map((group) => group.id);
-
-  if (groupIds.length === 0) {
-    return { ...groupsResponse, data: [] as MentorMeetingDto[] };
-  }
-
-  const groupMeetingResults = await Promise.allSettled(
-    groupIds.map((groupId) => getGroupMeetings(groupId)),
+export function listMyMeetings(query: MentorMeetingReportQuery) {
+  return apiGet<ApiResponse<MentorMeetingReportViewDto>>(
+    "/api/mentor/meeting-reports/meetings",
+    { query },
   );
-  const unexpectedFailure = groupMeetingResults.find(
-    (result) =>
-      result.status === "rejected" &&
-      !(result.reason instanceof ApiError && result.reason.status === 403),
+}
+
+export function listMyCalendarMeetings() {
+  return apiGet<ApiResponse<MentorMeetingDto[]>>(
+    "/api/mentor/meeting-reports/calendar-meetings",
   );
-  if (unexpectedFailure?.status === "rejected") {
-    throw unexpectedFailure.reason;
-  }
-
-  const meetings = groupMeetingResults
-    .flatMap((result) =>
-      result.status === "fulfilled" ? result.value.data : [],
-    )
-    .sort(
-      (left, right) =>
-        new Date(left.startAt).getTime() - new Date(right.startAt).getTime(),
-    );
-
-  return {
-    ...groupsResponse,
-    data: meetings,
-  };
 }
 
 export function createAvailabilitySlot(

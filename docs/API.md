@@ -2536,6 +2536,8 @@ token; response van boc trong `ApiResponse<T>` tru khi Swagger ghi khac.
 | GET | `/api/admin/feedback/export.xlsx` | `term`* | Admin tai toan bo feedback SUBMITTED trong ky, tach sheet Mentor/Instructor |
 | GET | `/api/admin/terms` | — | Danh sach ky hoc va tien do feedback |
 | GET | `/api/mentor/meeting-reports/terms` | — | Cac ky co group hoac meeting thuoc mentor hien tai |
+| GET | `/api/mentor/meeting-reports/meetings` | `term`*, `filter?` | Man hinh meeting report da loc o backend theo ky va trang thai nghiep vu |
+| GET | `/api/mentor/meeting-reports/calendar-meetings` | — | Meeting cua tat ca group hien dang gan cho mentor, dung cho calendar |
 | GET | `/api/mentor/meeting-reports/export.xlsx` | `term`* | Mentor tai bao cao tong hop group va meeting cua mot ky |
 | GET | `/api/terms/available` | — | Danh sach ky hoc OPEN cho student tao group |
 | PATCH | `/api/admin/terms/{term}/close` | — | Dong ky hoc |
@@ -2555,6 +2557,12 @@ Bao cao mentor co hai sheet `Group Summary` va `Meeting Details`, gom ca meeting
 lich su duoc ghi nhan theo mentor thuc hien va cac group hien dang phu trach chua
 co meeting. Bao cao feedback cua admin luon co hai sheet, chi gom feedback
 `SUBMITTED`; cac filter cua bang ngoai `term` khong tac dong den file export.
+
+`filter` cua meeting report nhan `ALL | UPCOMING | NEEDS_MY_CONFIRMATION |
+AWAITING_EVIDENCE | COMPLETED | CANCELED`. Backend dung thoi gian server va chi
+tra group mentor dang duoc gan trong ky; `NEEDS_MY_CONFIRMATION` chi gom meeting
+do chinh mentor dang dang nhap so huu. Response kem active meeting count va danh
+sach group con quota de frontend khong tu loc hoac tu tinh quota.
 
 ### 16. Group Recruitment, Lock & Instructor Assignment
 

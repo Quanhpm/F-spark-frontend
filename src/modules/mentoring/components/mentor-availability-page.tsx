@@ -22,7 +22,7 @@ import {
   useCancelSlot,
   useCreateSlot,
   useMyAvailability,
-  useMyMeetings,
+  useMyCalendarMeetings,
   useUpdateSlot,
 } from "../hooks";
 import type { MentorAvailabilitySlotDto } from "../types";
@@ -77,7 +77,7 @@ export function MentorAvailabilityPage() {
   );
 
   const availabilityQuery = useMyAvailability();
-  const meetingsQuery = useMyMeetings();
+  const meetingsQuery = useMyCalendarMeetings();
   const createSlotMutation = useCreateSlot();
   const updateSlotMutation = useUpdateSlot();
   const cancelSlotMutation = useCancelSlot();
