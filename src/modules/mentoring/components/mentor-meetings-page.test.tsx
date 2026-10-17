@@ -26,7 +26,7 @@ const meetings: MentorMeetingDto[] = [
     leaderConfirmedByStudentId: null,
     meetLink: "https://meet.google.com/abc-defg-hij",
     mentorCode: "M001",
-    mentorConfirmedAt: null,
+    mentorConfirmedAt: "2026-10-15T04:30:00Z",
     mentorId: 5,
     mentorName: "Mentor One",
     note: "First owner",
@@ -110,6 +110,7 @@ vi.mock("../hooks", () => ({
     isLoading: false,
   }),
   useReopenMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useUndoMeetingConfirmation: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useUpdateMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }));
 
@@ -199,6 +200,7 @@ describe("MentorMeetingsPage", () => {
 
     expect(screen.getByText("Mentor: Mentor One · M001")).toBeInTheDocument();
     expect(screen.getByText("Mentor: Mentor Two · M002")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Undo confirmation" })).toBeInTheDocument();
   });
 
   it("repeats the meeting owner in the edit dialog", () => {

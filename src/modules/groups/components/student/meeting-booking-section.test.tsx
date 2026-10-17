@@ -224,7 +224,7 @@ describe("MeetingBookingSection", () => {
     expect(screen.getByText("Mentor One · M001")).toBeInTheDocument();
   });
 
-  it("lets the original submitter remove pending evidence for replacement", () => {
+  it("lets the original submitter remove completed evidence for replacement", () => {
     mocks.meetings = [
       {
         endAt: "2026-10-13T04:15:00Z",
@@ -232,14 +232,15 @@ describe("MeetingBookingSection", () => {
         evidenceSubmittedAt: "2026-10-13T04:20:00Z",
         evidenceSubmittedByStudentId: 7,
         evidenceSubmittedByStudentName: "Student One",
+        completedAt: "2026-10-13T04:21:00Z",
         id: 21,
         mentorCode: "M001",
-        mentorConfirmedAt: null,
+        mentorConfirmedAt: "2026-10-13T04:19:00Z",
         mentorId: 1,
         mentorName: "Mentor One",
         note: null,
         startAt: "2026-10-13T02:00:00Z",
-        status: "SCHEDULED",
+        status: "COMPLETED",
       },
     ];
     const group = {
@@ -268,6 +269,9 @@ describe("MeetingBookingSection", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Delete evidence" }));
+    expect(
+      screen.getByText(/meeting will return to awaiting evidence/i),
+    ).toBeInTheDocument();
     const deleteButtons = screen.getAllByRole("button", { name: "Delete evidence" });
     fireEvent.click(deleteButtons[deleteButtons.length - 1]);
 

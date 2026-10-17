@@ -338,7 +338,8 @@ export function MeetingBookingSection({
                       const displayStatus = getMeetingDisplayStatus(meeting, now);
                       const canDeleteEvidence = Boolean(
                         !group.studentReadOnly &&
-                          meeting.status === "SCHEDULED" &&
+                          (meeting.status === "SCHEDULED" ||
+                            meeting.status === "COMPLETED") &&
                           meeting.evidenceImageUrl &&
                           currentStudent &&
                           (meeting.evidenceSubmittedByStudentId === currentStudent.studentId ||
@@ -512,7 +513,11 @@ export function MeetingBookingSection({
       {evidenceToDelete && (
         <ResponsiveDialog
           className="min-[761px]:max-w-[520px]"
-          description="The current evidence link will be removed. An active group member can submit a replacement afterward."
+          description={
+            evidenceToDelete.status === "COMPLETED"
+              ? "The evidence link will be removed and this meeting will return to awaiting evidence. The mentor confirmation will be kept."
+              : "The current evidence link will be removed. An active group member can submit a replacement afterward."
+          }
           footer={(
             <>
               <Button
@@ -535,7 +540,9 @@ export function MeetingBookingSection({
           title="Delete submitted evidence?"
         >
           <p className="m-0 text-sm leading-6 text-muted">
-            This action only removes the evidence from the pending meeting. It does not cancel the meeting or reset the mentor confirmation.
+            This action does not cancel the meeting or reset the mentor
+            confirmation. After replacement evidence is submitted, a
+            mentor-confirmed meeting will become completed again automatically.
           </p>
         </ResponsiveDialog>
       )}

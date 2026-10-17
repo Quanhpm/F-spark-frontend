@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarClock,
   Eye,
+  RotateCcw,
   Users,
   XCircle,
 } from "lucide-react";
@@ -13,6 +14,7 @@ import { useAuthStore } from "@/modules/auth";
 import {
   ConfirmMeetingDialog,
   MeetingConfirmationStatus,
+  UndoMeetingConfirmationDialog,
   formatMentorIdentity,
   getMeetingDisplayStatus,
   useCancelMeeting,
@@ -92,6 +94,8 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
   const [meetingToCancel, setMeetingToCancel] =
     useState<MentorMeetingDto | null>(null);
   const [meetingToConfirm, setMeetingToConfirm] =
+    useState<MentorMeetingDto | null>(null);
+  const [meetingToUnconfirm, setMeetingToUnconfirm] =
     useState<MentorMeetingDto | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -211,6 +215,17 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     >
                       Meet
                     </Button>}
+                    {isOwner && meeting.mentorConfirmedAt &&
+                      (meeting.status === "SCHEDULED" || meeting.status === "COMPLETED") && (
+                        <Button
+                          icon={<RotateCcw size={15} />}
+                          onClick={() => setMeetingToUnconfirm(meeting)}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          Undo confirmation
+                        </Button>
+                      )}
                     {canCancel && (
                       <>
                         {canConfirm && (
@@ -282,6 +297,12 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
         <ConfirmMeetingDialog
           meeting={meetingToConfirm}
           onClose={() => setMeetingToConfirm(null)}
+        />
+      )}
+      {meetingToUnconfirm && (
+        <UndoMeetingConfirmationDialog
+          meeting={meetingToUnconfirm}
+          onClose={() => setMeetingToUnconfirm(null)}
         />
       )}
     </div>

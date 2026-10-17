@@ -7,6 +7,7 @@ import {
   createMeeting,
   cancelMeeting,
   confirmMeeting,
+  undoMeetingConfirmation,
   deleteMeetingEvidence,
   exportMentorMeetingReport,
   getGroupMeetings,
@@ -171,6 +172,20 @@ export function useConfirmMeeting() {
   return useMutation({
     mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
       confirmMeeting(groupId, meetingId),
+    onSettled: (_response, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
+    },
+  });
+}
+
+export function useUndoMeetingConfirmation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
+      undoMeetingConfirmation(groupId, meetingId),
     onSettled: (_response, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });

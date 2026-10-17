@@ -31,6 +31,7 @@ import {
 import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 import { ConfirmMeetingDialog } from "./confirm-meeting-dialog";
 import { MeetingConfirmationStatus } from "./meeting-confirmation-status";
+import { UndoMeetingConfirmationDialog } from "./undo-meeting-confirmation-dialog";
 
 function dateTimeLocal(value?: string) {
   if (!value) return "";
@@ -66,6 +67,7 @@ export function MentorMeetingsPage() {
   const [editing, setEditing] = useState<MentorMeetingDto | null>(null);
   const [reopening, setReopening] = useState<MentorMeetingDto | null>(null);
   const [confirming, setConfirming] = useState<MentorMeetingDto | null>(null);
+  const [undoingConfirmation, setUndoingConfirmation] = useState<MentorMeetingDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [reportTerm, setReportTerm] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -243,10 +245,12 @@ export function MentorMeetingsPage() {
                     <MeetingConfirmationStatus meeting={meeting} />
                     {meeting.evidenceImageUrl && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View meeting evidence</a>}
                     {isOwner && meeting.status === "COMPLETED" && <div className="flex flex-wrap gap-2">
+                      {meeting.mentorConfirmedAt && <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setUndoingConfirmation(meeting)}>Undo confirmation</Button>}
                       <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setReopening(meeting)}>Undo completion</Button>
                     </div>}
                     {isOwner && meeting.status === "SCHEDULED" && <div className="flex flex-wrap gap-2">
                       {canConfirm && <Button size="sm" icon={<CheckCircle2 size={14} />} onClick={() => setConfirming(meeting)}>Confirm meeting</Button>}
+                      {meeting.mentorConfirmedAt && <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setUndoingConfirmation(meeting)}>Undo confirmation</Button>}
                       {!meeting.evidenceImageUrl && <Button size="sm" variant="secondary" icon={<Edit3 size={14} />} onClick={() => openEdit(meeting)}>Edit</Button>}
                       <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => void cancelMeeting(meeting)}>Cancel</Button>
                     </div>}
@@ -276,6 +280,7 @@ export function MentorMeetingsPage() {
       </ResponsiveDialog>}
       {reopening && <ReopenMeetingDialog meeting={reopening} onClose={() => setReopening(null)} />}
       {confirming && <ConfirmMeetingDialog meeting={confirming} onClose={() => setConfirming(null)} />}
+      {undoingConfirmation && <UndoMeetingConfirmationDialog meeting={undoingConfirmation} onClose={() => setUndoingConfirmation(null)} />}
     </div>
   );
 }
