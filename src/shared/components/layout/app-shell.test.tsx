@@ -68,7 +68,7 @@ describe("AppShell route guard", () => {
     expect(
       screen.getByRole("link", { name: "Meeting evidence" }),
     ).toHaveAttribute("href", "/admin/meeting-evidence");
-    expect(screen.getByText("Version 9")).toBeInTheDocument();
+    expect(screen.getByText("Version 10")).toBeInTheDocument();
   });
 
   it("does not render the admin version badge for another role", () => {
@@ -81,7 +81,7 @@ describe("AppShell route guard", () => {
     render(<AppShell role="STUDENT">Student content</AppShell>);
 
     expect(screen.getByText("Student content")).toBeInTheDocument();
-    expect(screen.queryByText("Version 9")).not.toBeInTheDocument();
+    expect(screen.queryByText("Version 10")).not.toBeInTheDocument();
   });
 
   it("blocks a valid session from a different role", () => {
