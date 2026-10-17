@@ -5,11 +5,13 @@ import {
   CalendarDays,
   Clock3,
   ExternalLink,
+  UserRound,
 } from "lucide-react";
 import { Badge, Button } from "@/shared/components";
 import type { AvailabilityCalendarEvent } from "./availability-calendar.types";
 import {
   formatDate,
+  formatMentorIdentity,
   formatTime,
   getCalendarEventStatusTone,
   getSlotStatusTone,
@@ -65,6 +67,15 @@ export function SelectedEventPanel({
             <Clock3 className="mt-0.5 shrink-0" size={16} />
             <span>
               {formatTime(meeting.startAt)} – {formatTime(meeting.endAt)}
+            </span>
+          </div>
+          <div className="flex min-w-0 items-start gap-2">
+            <UserRound className="mt-0.5 shrink-0" size={16} />
+            <span className="break-words">
+              Mentor:{" "}
+              <strong className="font-medium text-foreground">
+                {formatMentorIdentity(meeting)}
+              </strong>
             </span>
           </div>
           <p className="m-0 text-sm text-muted">

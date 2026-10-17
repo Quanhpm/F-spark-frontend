@@ -18,6 +18,7 @@ import {
 import type { MentorMeetingDto } from "../types";
 import {
   DEFAULT_SLOT_DURATION_MINUTES,
+  formatMentorIdentity,
   getBusinessDateKey,
   getSlotEndDateTimeLocal,
   isWholeMinute,
@@ -212,7 +213,7 @@ export function MentorMeetingsPage() {
                 {groupMeetings.length === 0 ? <EmptyState title="No meetings reported" /> : groupMeetings.map((meeting) => (
                   <article className="grid gap-3 rounded-xl border border-border bg-background p-4" key={meeting.id}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div><strong>{formatDateTime(meeting.startAt)} – {formatDateTime(meeting.endAt)}</strong><p className="m-0 mt-1 text-sm text-muted">{meeting.note || "No note"}</p></div>
+                      <div className="min-w-0"><strong className="break-words">{formatDateTime(meeting.startAt)} – {formatDateTime(meeting.endAt)}</strong><p className="m-0 mt-1 break-words text-sm text-muted">Mentor: {formatMentorIdentity(meeting)}</p><p className="m-0 mt-1 break-words text-sm text-muted">{meeting.note || "No note"}</p></div>
                       <Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{meeting.status === "SCHEDULED" && new Date(meeting.endAt).getTime() <= Date.now() ? "AWAITING EVIDENCE" : meeting.status}</Badge>
                     </div>
                     {meeting.evidenceImageUrl && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View meeting evidence</a>}
@@ -231,7 +232,7 @@ export function MentorMeetingsPage() {
         </div>
       )}
 
-      {showForm && <ResponsiveDialog title={editing ? "Edit meeting record" : "Record external meeting"} description="Record a meeting arranged outside the booking flow. Students can submit evidence after the recorded end time." onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartPrecision || invalidDuration || crossesBusinessDay}>Save record</Button></>}>
+      {showForm && <ResponsiveDialog title={editing ? "Edit meeting record" : "Record external meeting"} description={editing ? `Mentor: ${formatMentorIdentity(editing)}` : "Record a meeting arranged outside the booking flow. Students can submit evidence after the recorded end time."} onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartPrecision || invalidDuration || crossesBusinessDay}>Save record</Button></>}>
         <form id="mentor-meeting-form" className="grid gap-4" onSubmit={submit}>
           <Select label="Team" value={form.groupId} disabled={Boolean(editing)} onChange={(event) => setForm((value) => ({ ...value, groupId: event.target.value }))} required>
             {eligibleGroups.map((group) => <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({counts[group.id] ?? 0}/2)</option>)}

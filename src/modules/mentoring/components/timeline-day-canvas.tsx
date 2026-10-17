@@ -9,6 +9,7 @@ import {
   HOUR_HEIGHT,
   MINUTE_IN_MS,
   formatDateTime,
+  formatMentorIdentity,
   formatTime,
   formatTimelineTime,
   getCalendarEventCardClassName,
@@ -36,10 +37,15 @@ export function TimelineEventCard({
     event.kind === "MEETING"
       ? `${event.meeting.groupNo} · ${event.meeting.groupName}`
       : event.slot.note || "Availability slot";
+  const mentorIdentity =
+    event.kind === "MEETING" ? formatMentorIdentity(event.meeting) : null;
+  const accessibleTitle = mentorIdentity
+    ? `${eventTitle}, Mentor: ${mentorIdentity}`
+    : eventTitle;
 
   return (
     <button
-      aria-label={`${event.status}, ${eventTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
+      aria-label={`${event.status}, ${accessibleTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
       className={cn(
         "absolute min-h-9 min-w-0 cursor-pointer overflow-hidden rounded-lg border text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] hover:z-30 hover:shadow-card-interactive focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
         isCompact
@@ -49,7 +55,7 @@ export function TimelineEventCard({
       )}
       onClick={() => onSelect(event)}
       style={getCalendarEventPositionStyle(positionedEvent, startHour)}
-      title={`${eventTitle} · ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}`}
+      title={`${accessibleTitle} · ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}`}
       type="button"
     >
       <span className="truncate text-[11px] leading-tight font-bold">
@@ -60,6 +66,11 @@ export function TimelineEventCard({
           <span className="truncate text-[11px] leading-tight font-medium">
             {eventTitle}
           </span>
+          {mentorIdentity && (
+            <span className="truncate text-[10px] leading-tight text-muted">
+              Mentor: {mentorIdentity}
+            </span>
+          )}
         </>
       )}
     </button>

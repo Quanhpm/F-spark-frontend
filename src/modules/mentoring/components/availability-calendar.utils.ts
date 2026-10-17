@@ -70,6 +70,23 @@ export function formatTime(value: string): string {
   }).format(new Date(value));
 }
 
+export function formatMentorIdentity({
+  mentorCode,
+  mentorName,
+}: {
+  mentorCode?: string | null;
+  mentorName?: string | null;
+}): string {
+  const normalizedName = mentorName?.trim();
+  const normalizedCode = mentorCode?.trim();
+
+  if (normalizedName && normalizedCode) {
+    return `${normalizedName} · ${normalizedCode}`;
+  }
+
+  return normalizedName || normalizedCode || "Unknown mentor";
+}
+
 export function toLocalDateTimeInput(value: string): string {
   const date = new Date(value);
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);

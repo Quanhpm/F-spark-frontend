@@ -65,6 +65,12 @@ describe("ReopenMeetingDialog", () => {
     const onClose = vi.fn();
     render(<ReopenMeetingDialog meeting={meeting} onClose={onClose} />);
 
+    expect(
+      screen.getByText(
+        "Group 12 · Evidence Team · Mentor: Mentor One · M001",
+      ),
+    ).toBeInTheDocument();
+
     const submit = screen.getByRole("button", { name: "Reopen meeting" });
     expect(submit).toBeDisabled();
 

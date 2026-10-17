@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GroupDetailDto } from "../../types";
@@ -11,12 +11,34 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/modules/mentoring", () => ({
+  formatMentorIdentity: ({
+    mentorCode,
+    mentorName,
+  }: {
+    mentorCode?: string | null;
+    mentorName?: string | null;
+  }) =>
+    [mentorName?.trim(), mentorCode?.trim()].filter(Boolean).join(" · ") ||
+    "Unknown mentor",
   useBookMeeting: () => ({
     isPending: false,
     mutateAsync: mocks.bookMeeting,
   }),
   useGroupMeetings: () => ({
-    data: { data: [] },
+    data: {
+      data: [
+        {
+          endAt: "2026-10-13T04:15:00Z",
+          id: 20,
+          mentorCode: "M002",
+          mentorId: 2,
+          mentorName: "Mentor Two",
+          note: "Previously booked",
+          startAt: "2026-10-13T02:00:00Z",
+          status: "CANCELED",
+        },
+      ],
+    },
     isError: false,
     isLoading: false,
     refetch: mocks.refetchMeetings,
@@ -36,8 +58,19 @@ vi.mock("@/modules/mentoring", () => ({
           status: "AVAILABLE",
         },
         {
-          endAt: "2026-10-14T11:29:59Z",
+          endAt: "2026-10-14T11:30:00Z",
           id: 2,
+          mentorCode: "M002",
+          mentorId: 2,
+          mentorName: "Mentor Two",
+          meetLink: "https://meet.google.com/def-ghij-klm",
+          note: "Also bookable",
+          startAt: "2026-10-14T09:15:00Z",
+          status: "AVAILABLE",
+        },
+        {
+          endAt: "2026-10-14T11:29:59Z",
+          id: 3,
           mentorCode: "M001",
           mentorId: 1,
           mentorName: "Mentor One",
@@ -95,8 +128,23 @@ vi.mock("@/shared/components", () => ({
     </div>
   ),
   LoadingState: ({ title }: { title: string }) => <div>{title}</div>,
-  ResponsiveDialog: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
+  ResponsiveDialog: ({
+    children,
+    description,
+    footer,
+    title,
+  }: {
+    children: React.ReactNode;
+    description?: React.ReactNode;
+    footer?: React.ReactNode;
+    title: string;
+  }) => (
+    <div>
+      <h2>{title}</h2>
+      <div>{description}</div>
+      {children}
+      {footer}
+    </div>
   ),
   TextInput: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
     <input {...props} />
@@ -143,12 +191,27 @@ describe("MeetingBookingSection", () => {
       ),
     ).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: "Book this slot" })).toBeEnabled();
+    expect(screen.getAllByText("Mentor: Mentor One · M001")).toHaveLength(2);
+    expect(screen.getAllByText("Mentor: Mentor Two · M002")).toHaveLength(2);
+
+    const bookingButtons = screen.getAllByRole("button", {
+      name: "Book this slot",
+    });
+    expect(bookingButtons).toHaveLength(2);
+    expect(bookingButtons[0]).toBeEnabled();
+    expect(bookingButtons[1]).toBeEnabled();
     expect(screen.getByRole("button", { name: "Booking closed" })).toBeDisabled();
     expect(
       screen.getByText(
         "This slot must be booked at least 6 hours before it starts.",
       ),
     ).toBeInTheDocument();
+
+    fireEvent.click(bookingButtons[0]);
+
+    expect(
+      screen.getByRole("heading", { name: "Book this mentor slot?" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Mentor One · M001")).toBeInTheDocument();
   });
 });

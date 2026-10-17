@@ -9,7 +9,11 @@ import {
 } from "lucide-react";
 
 import { MentorUpcomingMeetingsSection } from "@/modules/dashboards";
-import { useCancelMeeting, useGroupMeetings } from "@/modules/mentoring";
+import {
+  formatMentorIdentity,
+  useCancelMeeting,
+  useGroupMeetings,
+} from "@/modules/mentoring";
 import type { MentorMeetingDto } from "@/modules/mentoring";
 import {
   Badge,
@@ -155,6 +159,9 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     <div className="break-words font-bold text-foreground">
                       {formatDateTime(meeting.startAt)}
                     </div>
+                    <p className="mt-1 mb-0 break-words text-[13px] text-muted">
+                      Mentor: {formatMentorIdentity(meeting)}
+                    </p>
                     <p className="mt-1 mb-2 break-words text-[13px] text-muted">{meeting.note || "No note"}</p>
                     {meeting.evidenceImageUrl && <a className="text-xs font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer">View student evidence</a>}
                   </div>
@@ -208,7 +215,7 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
           confirmDisabled={!cancelReason.trim()}
           description={`Cancel the meeting scheduled for ${formatDateTime(
             meetingToCancel.startAt,
-          )}?`}
+          )} with mentor ${formatMentorIdentity(meetingToCancel)}?`}
           onClose={() => {
             setCancelReason("");
             setMeetingToCancel(null);

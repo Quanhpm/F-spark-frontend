@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import {
   type MentorAvailabilitySlotDto,
+  formatMentorIdentity,
   useBookMeeting,
   useGroupMeetings,
   useMentorAvailabilityForGroup,
@@ -241,6 +242,9 @@ export function MeetingBookingSection({
                                 {formatTime(slot.startAt)}–
                                 {formatTime(slot.endAt)}
                               </span>
+                              <span className="break-words text-xs text-muted">
+                                Mentor: {formatMentorIdentity(slot)}
+                              </span>
                             </div>
                           </div>
                           {slot.note && (
@@ -302,11 +306,14 @@ export function MeetingBookingSection({
                           key={meeting.id}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
+                            <div className="min-w-0">
                               <strong className="text-foreground">
                                 {formatDateTime(meeting.startAt)}–
                                 {formatDateTime(meeting.endAt)}
                               </strong>
+                              <p className="m-0 mt-1 break-words text-sm text-muted">
+                                Mentor: {formatMentorIdentity(meeting)}
+                              </p>
                               <p className="m-0 mt-1 text-sm text-muted">
                                 {meeting.note || "No note"}
                               </p>
@@ -429,6 +436,12 @@ export function MeetingBookingSection({
           <p className="m-0 text-sm leading-6 text-muted">
             This availability slot will be reserved for {group.name} and will
             count toward the group&apos;s two-meeting limit.
+          </p>
+          <p className="m-0 mt-3 break-words text-sm leading-6 text-muted">
+            Mentor:{" "}
+            <strong className="font-medium text-foreground">
+              {formatMentorIdentity(bookingSlot)}
+            </strong>
           </p>
           {!canBookMentorSlot(bookingSlot.startAt, now) && (
             <p className="m-0 mt-3 text-sm leading-6 text-amber-700">

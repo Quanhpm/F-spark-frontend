@@ -9,6 +9,7 @@ import { ApiError } from "@/shared/lib";
 
 import { useReopenMeeting } from "../hooks";
 import type { MentorMeetingDto } from "../types";
+import { formatMentorIdentity } from "./availability-calendar.utils";
 
 const MAX_REASON_LENGTH = 500;
 
@@ -57,7 +58,7 @@ export function ReopenMeetingDialog({
     <ResponsiveDialog
       closeOnBackdrop={!reopenMutation.isPending}
       closeOnEscape={!reopenMutation.isPending}
-      description={`Group ${meeting.groupNo} · ${meeting.groupName}`}
+      description={`Group ${meeting.groupNo} · ${meeting.groupName} · Mentor: ${formatMentorIdentity(meeting)}`}
       footer={(
         <>
           <Button disabled={reopenMutation.isPending} onClick={close} variant="secondary">

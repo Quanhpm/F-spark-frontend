@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SlotFormState } from "./availability-calendar.types";
 import {
+  formatMentorIdentity,
   getSlotEndDateTimeLocal,
   SLOT_DURATION_OPTIONS,
   validateSlotForm,
@@ -50,5 +51,25 @@ describe("availability calendar time rules", () => {
     ).toBe(
       "Availability slots must start and end on the same day (Asia/Ho_Chi_Minh).",
     );
+  });
+});
+
+describe("formatMentorIdentity", () => {
+  it("formats the mentor name and code without leaving legacy values blank", () => {
+    expect(
+      formatMentorIdentity({
+        mentorCode: " M001 ",
+        mentorName: " Mentor One ",
+      }),
+    ).toBe("Mentor One · M001");
+    expect(
+      formatMentorIdentity({ mentorCode: null, mentorName: "Mentor One" }),
+    ).toBe("Mentor One");
+    expect(
+      formatMentorIdentity({ mentorCode: "M001", mentorName: " " }),
+    ).toBe("M001");
+    expect(
+      formatMentorIdentity({ mentorCode: null, mentorName: undefined }),
+    ).toBe("Unknown mentor");
   });
 });
