@@ -32,6 +32,7 @@ vi.mock("@/modules/auth", () => ({
 
 vi.mock("@/modules/mentoring", () => ({
   ConfirmMeetingDialog: () => null,
+  MeetingConfirmationStatus: () => <div>Confirmation status</div>,
   formatMentorIdentity: ({
     mentorCode,
     mentorName,

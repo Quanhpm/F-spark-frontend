@@ -7,6 +7,7 @@ export { AvailabilityDayTimeline } from "./availability-day-timeline";
 export { AvailabilityWeekTimeline } from "./availability-week-timeline";
 export { ConfirmDialog } from "./confirm-dialog";
 export { ConfirmMeetingDialog } from "./confirm-meeting-dialog";
+export { MeetingConfirmationStatus } from "./meeting-confirmation-status";
 export { MiniMonthCalendar } from "./mini-month-calendar";
 export { SelectedEventPanel } from "./selected-event-panel";
 export { SlotDetailsDialog } from "./slot-details-dialog";

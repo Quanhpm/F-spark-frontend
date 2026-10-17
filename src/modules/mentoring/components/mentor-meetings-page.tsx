@@ -30,6 +30,7 @@ import {
 } from "./availability-calendar.utils";
 import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 import { ConfirmMeetingDialog } from "./confirm-meeting-dialog";
+import { MeetingConfirmationStatus } from "./meeting-confirmation-status";
 
 function dateTimeLocal(value?: string) {
   if (!value) return "";
@@ -239,6 +240,7 @@ export function MentorMeetingsPage() {
                       <div className="min-w-0"><strong className="break-words">{formatDateTime(meeting.startAt)} – {formatDateTime(meeting.endAt)}</strong><p className="m-0 mt-1 break-words text-sm text-muted">Mentor: {formatMentorIdentity(meeting)}</p><p className="m-0 mt-1 break-words text-sm text-muted">{meeting.note || "No note"}</p></div>
                       <Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{displayStatus}</Badge>
                     </div>
+                    <MeetingConfirmationStatus meeting={meeting} />
                     {meeting.evidenceImageUrl && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View meeting evidence</a>}
                     {isOwner && meeting.status === "COMPLETED" && <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setReopening(meeting)}>Undo completion</Button>

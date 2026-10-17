@@ -17,6 +17,7 @@ import {
   getMeetingDisplayStatus,
   getSlotStatusTone,
 } from "./availability-calendar.utils";
+import { MeetingConfirmationStatus } from "./meeting-confirmation-status";
 
 export function SelectedEventPanel({
   event,
@@ -87,6 +88,8 @@ export function SelectedEventPanel({
             ({meeting.bookedByStudentCode})
           </p>
         </div>
+
+        <MeetingConfirmationStatus meeting={meeting} />
 
         {meeting.meetLink && <a
           className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-medium !text-brand-primary transition-colors hover:bg-background hover:!text-brand-primary-hover"

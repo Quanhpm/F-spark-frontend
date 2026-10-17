@@ -12,6 +12,7 @@ import { MentorUpcomingMeetingsSection } from "@/modules/dashboards";
 import { useAuthStore } from "@/modules/auth";
 import {
   ConfirmMeetingDialog,
+  MeetingConfirmationStatus,
   formatMentorIdentity,
   getMeetingDisplayStatus,
   useCancelMeeting,
@@ -174,7 +175,7 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
 
               return (
                 <div
-                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 max-[480px]:grid"
+                  className="grid min-w-0 gap-3 rounded-xl border border-border bg-surface p-4"
                   key={meeting.id}
                 >
                   <div className="min-w-0">
@@ -187,6 +188,8 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                     <p className="mt-1 mb-2 break-words text-[13px] text-muted">{meeting.note || "No note"}</p>
                     {meeting.evidenceImageUrl && <a className="text-xs font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer">View student evidence</a>}
                   </div>
+
+                  <MeetingConfirmationStatus meeting={meeting} />
 
                   <div className="flex flex-wrap items-center justify-end gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
                     <Badge

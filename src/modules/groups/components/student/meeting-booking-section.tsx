@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   type MentorAvailabilitySlotDto,
   type MentorMeetingDto,
+  MeetingConfirmationStatus,
   formatMentorIdentity,
   getMeetingDisplayStatus,
   useBookMeeting,
@@ -374,6 +375,7 @@ export function MeetingBookingSection({
                               {displayStatus}
                             </Badge>
                           </div>
+                          <MeetingConfirmationStatus meeting={meeting} />
                           {meeting.meetLink && (
                             <a
                               className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary"
@@ -400,11 +402,6 @@ export function MeetingBookingSection({
                               >
                                 <ImageIcon size={14} /> View evidence image
                               </a>
-                              {meeting.status === "SCHEDULED" && (
-                                <span className="font-medium">
-                                  Awaiting mentor confirmation.
-                                </span>
-                              )}
                               {canDeleteEvidence && (
                                 <Button
                                   className="w-fit"

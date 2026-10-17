@@ -17,7 +17,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAvailableAcademicTerms } from "@/modules/feedback";
-import { getMeetingDisplayStatus, useGroupMeetings } from "@/modules/mentoring";
+import { MeetingConfirmationStatus, getMeetingDisplayStatus, useGroupMeetings } from "@/modules/mentoring";
 import {
   Badge,
   Button,
@@ -160,6 +160,7 @@ function MeetingReportsDialog({
               <span className="text-sm text-muted">
                 {meeting.mentorName} · {meeting.note || "No note"}
               </span>
+              <MeetingConfirmationStatus meeting={meeting} />
               {meeting.evidenceImageUrl ? (
                 <a
                   className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary"

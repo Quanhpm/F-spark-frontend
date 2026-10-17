@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/modules/mentoring", () => ({
+  MeetingConfirmationStatus: () => <div>Confirmation status</div>,
   formatMentorIdentity: ({
     mentorCode,
     mentorName,

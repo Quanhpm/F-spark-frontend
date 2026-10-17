@@ -35,6 +35,7 @@ import type {
 import { MeetingReopenHistoryDialog } from "./meeting-reopen-history-dialog";
 import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 import { getMeetingDisplayStatus } from "./availability-calendar.utils";
+import { MeetingConfirmationStatus } from "./meeting-confirmation-status";
 
 const PAGE_SIZE = 20;
 
@@ -145,6 +146,7 @@ function MeetingCard({
           </dd>
         </div>
       </dl>
+      <MeetingConfirmationStatus meeting={meeting} />
       <div className="border-t border-border pt-3">
         <EvidenceDetails meeting={meeting} />
       </div>
@@ -299,13 +301,14 @@ export function AdminMeetingEvidencePage() {
       ) : (
         <Card className="overflow-hidden">
           <div className="hidden w-full overflow-x-auto min-[761px]:block">
-            <table className="w-full min-w-[1020px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[1240px] border-collapse text-left text-sm">
               <thead className="bg-background text-xs tracking-[0.04em] text-muted uppercase">
                 <tr>
                   <th className="px-5 py-3 font-bold">Group</th>
                   <th className="px-5 py-3 font-bold">Mentor</th>
                   <th className="px-5 py-3 font-bold">Schedule</th>
                   <th className="px-5 py-3 font-bold">Status</th>
+                  <th className="px-5 py-3 font-bold">Confirmations</th>
                   <th className="px-5 py-3 font-bold">Booked by</th>
                   <th className="px-5 py-3 font-bold">Evidence</th>
                   <th className="px-5 py-3 font-bold">Actions</th>
@@ -333,6 +336,7 @@ export function AdminMeetingEvidencePage() {
                       </div>
                     </td>
                     <td className="px-5 py-4"><Badge tone={getStatusTone(meeting.status)}>{getMeetingDisplayStatus(meeting)}</Badge></td>
+                    <td className="px-5 py-4"><MeetingConfirmationStatus compact meeting={meeting} /></td>
                     <td className="px-5 py-4 text-foreground">
                       {meeting.bookedByStudentName ?? "Recorded externally by mentor"}
                     </td>
