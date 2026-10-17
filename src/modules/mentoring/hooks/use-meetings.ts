@@ -6,6 +6,8 @@ import {
   bookMeeting,
   createMeeting,
   cancelMeeting,
+  confirmMeeting,
+  deleteMeetingEvidence,
   exportMentorMeetingReport,
   getGroupMeetings,
   listAdminMeetings,
@@ -146,6 +148,34 @@ export function useSubmitMeetingEvidence() {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
+    },
+  });
+}
+
+export function useDeleteMeetingEvidence() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
+      deleteMeetingEvidence(groupId, meetingId),
+    onSettled: (_response, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
+    },
+  });
+}
+
+export function useConfirmMeeting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
+      confirmMeeting(groupId, meetingId),
+    onSettled: (_response, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
     },
   });
 }

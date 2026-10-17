@@ -14,6 +14,7 @@ import {
   formatMentorIdentity,
   formatTime,
   getCalendarEventStatusTone,
+  getMeetingDisplayStatus,
   getSlotStatusTone,
 } from "./availability-calendar.utils";
 
@@ -54,7 +55,7 @@ export function SelectedEventPanel({
             <span className="text-xs text-muted">{meeting.groupNo}</span>
           </div>
           <Badge tone={getCalendarEventStatusTone(meeting.status)}>
-            {meeting.status}
+            {getMeetingDisplayStatus(meeting)}
           </Badge>
         </div>
 

@@ -68,6 +68,7 @@ const meetings: MentorMeetingDto[] = [
 ];
 
 vi.mock("@/modules/groups", () => ({
+  isMeetingOwnedByCurrentMentor: (_group: unknown, mentorId: number) => mentorId === 5,
   useMentorGroups: () => ({
     data: {
       data: [
@@ -85,8 +86,14 @@ vi.mock("@/modules/groups", () => ({
   }),
 }));
 
+vi.mock("@/modules/auth", () => ({
+  useAuthStore: (selector: (state: unknown) => unknown) =>
+    selector({ session: { user: { email: "mentor.one@example.com", id: 50 } } }),
+}));
+
 vi.mock("../hooks", () => ({
   useCancelMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useConfirmMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useCreateMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useExportMentorMeetingReport: () => ({
     isPending: false,

@@ -6,13 +6,17 @@ import {
   Clock3,
   ExternalLink,
   ImageIcon,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   type MentorAvailabilitySlotDto,
+  type MentorMeetingDto,
   formatMentorIdentity,
+  getMeetingDisplayStatus,
   useBookMeeting,
+  useDeleteMeetingEvidence,
   useGroupMeetings,
   useMentorAvailabilityForGroup,
   useSubmitMeetingEvidence,
@@ -42,6 +46,7 @@ import {
 type MeetingBookingSectionProps = {
   canBook: boolean;
   group: GroupDetailDto;
+  sessionEmail?: string;
 };
 
 function formatDateTime(value: string) {
@@ -73,6 +78,7 @@ function getBookingErrorMessage(error: unknown) {
 export function MeetingBookingSection({
   canBook,
   group,
+  sessionEmail,
 }: MeetingBookingSectionProps) {
   const meetingsQuery = useGroupMeetings(group.id);
   const assignedMentors = getGroupMentors(group);
@@ -82,9 +88,12 @@ export function MeetingBookingSection({
   );
   const bookingMutation = useBookMeeting();
   const evidenceMutation = useSubmitMeetingEvidence();
+  const deleteEvidenceMutation = useDeleteMeetingEvidence();
   const [bookingSlot, setBookingSlot] =
     useState<MentorAvailabilitySlotDto | null>(null);
   const [evidenceUrls, setEvidenceUrls] = useState<Record<number, string>>({});
+  const [evidenceToDelete, setEvidenceToDelete] =
+    useState<MentorMeetingDto | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const meetings = useMemo(
     () => meetingsQuery.data?.data ?? [],
@@ -102,6 +111,10 @@ export function MeetingBookingSection({
     (meeting) => meeting.status !== "CANCELED",
   ).length;
   const meetingLimitReached = activeMeetingCount >= 2;
+  const currentStudent = (group.members ?? []).find(
+    (member) =>
+      member.email.toLowerCase() === sessionEmail?.toLowerCase(),
+  );
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 30_000);
@@ -113,18 +126,40 @@ export function MeetingBookingSection({
     if (!imageUrl) return;
 
     try {
-      await evidenceMutation.mutateAsync({
+      const response = await evidenceMutation.mutateAsync({
         groupId: group.id,
         imageUrl,
         meetingId,
       });
-      toast.success("Meeting evidence submitted. The meeting is now complete.");
+      toast.success(
+        response.data.status === "COMPLETED"
+          ? "Evidence submitted. The meeting is now complete."
+          : "Evidence submitted. Awaiting mentor confirmation.",
+      );
       setEvidenceUrls((value) => ({ ...value, [meetingId]: "" }));
     } catch (error) {
       toast.error(
         error instanceof ApiError
           ? error.message
           : "Unable to submit evidence.",
+      );
+    }
+  }
+
+  async function deleteEvidence() {
+    if (!evidenceToDelete) return;
+    try {
+      await deleteEvidenceMutation.mutateAsync({
+        groupId: group.id,
+        meetingId: evidenceToDelete.id,
+      });
+      toast.success("Evidence removed. You can now submit a replacement.");
+      setEvidenceToDelete(null);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError
+          ? error.message
+          : "Unable to remove meeting evidence.",
       );
     }
   }
@@ -299,6 +334,15 @@ export function MeetingBookingSection({
                       const canSubmit =
                         meeting.status === "SCHEDULED" &&
                         new Date(meeting.endAt).getTime() <= now;
+                      const displayStatus = getMeetingDisplayStatus(meeting, now);
+                      const canDeleteEvidence = Boolean(
+                        !group.studentReadOnly &&
+                          meeting.status === "SCHEDULED" &&
+                          meeting.evidenceImageUrl &&
+                          currentStudent &&
+                          (meeting.evidenceSubmittedByStudentId === currentStudent.studentId ||
+                            group.leader?.id === currentStudent.studentId),
+                      );
 
                       return (
                         <article
@@ -327,7 +371,7 @@ export function MeetingBookingSection({
                                     : "warning"
                               }
                             >
-                              {canSubmit ? "AWAITING EVIDENCE" : meeting.status}
+                              {displayStatus}
                             </Badge>
                           </div>
                           {meeting.meetLink && (
@@ -356,6 +400,23 @@ export function MeetingBookingSection({
                               >
                                 <ImageIcon size={14} /> View evidence image
                               </a>
+                              {meeting.status === "SCHEDULED" && (
+                                <span className="font-medium">
+                                  Awaiting mentor confirmation.
+                                </span>
+                              )}
+                              {canDeleteEvidence && (
+                                <Button
+                                  className="w-fit"
+                                  disabled={deleteEvidenceMutation.isPending}
+                                  icon={<Trash2 size={14} />}
+                                  onClick={() => setEvidenceToDelete(meeting)}
+                                  size="sm"
+                                  variant="danger"
+                                >
+                                  Delete evidence
+                                </Button>
+                              )}
                             </div>
                           ) : canSubmit ? (
                             <div className="grid gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -380,7 +441,7 @@ export function MeetingBookingSection({
                                 onClick={() => submitEvidence(meeting.id)}
                                 size="sm"
                               >
-                                Submit evidence & complete
+                                Submit evidence
                               </Button>
                             </div>
                           ) : meeting.status === "SCHEDULED" ? (
@@ -448,6 +509,37 @@ export function MeetingBookingSection({
               {BOOKING_LEAD_TIME_MESSAGE}
             </p>
           )}
+        </ResponsiveDialog>
+      )}
+
+      {evidenceToDelete && (
+        <ResponsiveDialog
+          className="min-[761px]:max-w-[520px]"
+          description="The current evidence link will be removed. An active group member can submit a replacement afterward."
+          footer={(
+            <>
+              <Button
+                disabled={deleteEvidenceMutation.isPending}
+                onClick={() => setEvidenceToDelete(null)}
+                variant="secondary"
+              >
+                Keep evidence
+              </Button>
+              <Button
+                disabled={deleteEvidenceMutation.isPending}
+                onClick={() => void deleteEvidence()}
+                variant="danger"
+              >
+                {deleteEvidenceMutation.isPending ? "Deleting..." : "Delete evidence"}
+              </Button>
+            </>
+          )}
+          onClose={() => setEvidenceToDelete(null)}
+          title="Delete submitted evidence?"
+        >
+          <p className="m-0 text-sm leading-6 text-muted">
+            This action only removes the evidence from the pending meeting. It does not cancel the meeting or reset the mentor confirmation.
+          </p>
         </ResponsiveDialog>
       )}
     </>

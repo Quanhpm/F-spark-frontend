@@ -17,7 +17,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAvailableAcademicTerms } from "@/modules/feedback";
-import { useGroupMeetings } from "@/modules/mentoring";
+import { getMeetingDisplayStatus, useGroupMeetings } from "@/modules/mentoring";
 import {
   Badge,
   Button,
@@ -154,7 +154,7 @@ function MeetingReportsDialog({
                         : "warning"
                   }
                 >
-                  {meeting.status}
+                  {getMeetingDisplayStatus(meeting)}
                 </Badge>
               </div>
               <span className="text-sm text-muted">

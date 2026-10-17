@@ -138,6 +138,18 @@ export function submitMeetingEvidence(groupId: number, meetingId: number, payloa
   );
 }
 
+export function deleteMeetingEvidence(groupId: number, meetingId: number) {
+  return apiDelete<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/evidence`,
+  );
+}
+
+export function confirmMeeting(groupId: number, meetingId: number) {
+  return apiPatch<ApiResponse<MentorMeetingDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/confirm`,
+  );
+}
+
 export function getGroupMeetings(groupId: number) {
   return apiGet<ApiResponse<MentorMeetingDto[]>>(
     `/api/groups/${groupId}/mentor/meetings`,

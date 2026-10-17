@@ -15,6 +15,7 @@ import {
   getCalendarEventCardClassName,
   getCalendarEventPositionStyle,
   getMinutesFromStartOfDay,
+  getMeetingDisplayStatus,
   isSameDay,
   positionOverlappingEvents,
 } from "./availability-calendar.utils";
@@ -42,10 +43,13 @@ export function TimelineEventCard({
   const accessibleTitle = mentorIdentity
     ? `${eventTitle}, Mentor: ${mentorIdentity}`
     : eventTitle;
+  const displayStatus = event.kind === "MEETING"
+    ? getMeetingDisplayStatus(event.meeting)
+    : event.status;
 
   return (
     <button
-      aria-label={`${event.status}, ${accessibleTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
+      aria-label={`${displayStatus}, ${accessibleTitle}, ${formatDateTime(event.startAt)} to ${formatTime(event.endAt)}. Open details.`}
       className={cn(
         "absolute min-h-9 min-w-0 cursor-pointer overflow-hidden rounded-lg border text-left shadow-card transition-[border-color,box-shadow,transform] duration-[160ms] hover:z-30 hover:shadow-card-interactive focus-visible:z-40 focus-visible:outline-0 focus-visible:shadow-[0_0_0_4px_rgba(237,161,47,0.16)] active:scale-[0.99]",
         isCompact

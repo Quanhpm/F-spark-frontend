@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SlotFormState } from "./availability-calendar.types";
 import {
   formatMentorIdentity,
+  getMeetingDisplayStatus,
   getSlotEndDateTimeLocal,
   SLOT_DURATION_OPTIONS,
   validateSlotForm,
@@ -51,6 +52,48 @@ describe("availability calendar time rules", () => {
     ).toBe(
       "Availability slots must start and end on the same day (Asia/Ho_Chi_Minh).",
     );
+  });
+});
+
+describe("getMeetingDisplayStatus", () => {
+  const base = {
+    endAt: "2026-10-14T02:00:00Z",
+    evidenceImageUrl: null,
+    evidenceSubmittedAt: null,
+    mentorConfirmedAt: null,
+    status: "SCHEDULED" as const,
+  };
+
+  it("distinguishes both pending confirmation directions after a meeting ends", () => {
+    const now = new Date("2026-10-14T03:00:00Z").getTime();
+    expect(getMeetingDisplayStatus(base, now)).toBe(
+      "AWAITING BOTH CONFIRMATIONS",
+    );
+    expect(
+      getMeetingDisplayStatus(
+        {
+          ...base,
+          evidenceImageUrl: "https://images.example.com/proof.png",
+          evidenceSubmittedAt: "2026-10-14T02:10:00Z",
+        },
+        now,
+      ),
+    ).toBe("AWAITING MENTOR CONFIRMATION");
+    expect(
+      getMeetingDisplayStatus(
+        { ...base, mentorConfirmedAt: "2026-10-14T02:10:00Z" },
+        now,
+      ),
+    ).toBe("AWAITING EVIDENCE");
+  });
+
+  it("keeps future and terminal database statuses unchanged", () => {
+    expect(
+      getMeetingDisplayStatus(base, new Date("2026-10-14T01:00:00Z").getTime()),
+    ).toBe("SCHEDULED");
+    expect(
+      getMeetingDisplayStatus({ ...base, status: "COMPLETED" }),
+    ).toBe("COMPLETED");
   });
 });
 

@@ -9,8 +9,11 @@ import {
 } from "lucide-react";
 
 import { MentorUpcomingMeetingsSection } from "@/modules/dashboards";
+import { useAuthStore } from "@/modules/auth";
 import {
+  ConfirmMeetingDialog,
   formatMentorIdentity,
+  getMeetingDisplayStatus,
   useCancelMeeting,
   useGroupMeetings,
 } from "@/modules/mentoring";
@@ -32,6 +35,7 @@ import type { GroupStatus } from "@/shared/types";
 
 import { useGroup, useMentorGroups } from "../../hooks";
 import type { GroupDetailDto, GroupSummaryDto } from "../../types";
+import { isMeetingOwnedByCurrentMentor } from "../../utils/group-mentors";
 import { ConfirmDialog } from "../student/confirm-dialog";
 
 const pageClassName = "grid min-w-0 gap-6";
@@ -80,13 +84,22 @@ function InfoItem({
 }
 
 function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
+  const currentUser = useAuthStore((state) => state.session?.user);
   const meetingsQuery = useGroupMeetings(group.id);
   const cancelMeetingMutation = useCancelMeeting();
   const meetings = meetingsQuery.data?.data ?? [];
   const [meetingToCancel, setMeetingToCancel] =
     useState<MentorMeetingDto | null>(null);
+  const [meetingToConfirm, setMeetingToConfirm] =
+    useState<MentorMeetingDto | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div className="grid gap-5">
@@ -148,7 +161,16 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
         ) : (
           <div className="grid gap-3">
             {meetings.map((meeting) => {
-              const canCancel = meeting.status === "SCHEDULED";
+              const isOwner = isMeetingOwnedByCurrentMentor(
+                group,
+                meeting.mentorId,
+                currentUser?.id,
+                currentUser?.email,
+              );
+              const canCancel = isOwner && meeting.status === "SCHEDULED";
+              const canConfirm = canCancel && !meeting.mentorConfirmedAt
+                && new Date(meeting.endAt).getTime() <= now;
+              const displayStatus = getMeetingDisplayStatus(meeting, now);
 
               return (
                 <div
@@ -176,7 +198,7 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                             : "danger"
                       }
                     >
-                      {meeting.status}
+                      {displayStatus}
                     </Badge>
                     {meeting.meetLink && <Button
                       icon={<CalendarClock size={15} />}
@@ -187,19 +209,29 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
                       Meet
                     </Button>}
                     {canCancel && (
-                      <Button
-                        disabled={cancelMeetingMutation.isPending}
-                        icon={<XCircle size={15} />}
-                        onClick={() => {
-                          setSuccessMessage("");
-                          setCancelReason("");
-                          setMeetingToCancel(meeting);
-                        }}
-                        size="sm"
-                        variant="danger"
-                      >
-                        Cancel meeting
-                      </Button>
+                      <>
+                        {canConfirm && (
+                          <Button
+                            onClick={() => setMeetingToConfirm(meeting)}
+                            size="sm"
+                          >
+                            Confirm meeting
+                          </Button>
+                        )}
+                        <Button
+                          disabled={cancelMeetingMutation.isPending}
+                          icon={<XCircle size={15} />}
+                          onClick={() => {
+                            setSuccessMessage("");
+                            setCancelReason("");
+                            setMeetingToCancel(meeting);
+                          }}
+                          size="sm"
+                          variant="danger"
+                        >
+                          Cancel meeting
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -242,6 +274,12 @@ function MentorGroupDetail({ group }: { group: GroupDetailDto }) {
             value={cancelReason}
           />
         </ConfirmDialog>
+      )}
+      {meetingToConfirm && (
+        <ConfirmMeetingDialog
+          meeting={meetingToConfirm}
+          onClose={() => setMeetingToConfirm(null)}
+        />
       )}
     </div>
   );

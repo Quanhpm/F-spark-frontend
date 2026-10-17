@@ -87,6 +87,36 @@ export function formatMentorIdentity({
   return normalizedName || normalizedCode || "Unknown mentor";
 }
 
+export type MeetingDisplayStatus =
+  | "SCHEDULED"
+  | "COMPLETED"
+  | "CANCELED"
+  | "AWAITING BOTH CONFIRMATIONS"
+  | "AWAITING MENTOR CONFIRMATION"
+  | "AWAITING EVIDENCE";
+
+export function getMeetingDisplayStatus(
+  meeting: Pick<
+    MentorMeetingDto,
+    "status" | "endAt" | "evidenceImageUrl" | "evidenceSubmittedAt" | "mentorConfirmedAt"
+  >,
+  now = Date.now(),
+): MeetingDisplayStatus {
+  if (meeting.status !== "SCHEDULED") return meeting.status;
+  if (new Date(meeting.endAt).getTime() > now) return "SCHEDULED";
+
+  const hasEvidence = Boolean(
+    meeting.evidenceImageUrl?.trim() && meeting.evidenceSubmittedAt,
+  );
+  if (hasEvidence && !meeting.mentorConfirmedAt) {
+    return "AWAITING MENTOR CONFIRMATION";
+  }
+  if (!hasEvidence && meeting.mentorConfirmedAt) {
+    return "AWAITING EVIDENCE";
+  }
+  return "AWAITING BOTH CONFIRMATIONS";
+}
+
 export function toLocalDateTimeInput(value: string): string {
   const date = new Date(value);
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);

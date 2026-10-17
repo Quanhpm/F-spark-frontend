@@ -328,7 +328,11 @@ export function ActiveGroupWorkspace({
         </div>
       )}
 
-      <MeetingBookingSection canBook={isLeader && !isReadOnly} group={group} />
+      <MeetingBookingSection
+        canBook={isLeader && !isReadOnly}
+        group={group}
+        sessionEmail={sessionEmail}
+      />
 
       {isEditOpen && (
         <GroupFormModal

@@ -25,7 +25,13 @@ vi.mock("@/modules/dashboards", () => ({
   MentorUpcomingMeetingsSection: () => null,
 }));
 
+vi.mock("@/modules/auth", () => ({
+  useAuthStore: (selector: (state: unknown) => unknown) =>
+    selector({ session: { user: { email: "mentor.two@example.com", id: 60 } } }),
+}));
+
 vi.mock("@/modules/mentoring", () => ({
+  ConfirmMeetingDialog: () => null,
   formatMentorIdentity: ({
     mentorCode,
     mentorName,
@@ -35,6 +41,7 @@ vi.mock("@/modules/mentoring", () => ({
   }) =>
     [mentorName?.trim(), mentorCode?.trim()].filter(Boolean).join(" · ") ||
     "Unknown mentor",
+  getMeetingDisplayStatus: ({ status }: { status: string }) => status,
   useCancelMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useGroupMeetings: () => ({
     data: {

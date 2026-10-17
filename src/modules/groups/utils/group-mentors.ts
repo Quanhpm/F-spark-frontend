@@ -44,3 +44,23 @@ export function formatGroupMentorContacts(group: GroupWithMentors): string {
     })
     .join(", ");
 }
+
+export function isMeetingOwnedByCurrentMentor(
+  group: GroupWithMentors,
+  mentorId: number,
+  accountId: number | null | undefined,
+  accountEmail?: string | null,
+): boolean {
+  const assignment = getGroupMentors(group).find(
+    ({ mentor }) => mentor.id === mentorId,
+  );
+  if (!assignment) return false;
+  if (accountId != null && assignment.accountId != null) {
+    return assignment.accountId === accountId;
+  }
+  return Boolean(
+    accountEmail &&
+      assignment.mentor.email &&
+      assignment.mentor.email.toLowerCase() === accountEmail.toLowerCase(),
+  );
+}

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Download, Edit3, ExternalLink, Plus, RotateCcw, XCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Download, Edit3, ExternalLink, Plus, RotateCcw, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
-import { useMentorGroups } from "@/modules/groups";
+import { useAuthStore } from "@/modules/auth";
+import { isMeetingOwnedByCurrentMentor, useMentorGroups } from "@/modules/groups";
 import { Badge, Button, Card, CardContent, CardHeader, DateTimeInput, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import {
@@ -19,6 +20,7 @@ import type { MentorMeetingDto } from "../types";
 import {
   DEFAULT_SLOT_DURATION_MINUTES,
   formatMentorIdentity,
+  getMeetingDisplayStatus,
   getBusinessDateKey,
   getSlotEndDateTimeLocal,
   isWholeMinute,
@@ -27,6 +29,7 @@ import {
   type SlotDurationMinutes,
 } from "./availability-calendar.utils";
 import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
+import { ConfirmMeetingDialog } from "./confirm-meeting-dialog";
 
 function dateTimeLocal(value?: string) {
   if (!value) return "";
@@ -51,6 +54,7 @@ function downloadBlob(blob: Blob, fileName: string) {
 type FormState = { groupId: string; startAt: string; endAt: string; meetLink: string; note: string; durationMinutes: SlotDurationMinutes };
 
 export function MentorMeetingsPage() {
+  const currentUser = useAuthStore((state) => state.session?.user);
   const groupsQuery = useMentorGroups();
   const meetingsQuery = useMyMeetings();
   const createMutation = useCreateMeeting();
@@ -60,8 +64,10 @@ export function MentorMeetingsPage() {
   const exportReportMutation = useExportMentorMeetingReport();
   const [editing, setEditing] = useState<MentorMeetingDto | null>(null);
   const [reopening, setReopening] = useState<MentorMeetingDto | null>(null);
+  const [confirming, setConfirming] = useState<MentorMeetingDto | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [reportTerm, setReportTerm] = useState("");
+  const [now, setNow] = useState(() => Date.now());
   const [form, setForm] = useState<FormState>({ groupId: "", startAt: "", endAt: "", meetLink: "", note: "", durationMinutes: DEFAULT_SLOT_DURATION_MINUTES });
 
   const groups = useMemo(() => groupsQuery.data?.data ?? [], [groupsQuery.data?.data]);
@@ -78,6 +84,11 @@ export function MentorMeetingsPage() {
     new Date(form.endAt).getTime() - new Date(form.startAt).getTime() !== form.durationMinutes * MINUTE_IN_MS;
   const crossesBusinessDay = Boolean(form.startAt && form.endAt) &&
     getBusinessDateKey(form.startAt) !== getBusinessDateKey(form.endAt);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   function openCreate() {
     setEditing(null);
@@ -210,22 +221,36 @@ export function MentorMeetingsPage() {
             return <Card key={group.id}>
               <CardHeader title={`${group.groupNo} · ${group.name}`} description={`${group.term} / ${group.courseCode}`} actions={<Badge tone={used >= 2 ? "warning" : "neutral"}>{used}/2 slots</Badge>} />
               <CardContent className="grid gap-3">
-                {groupMeetings.length === 0 ? <EmptyState title="No meetings reported" /> : groupMeetings.map((meeting) => (
+                {groupMeetings.length === 0 ? <EmptyState title="No meetings reported" /> : groupMeetings.map((meeting) => {
+                  const isOwner = isMeetingOwnedByCurrentMentor(
+                    group,
+                    meeting.mentorId,
+                    currentUser?.id,
+                    currentUser?.email,
+                  );
+                  const canConfirm = isOwner && meeting.status === "SCHEDULED"
+                    && !meeting.mentorConfirmedAt
+                    && new Date(meeting.endAt).getTime() <= now;
+                  const displayStatus = getMeetingDisplayStatus(meeting, now);
+
+                  return (
                   <article className="grid gap-3 rounded-xl border border-border bg-background p-4" key={meeting.id}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0"><strong className="break-words">{formatDateTime(meeting.startAt)} – {formatDateTime(meeting.endAt)}</strong><p className="m-0 mt-1 break-words text-sm text-muted">Mentor: {formatMentorIdentity(meeting)}</p><p className="m-0 mt-1 break-words text-sm text-muted">{meeting.note || "No note"}</p></div>
-                      <Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{meeting.status === "SCHEDULED" && new Date(meeting.endAt).getTime() <= Date.now() ? "AWAITING EVIDENCE" : meeting.status}</Badge>
+                      <Badge tone={meeting.status === "COMPLETED" ? "success" : meeting.status === "CANCELED" ? "danger" : "warning"}>{displayStatus}</Badge>
                     </div>
                     {meeting.evidenceImageUrl && <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary" href={meeting.evidenceImageUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} /> View meeting evidence</a>}
-                    {meeting.status === "COMPLETED" && <div className="flex flex-wrap gap-2">
+                    {isOwner && meeting.status === "COMPLETED" && <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setReopening(meeting)}>Undo completion</Button>
                     </div>}
-                    {meeting.status === "SCHEDULED" && !meeting.evidenceImageUrl && <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="secondary" icon={<Edit3 size={14} />} onClick={() => openEdit(meeting)}>Edit</Button>
+                    {isOwner && meeting.status === "SCHEDULED" && <div className="flex flex-wrap gap-2">
+                      {canConfirm && <Button size="sm" icon={<CheckCircle2 size={14} />} onClick={() => setConfirming(meeting)}>Confirm meeting</Button>}
+                      {!meeting.evidenceImageUrl && <Button size="sm" variant="secondary" icon={<Edit3 size={14} />} onClick={() => openEdit(meeting)}>Edit</Button>}
                       <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => void cancelMeeting(meeting)}>Cancel</Button>
                     </div>}
                   </article>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>;
           })}
@@ -248,6 +273,7 @@ export function MentorMeetingsPage() {
         </form>
       </ResponsiveDialog>}
       {reopening && <ReopenMeetingDialog meeting={reopening} onClose={() => setReopening(null)} />}
+      {confirming && <ConfirmMeetingDialog meeting={confirming} onClose={() => setConfirming(null)} />}
     </div>
   );
 }

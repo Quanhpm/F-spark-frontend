@@ -6,6 +6,8 @@ import { MeetingBookingSection } from "./meeting-booking-section";
 
 const mocks = vi.hoisted(() => ({
   bookMeeting: vi.fn(),
+  deleteEvidence: vi.fn(),
+  meetings: [] as Array<Record<string, unknown>>,
   refetchAvailability: vi.fn(),
   refetchMeetings: vi.fn(),
 }));
@@ -20,24 +22,14 @@ vi.mock("@/modules/mentoring", () => ({
   }) =>
     [mentorName?.trim(), mentorCode?.trim()].filter(Boolean).join(" · ") ||
     "Unknown mentor",
+  getMeetingDisplayStatus: ({ status }: { status: string }) => status,
   useBookMeeting: () => ({
     isPending: false,
     mutateAsync: mocks.bookMeeting,
   }),
   useGroupMeetings: () => ({
     data: {
-      data: [
-        {
-          endAt: "2026-10-13T04:15:00Z",
-          id: 20,
-          mentorCode: "M002",
-          mentorId: 2,
-          mentorName: "Mentor Two",
-          note: "Previously booked",
-          startAt: "2026-10-13T02:00:00Z",
-          status: "CANCELED",
-        },
-      ],
+      data: mocks.meetings,
     },
     isError: false,
     isLoading: false,
@@ -88,6 +80,10 @@ vi.mock("@/modules/mentoring", () => ({
   useSubmitMeetingEvidence: () => ({
     isPending: false,
     mutateAsync: vi.fn(),
+  }),
+  useDeleteMeetingEvidence: () => ({
+    isPending: false,
+    mutateAsync: mocks.deleteEvidence,
   }),
 }));
 
@@ -165,6 +161,18 @@ describe("MeetingBookingSection", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-14T03:15:00Z"));
+    mocks.meetings = [
+      {
+        endAt: "2026-10-13T04:15:00Z",
+        id: 20,
+        mentorCode: "M002",
+        mentorId: 2,
+        mentorName: "Mentor Two",
+        note: "Previously booked",
+        startAt: "2026-10-13T02:00:00Z",
+        status: "CANCELED",
+      },
+    ];
   });
 
   afterEach(() => {
@@ -213,5 +221,58 @@ describe("MeetingBookingSection", () => {
       screen.getByRole("heading", { name: "Book this mentor slot?" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Mentor One · M001")).toBeInTheDocument();
+  });
+
+  it("lets the original submitter remove pending evidence for replacement", () => {
+    mocks.meetings = [
+      {
+        endAt: "2026-10-13T04:15:00Z",
+        evidenceImageUrl: "https://images.example.com/wrong.png",
+        evidenceSubmittedAt: "2026-10-13T04:20:00Z",
+        evidenceSubmittedByStudentId: 7,
+        evidenceSubmittedByStudentName: "Student One",
+        id: 21,
+        mentorCode: "M001",
+        mentorConfirmedAt: null,
+        mentorId: 1,
+        mentorName: "Mentor One",
+        note: null,
+        startAt: "2026-10-13T02:00:00Z",
+        status: "SCHEDULED",
+      },
+    ];
+    const group = {
+      id: 10,
+      leader: { id: 8 },
+      members: [
+        {
+          email: "student@example.com",
+          fullName: "Student One",
+          role: "MEMBER",
+          studentCode: "S001",
+          studentId: 7,
+        },
+      ],
+      mentor: { email: "mentor@example.com", fullName: "Mentor One" },
+      name: "Team Alpha",
+      studentReadOnly: false,
+    } as GroupDetailDto;
+
+    render(
+      <MeetingBookingSection
+        canBook={false}
+        group={group}
+        sessionEmail="student@example.com"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete evidence" }));
+    const deleteButtons = screen.getAllByRole("button", { name: "Delete evidence" });
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
+
+    expect(mocks.deleteEvidence).toHaveBeenCalledWith({
+      groupId: 10,
+      meetingId: 21,
+    });
   });
 });

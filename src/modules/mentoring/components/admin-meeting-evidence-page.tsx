@@ -34,6 +34,7 @@ import type {
 } from "../types";
 import { MeetingReopenHistoryDialog } from "./meeting-reopen-history-dialog";
 import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
+import { getMeetingDisplayStatus } from "./availability-calendar.utils";
 
 const PAGE_SIZE = 20;
 
@@ -126,7 +127,7 @@ function MeetingCard({
           </strong>
           <span className="text-xs text-muted">Group {meeting.groupNo}</span>
         </div>
-        <Badge tone={getStatusTone(meeting.status)}>{meeting.status}</Badge>
+        <Badge tone={getStatusTone(meeting.status)}>{getMeetingDisplayStatus(meeting)}</Badge>
       </div>
       <dl className="grid gap-3 text-sm">
         <div className="grid gap-0.5">
@@ -331,7 +332,7 @@ export function AdminMeetingEvidencePage() {
                         <span className="text-xs text-muted">Ends {formatDateTime(meeting.endAt)}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4"><Badge tone={getStatusTone(meeting.status)}>{meeting.status}</Badge></td>
+                    <td className="px-5 py-4"><Badge tone={getStatusTone(meeting.status)}>{getMeetingDisplayStatus(meeting)}</Badge></td>
                     <td className="px-5 py-4 text-foreground">
                       {meeting.bookedByStudentName ?? "Recorded externally by mentor"}
                     </td>
