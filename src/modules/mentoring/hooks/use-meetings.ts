@@ -152,6 +152,8 @@ export function useUpdateMeeting() {
       updateMeeting(groupId, meetingId, payload),
     onSuccess: (_response, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.groupAvailability(variables.groupId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.availability() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.mentorMeetings() });
