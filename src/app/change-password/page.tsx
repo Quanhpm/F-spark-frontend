@@ -1,7 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import type { InputHTMLAttributes } from "react";
 
 import { Button, TextInput } from "@/shared/components";
 import { useAuthHydrated, useAuthStore } from "@/modules/auth";
@@ -13,6 +15,47 @@ function workspacePath(role: "ADMIN" | "STUDENT" | "MENTOR" | "INSTRUCTOR") {
   if (role === "MENTOR") return "/mentor/groups";
   if (role === "INSTRUCTOR") return "/instructor/milestones";
   return "/student/dashboard";
+}
+
+type PasswordFieldProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "id" | "type"
+> & {
+  hint?: string;
+  id: string;
+  label: string;
+};
+
+function PasswordField({ hint, id, label, ...props }: PasswordFieldProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const fieldName = label.toLowerCase();
+
+  return (
+    <div className="relative min-w-0">
+      <TextInput
+        {...props}
+        hint={hint}
+        id={id}
+        label={label}
+        shellClassName="pr-14"
+        type={isVisible ? "text" : "password"}
+      />
+      <button
+        aria-controls={id}
+        aria-label={`${isVisible ? "Hide" : "Show"} ${fieldName}`}
+        aria-pressed={isVisible}
+        className="absolute right-1 bottom-[3px] grid size-11 shrink-0 place-items-center rounded-lg border-0 bg-transparent p-0 text-muted transition-colors hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary"
+        onClick={() => setIsVisible((current) => !current)}
+        type="button"
+      >
+        {isVisible ? (
+          <EyeOff aria-hidden="true" size={20} />
+        ) : (
+          <Eye aria-hidden="true" size={20} />
+        )}
+      </button>
+    </div>
+  );
 }
 
 export default function ChangePasswordPage() {
@@ -74,9 +117,35 @@ export default function ChangePasswordPage() {
           <p className="m-0 text-sm leading-relaxed text-muted">Your account requires a new password before you can use F-Spark.</p>
         </div>
         <form className="grid gap-4" onSubmit={handleSubmit}>
-          <TextInput label="Current password" onChange={(event) => setCurrentPassword(event.target.value)} required type="password" value={currentPassword} />
-          <TextInput hint="15–128 characters; common passwords are not accepted" label="New password" maxLength={128} minLength={15} onChange={(event) => setNewPassword(event.target.value)} required type="password" value={newPassword} />
-          <TextInput label="Confirm new password" maxLength={128} minLength={15} onChange={(event) => setConfirmPassword(event.target.value)} required type="password" value={confirmPassword} />
+          <PasswordField
+            autoComplete="current-password"
+            id="current-password"
+            label="Current password"
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            required
+            value={currentPassword}
+          />
+          <PasswordField
+            autoComplete="new-password"
+            hint="15–128 characters; common passwords are not accepted"
+            id="new-password"
+            label="New password"
+            maxLength={128}
+            minLength={15}
+            onChange={(event) => setNewPassword(event.target.value)}
+            required
+            value={newPassword}
+          />
+          <PasswordField
+            autoComplete="new-password"
+            id="confirm-password"
+            label="Confirm new password"
+            maxLength={128}
+            minLength={15}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            value={confirmPassword}
+          />
           {error && <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</p>}
           <Button disabled={changePasswordMutation.isPending} type="submit">
             {changePasswordMutation.isPending ? "Updating password..." : "Update password"}
