@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CalendarClock,
   ChartNoAxesCombined,
+  ChevronDown,
   FileImage,
   ClipboardList,
   Database,
@@ -53,6 +54,13 @@ type NavItem = {
   label: string;
 };
 
+type AdminNavGroup = {
+  id: "management" | "engagement" | "system";
+  icon: LucideIcon;
+  items: NavItem[];
+  label: string;
+};
+
 const ADMIN_VERSION_LABEL = "Version 10";
 
 function AdminVersionBadge() {
@@ -63,21 +71,56 @@ function AdminVersionBadge() {
   );
 }
 
+const ADMIN_DASHBOARD_ITEM: NavItem = {
+  href: "/admin/dashboard",
+  icon: LayoutDashboard,
+  label: "Dashboard",
+};
+
+const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
+  {
+    icon: Users,
+    id: "management",
+    items: [
+      { href: "/admin/users", icon: Users, label: "Users" },
+      { href: "/admin/groups", icon: Users, label: "Groups" },
+      { href: "/admin/terms", icon: CalendarClock, label: "Terms" },
+      { href: "/admin/problems", icon: BookOpen, label: "Problem Bank" },
+    ],
+    label: "Management",
+  },
+  {
+    icon: MessageSquare,
+    id: "engagement",
+    items: [
+      { href: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
+      { href: "/admin/meeting-evidence", icon: FileImage, label: "Meeting evidence" },
+      { href: "/admin/mentor-activity", icon: ChartNoAxesCombined, label: "Mentor activity" },
+    ],
+    label: "Engagement",
+  },
+  {
+    icon: Database,
+    id: "system",
+    items: [
+      { href: "/admin/imports", icon: Database, label: "Imports" },
+      { href: "/admin/backups", icon: Database, label: "Backups" },
+      { href: "/admin/tv-display", icon: MonitorUp, label: "TV Display" },
+    ],
+    label: "System",
+  },
+];
+
+const ADMIN_AUXILIARY_ITEMS: NavItem[] = [
+  { href: "/admin/notifications", icon: Bell, label: "Notifications" },
+  { href: "/admin/profile", icon: UserRound, label: "Profile" },
+];
+
 const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ADMIN: [
-    { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/admin/users", icon: Users, label: "Users" },
-    { href: "/admin/imports", icon: Database, label: "Imports" },
-    { href: "/admin/backups", icon: Database, label: "Backups" },
-    { href: "/admin/problems", icon: BookOpen, label: "Problem Bank" },
-    { href: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
-    { href: "/admin/notifications", icon: Bell, label: "Notifications" },
-    { href: "/admin/terms", icon: CalendarClock, label: "Terms" },
-    { href: "/admin/groups", icon: Users, label: "Groups" },
-    { href: "/admin/meeting-evidence", icon: FileImage, label: "Meeting evidence" },
-    { href: "/admin/mentor-activity", icon: ChartNoAxesCombined, label: "Mentor activity" },
-    { href: "/admin/tv-display", icon: MonitorUp, label: "TV Display" },
-    { href: "/admin/profile", icon: UserRound, label: "Profile" },
+    ADMIN_DASHBOARD_ITEM,
+    ...ADMIN_NAV_GROUPS.flatMap((group) => group.items),
+    ...ADMIN_AUXILIARY_ITEMS,
   ],
   STUDENT: [
     { href: "/student/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -125,6 +168,178 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
 };
 
+function isNavItemActive(item: NavItem, pathname: string) {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+function getActiveAdminGroupId(pathname: string) {
+  return ADMIN_NAV_GROUPS.find((group) =>
+    group.items.some((item) => isNavItemActive(item, pathname)),
+  )?.id ?? null;
+}
+
+type WorkspaceNavigationProps = {
+  mobile?: boolean;
+  onNavigate?: () => void;
+  onToggleAdminGroup: (groupId: AdminNavGroup["id"]) => void;
+  openAdminGroupId: AdminNavGroup["id"] | null;
+  pathname: string;
+  role: UserRole;
+};
+
+function WorkspaceNavigation({
+  mobile = false,
+  onNavigate,
+  onToggleAdminGroup,
+  openAdminGroupId,
+  pathname,
+  role,
+}: WorkspaceNavigationProps) {
+  const navClassName = "grid min-w-0 content-start gap-1.5";
+  const linkClassName = cn(
+    "flex min-w-0 items-center rounded-xl text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
+    mobile ? "min-h-11 gap-3 px-3 py-2.5" : "gap-2.5 px-3 py-[11px]",
+  );
+
+  function renderLink(item: NavItem, nested = false) {
+    const Icon = item.icon;
+    const isActive = isNavItemActive(item, pathname);
+
+    return (
+      <Link
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          linkClassName,
+          nested && (mobile ? "pl-10" : "py-2 pl-10"),
+          isActive && "bg-[#fff3ed] text-brand-primary",
+        )}
+        href={item.href}
+        key={item.href}
+        onClick={onNavigate}
+      >
+        <Icon className="shrink-0" size={mobile ? 19 : 18} />
+        <span className="min-w-0 break-words">{item.label}</span>
+      </Link>
+    );
+  }
+
+  if (role !== "ADMIN") {
+    return (
+      <nav
+        aria-label={mobile ? "Mobile navigation links" : "Workspace navigation"}
+        className={navClassName}
+      >
+        {NAV_ITEMS[role].map((item) => renderLink(item))}
+      </nav>
+    );
+  }
+
+  return (
+    <nav
+      aria-label={mobile ? "Mobile navigation links" : "Workspace navigation"}
+      className={navClassName}
+    >
+      {renderLink(ADMIN_DASHBOARD_ITEM)}
+      {ADMIN_NAV_GROUPS.map((group) => {
+        const GroupIcon = group.icon;
+        const isOpen = openAdminGroupId === group.id;
+        const containsActiveItem = group.items.some((item) =>
+          isNavItemActive(item, pathname),
+        );
+
+        return (
+          <div className="grid min-w-0 gap-1" key={group.id}>
+            <button
+              aria-controls={`admin-nav-${mobile ? "mobile" : "desktop"}-${group.id}`}
+              aria-expanded={isOpen}
+              className={cn(
+                linkClassName,
+                "w-full cursor-pointer border-0 bg-transparent text-left",
+                containsActiveItem && "text-brand-primary",
+              )}
+              onClick={() => onToggleAdminGroup(group.id)}
+              type="button"
+            >
+              <GroupIcon className="shrink-0" size={mobile ? 19 : 18} />
+              <span className="min-w-0 flex-1 break-words">{group.label}</span>
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  "shrink-0 transition-transform duration-200",
+                  isOpen && "rotate-180",
+                )}
+                size={16}
+              />
+            </button>
+            {isOpen && (
+              <div
+                className="grid min-w-0 gap-1"
+                id={`admin-nav-${mobile ? "mobile" : "desktop"}-${group.id}`}
+              >
+                {group.items.map((item) => renderLink(item, true))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+function AccountSummary({
+  active = false,
+  email,
+  mobile = false,
+  onNavigate,
+  role,
+}: {
+  active?: boolean;
+  email: string;
+  mobile?: boolean;
+  onNavigate?: () => void;
+  role: UserRole;
+}) {
+  const content = (
+    <>
+      <span className={cn(
+        "text-[13px] font-medium text-foreground",
+        mobile ? "break-all" : "overflow-hidden text-ellipsis whitespace-nowrap",
+      )}>
+        {email}
+      </span>
+      <span className="text-xs font-medium text-muted">{role}</span>
+      {role === "ADMIN" && (
+        <UserRound
+          aria-hidden="true"
+          className="absolute top-1/2 right-3 -translate-y-1/2 text-muted"
+          size={17}
+        />
+      )}
+    </>
+  );
+  const className = cn(
+    "relative grid min-w-0 gap-1 rounded-xl border border-border bg-background p-3",
+    role === "ADMIN" &&
+      "pr-10 transition-[border-color,background] hover:border-border-warm hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
+    active && "border-brand-primary/30 bg-[#fff3ed]",
+  );
+
+  if (role === "ADMIN") {
+    return (
+      <Link
+        aria-label={`Open profile for ${email}`}
+        className={className}
+        href="/admin/profile"
+        onClick={onNavigate}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
 export function AppShell({ children, role, topbarContent }: AppShellProps) {
   const pathname = usePathname();
   const [navigationOpenedAtPath, setNavigationOpenedAtPath] = useState<
@@ -137,14 +352,31 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
   const hasValidSession = isAuthSessionValid(session);
   const navItems = NAV_ITEMS[role];
   const isNavigationOpen = navigationOpenedAtPath === pathname;
+  const activeAdminGroupId = role === "ADMIN"
+    ? getActiveAdminGroupId(pathname)
+    : null;
+  const [adminGroupOverride, setAdminGroupOverride] = useState<{
+    groupId: AdminNavGroup["id"] | null;
+    pathname: string;
+  } | null>(null);
+  const openAdminGroupId = adminGroupOverride?.pathname === pathname
+    ? adminGroupOverride.groupId
+    : activeAdminGroupId;
   const activeNavItem =
     navItems.find(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+      (item) => isNavItemActive(item, pathname),
     ) ?? navItems[0];
 
   async function handleSignOut() {
     await logoutMutation.mutateAsync().catch(() => undefined);
     window.location.replace("/login");
+  }
+
+  function handleToggleAdminGroup(groupId: AdminNavGroup["id"]) {
+    setAdminGroupOverride({
+      groupId: openAdminGroupId === groupId ? null : groupId,
+      pathname,
+    });
   }
 
   useEffect(() => {
@@ -264,38 +496,20 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
             {role === "ADMIN" && <AdminVersionBadge />}
           </div>
 
-          <nav className="grid min-w-0 content-start gap-1.5" aria-label="Workspace navigation">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-              return (
-                <Link
-                  className={cn(
-                    "flex min-w-0 items-center gap-2.5 rounded-xl px-3 py-[11px] text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
-                    isActive && "bg-[#fff3ed] text-brand-primary",
-                  )}
-                  href={item.href}
-                  key={item.href}
-                >
-                  <Icon size={18} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <WorkspaceNavigation
+            onToggleAdminGroup={handleToggleAdminGroup}
+            openAdminGroupId={openAdminGroupId}
+            pathname={pathname}
+            role={role}
+          />
         </div>
 
         <div className="grid min-w-0 gap-3 pt-2">
-          <div className="grid min-w-0 gap-[3px] rounded-xl border border-border bg-background p-3">
-            <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-medium text-foreground">
-              {session.user.email}
-            </span>
-            <span className="text-xs font-medium text-muted">
-              {session.user.role}
-            </span>
-          </div>
+          <AccountSummary
+            active={role === "ADMIN" && pathname.startsWith("/admin/profile")}
+            email={session.user.email}
+            role={session.user.role}
+          />
           <Button
             disabled={logoutMutation.isPending}
             icon={<LogOut size={16} />}
@@ -396,40 +610,24 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
                 </Button>
               </div>
 
-              <nav className="grid min-w-0 content-start gap-1.5" aria-label="Mobile navigation links">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-                  return (
-                    <Link
-                      aria-current={isActive ? "page" : undefined}
-                      className={cn(
-                        "flex min-h-11 min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
-                        isActive && "bg-[#fff3ed] text-brand-primary",
-                      )}
-                      href={item.href}
-                      key={item.href}
-                      onClick={() => setNavigationOpenedAtPath(null)}
-                    >
-                      <Icon className="shrink-0" size={19} />
-                      <span className="min-w-0 break-words">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
+              <WorkspaceNavigation
+                mobile
+                onNavigate={() => setNavigationOpenedAtPath(null)}
+                onToggleAdminGroup={handleToggleAdminGroup}
+                openAdminGroupId={openAdminGroupId}
+                pathname={pathname}
+                role={role}
+              />
             </div>
 
             <div className="grid min-w-0 gap-3 border-t border-border pt-4">
-              <div className="grid min-w-0 gap-1 rounded-xl border border-border bg-background p-3">
-                <span className="break-all text-[13px] font-medium text-foreground">
-                  {session.user.email}
-                </span>
-                <span className="text-xs font-medium text-muted">
-                  {session.user.role}
-                </span>
-              </div>
+              <AccountSummary
+                active={role === "ADMIN" && pathname.startsWith("/admin/profile")}
+                email={session.user.email}
+                mobile
+                onNavigate={() => setNavigationOpenedAtPath(null)}
+                role={session.user.role}
+              />
               <Button
                 disabled={logoutMutation.isPending}
                 icon={<LogOut size={16} />}
