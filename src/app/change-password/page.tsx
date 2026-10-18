@@ -1,12 +1,12 @@
 "use client";
 
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import type { InputHTMLAttributes } from "react";
 
 import { Button, TextInput } from "@/shared/components";
-import { useAuthHydrated, useAuthStore } from "@/modules/auth";
+import { useAuthHydrated, useAuthStore, useLogout } from "@/modules/auth";
 import { useChangeMyPassword } from "@/modules/users/hooks/use-profile";
 import { getPasswordChangeErrorMessage } from "@/modules/users/utils/password-change-error";
 
@@ -63,6 +63,7 @@ export default function ChangePasswordPage() {
   const hydrated = useAuthHydrated();
   const session = useAuthStore((state) => state.session);
   const changePasswordMutation = useChangeMyPassword();
+  const logoutMutation = useLogout();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -78,6 +79,11 @@ export default function ChangePasswordPage() {
       router.replace(workspacePath(session.user.role));
     }
   }, [hydrated, router, session]);
+
+  async function handleBackToLogin() {
+    await logoutMutation.mutateAsync().catch(() => undefined);
+    router.replace("/login");
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,6 +117,16 @@ export default function ChangePasswordPage() {
   return (
     <main className="grid min-h-svh place-items-center bg-background p-5">
       <section className="grid w-full max-w-[460px] gap-6 rounded-2xl border border-border bg-surface p-6 shadow-card min-[641px]:p-8">
+        <Button
+          className="w-fit"
+          disabled={logoutMutation.isPending}
+          icon={<ArrowLeft aria-hidden="true" size={16} />}
+          onClick={handleBackToLogin}
+          size="sm"
+          variant="ghost"
+        >
+          Back to login
+        </Button>
         <div className="grid gap-2">
           <p className="m-0 text-xs font-bold tracking-[0.12em] text-brand-primary uppercase">Security update</p>
           <h1 className="m-0 text-2xl font-bold text-foreground">Change your password</h1>
