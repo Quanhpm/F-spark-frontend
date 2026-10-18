@@ -9,6 +9,8 @@ import {
 import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types";
 
 import type {
+  AdminMentorActivityDto,
+  AdminMentorActivityQuery,
   AdminMeetingsQuery,
   BookMentorMeetingRequest,
   CreateMentorMeetingRequest,
@@ -143,6 +145,13 @@ export function getGroupMeetings(groupId: number) {
 export function listAdminMeetings(query: AdminMeetingsQuery = {}) {
   return apiGet<ApiResponse<PageResponse<MentorMeetingDto>>>(
     "/api/admin/meetings",
+    { query },
+  );
+}
+
+export function listAdminMentorActivity(query: AdminMentorActivityQuery = {}) {
+  return apiGet<ApiResponse<PageResponse<AdminMentorActivityDto>>>(
+    "/api/admin/mentor-activity",
     { query },
   );
 }

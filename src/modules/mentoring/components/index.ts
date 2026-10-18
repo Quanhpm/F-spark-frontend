@@ -3,6 +3,7 @@ export { MentorMeetingsPage } from "./mentor-meetings-page";
 export { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 export { MeetingReopenHistoryDialog } from "./meeting-reopen-history-dialog";
 export { AdminMeetingEvidencePage } from "./admin-meeting-evidence-page";
+export { AdminMentorActivityPage } from "./admin-mentor-activity-page";
 export { AvailabilityDayTimeline } from "./availability-day-timeline";
 export { AvailabilityWeekTimeline } from "./availability-week-timeline";
 export { ConfirmDialog } from "./confirm-dialog";

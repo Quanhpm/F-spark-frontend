@@ -118,6 +118,46 @@ export type AdminMeetingsQuery = {
   groupId?: number;
 };
 
+export type AdminMentorMeetingActivityFilter =
+  | "ALL"
+  | "HAS_MEETINGS"
+  | "NO_MEETINGS";
+
+export type AdminMentorSlotActivityFilter =
+  | "ALL"
+  | "HAS_SLOTS"
+  | "NO_SLOTS";
+
+export type AdminMentorActivityQuery = {
+  page?: number;
+  size?: number;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+  meetingActivity?: AdminMentorMeetingActivityFilter;
+  slotActivity?: AdminMentorSlotActivityFilter;
+};
+
+export type AdminMentorActivityDto = {
+  accountId: number;
+  mentorId: number;
+  mentorCode: string;
+  mentorName: string;
+  email: string;
+  company: string | null;
+  assignedGroupCount: number;
+  slotCount: number;
+  availableSlotCount: number;
+  bookedSlotCount: number;
+  canceledSlotCount: number;
+  latestSlotStartAt: ISODateTimeString | null;
+  meetingCount: number;
+  scheduledMeetingCount: number;
+  completedMeetingCount: number;
+  canceledMeetingCount: number;
+  latestMeetingStartAt: ISODateTimeString | null;
+};
+
 export type CreateAvailabilitySlotRequest = {
   startAt: ISODateTimeString;
   endAt: ISODateTimeString;

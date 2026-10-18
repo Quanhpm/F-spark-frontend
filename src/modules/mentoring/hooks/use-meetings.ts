@@ -12,6 +12,7 @@ import {
   exportMentorMeetingReport,
   getGroupMeetings,
   listAdminMeetings,
+  listAdminMentorActivity,
   listMyMeetings,
   listMyCalendarMeetings,
   listMentorReportTerms,
@@ -21,6 +22,7 @@ import {
   submitMeetingEvidence,
 } from "../api";
 import type {
+  AdminMentorActivityQuery,
   AdminMeetingsQuery,
   CreateMentorMeetingRequest,
   UpdateMentorMeetingRequest,
@@ -31,6 +33,13 @@ export function useAdminMeetings(query: AdminMeetingsQuery = {}) {
   return useQuery({
     queryFn: () => listAdminMeetings(query),
     queryKey: queryKeys.mentoring.adminMeetings(query),
+  });
+}
+
+export function useAdminMentorActivity(query: AdminMentorActivityQuery = {}) {
+  return useQuery({
+    queryFn: () => listAdminMentorActivity(query),
+    queryKey: queryKeys.mentoring.adminMentorActivity(query),
   });
 }
 
