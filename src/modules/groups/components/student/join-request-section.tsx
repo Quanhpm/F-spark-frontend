@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Check, ClipboardList, Send, X } from "lucide-react";
 
 import {
+  ActionConfirmDialog,
   Badge,
   Button,
   Card,
@@ -191,67 +192,69 @@ export function JoinRequestSection({
 export function MyJoinRequestsSection() {
   const requestsQuery = useMyJoinRequests();
   const cancelMutation = useCancelJoinRequest();
-  const [error, setError] = useState("");
+  const [requestToCancel, setRequestToCancel] =
+    useState<GroupJoinRequestDto | null>(null);
 
   const requests = requestsQuery.data?.data ?? [];
 
-  async function cancelRequest(request: GroupJoinRequestDto) {
-    setError("");
-
-    try {
-      await cancelMutation.mutateAsync({
-        groupId: request.groupId,
-        requestId: request.id,
-      });
-    } catch (cancelError) {
-      setError(getErrorMessage(cancelError));
-    }
-  }
-
   return (
-    <Card>
-      <CardHeader
-        description="Track requests you have sent to other groups."
-        title="My Join Requests"
-      />
-      <CardContent>
-        {requestsQuery.isLoading ? (
-          <LoadingState className="min-h-40" title="Loading requests" />
-        ) : error ? (
-          <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </p>
-        ) : requests.length === 0 ? (
-          <EmptyState
-            className="min-h-40"
-            icon={<Send size={22} />}
-            title="No join requests"
-          />
-        ) : (
-          <div className="grid gap-3">
-            {requests.map((request) => (
-              <RequestCard
-                actions={
-                  request.status === "PENDING" ? (
-                    <Button
-                      className="max-[480px]:min-h-11 max-[480px]:w-full"
-                      disabled={cancelMutation.isPending}
-                      icon={<X size={16} />}
-                      onClick={() => cancelRequest(request)}
-                      size="sm"
-                      variant="secondary"
-                    >
-                      Cancel
-                    </Button>
-                  ) : undefined
-                }
-                key={request.id}
-                request={request}
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <>
+      <Card>
+        <CardHeader
+          description="Track requests you have sent to other groups."
+          title="My Join Requests"
+        />
+        <CardContent>
+          {requestsQuery.isLoading ? (
+            <LoadingState className="min-h-40" title="Loading requests" />
+          ) : requests.length === 0 ? (
+            <EmptyState
+              className="min-h-40"
+              icon={<Send size={22} />}
+              title="No join requests"
+            />
+          ) : (
+            <div className="grid gap-3">
+              {requests.map((request) => (
+                <RequestCard
+                  actions={
+                    request.status === "PENDING" ? (
+                      <Button
+                        className="max-[480px]:min-h-11 max-[480px]:w-full"
+                        disabled={cancelMutation.isPending}
+                        icon={<X size={16} />}
+                        onClick={() => setRequestToCancel(request)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Cancel
+                      </Button>
+                    ) : undefined
+                  }
+                  key={request.id}
+                  request={request}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {requestToCancel && (
+        <ActionConfirmDialog
+          confirmLabel="Cancel request"
+          description={`Cancel your pending request to join ${requestToCancel.groupName}?`}
+          onClose={() => setRequestToCancel(null)}
+          onConfirm={() =>
+            cancelMutation.mutateAsync({
+              groupId: requestToCancel.groupId,
+              requestId: requestToCancel.id,
+            })
+          }
+          pendingLabel="Canceling..."
+          title="Cancel join request?"
+        />
+      )}
+    </>
   );
 }

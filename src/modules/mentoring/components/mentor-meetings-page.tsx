@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "@/modules/auth";
 import { isMeetingOwnedByCurrentMentor } from "@/modules/groups";
-import { Badge, Button, Card, CardContent, CardHeader, DateTimeInput, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
+import { ActionConfirmDialog, Badge, Button, Card, CardContent, CardHeader, DateTimeInput, EmptyState, LoadingState, PageHeader, ResponsiveDialog, Select, TextInput } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 import {
   useCancelMeeting,
@@ -66,6 +66,8 @@ export function MentorMeetingsPage() {
   const [reopening, setReopening] = useState<MentorMeetingDto | null>(null);
   const [confirming, setConfirming] = useState<MentorMeetingDto | null>(null);
   const [undoingConfirmation, setUndoingConfirmation] = useState<MentorMeetingDto | null>(null);
+  const [canceling, setCanceling] = useState<MentorMeetingDto | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [reportTerm, setReportTerm] = useState("");
   const [meetingFilter, setMeetingFilter] =
@@ -171,21 +173,13 @@ export function MentorMeetingsPage() {
     }
   }
 
-  async function cancelMeeting(meeting: MentorMeetingDto) {
-    try {
-      await cancelMutation.mutateAsync({
-        groupId: meeting.groupId,
-        meetingId: meeting.id,
-        reason: "Canceled by mentor",
-      });
-      toast.success("Meeting canceled.");
-    } catch (error) {
-      toast.error(
-        error instanceof ApiError
-          ? error.message
-          : "Unable to cancel the meeting.",
-      );
-    }
+  async function cancelMeeting(meeting: MentorMeetingDto, reason: string) {
+    await cancelMutation.mutateAsync({
+      groupId: meeting.groupId,
+      meetingId: meeting.id,
+      reason,
+    });
+    toast.success("Meeting canceled.");
   }
 
   return (
@@ -300,7 +294,7 @@ export function MentorMeetingsPage() {
                       {canConfirm && <Button size="sm" icon={<CheckCircle2 size={14} />} onClick={() => setConfirming(meeting)}>Confirm meeting</Button>}
                       {meeting.mentorConfirmedAt && <Button size="sm" variant="secondary" icon={<RotateCcw size={14} />} onClick={() => setUndoingConfirmation(meeting)}>Undo confirmation</Button>}
                       {!meeting.evidenceImageUrl && <Button size="sm" variant="secondary" icon={<Edit3 size={14} />} onClick={() => openEdit(meeting)}>Edit</Button>}
-                      <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => void cancelMeeting(meeting)}>Cancel</Button>
+                      <Button size="sm" variant="danger" icon={<XCircle size={14} />} disabled={cancelMutation.isPending} onClick={() => { setCancelReason(""); setCanceling(meeting); }}>Cancel</Button>
                     </div>}
                   </article>
                   );
@@ -329,6 +323,31 @@ export function MentorMeetingsPage() {
       {reopening && <ReopenMeetingDialog meeting={reopening} onClose={() => setReopening(null)} />}
       {confirming && <ConfirmMeetingDialog meeting={confirming} onClose={() => setConfirming(null)} />}
       {undoingConfirmation && <UndoMeetingConfirmationDialog meeting={undoingConfirmation} onClose={() => setUndoingConfirmation(null)} />}
+      {canceling && (
+        <ActionConfirmDialog
+          confirmDisabled={!cancelReason.trim()}
+          confirmLabel="Cancel meeting"
+          description={`Cancel the meeting for ${canceling.groupName} scheduled on ${formatDateTime(canceling.startAt)} with mentor ${formatMentorIdentity(canceling)}?`}
+          onClose={() => {
+            setCancelReason("");
+            setCanceling(null);
+          }}
+          onConfirm={() => cancelMeeting(canceling, cancelReason.trim())}
+          pendingLabel="Canceling..."
+          title="Cancel mentor meeting?"
+        >
+          <TextInput
+            autoFocus
+            id="mentor-meeting-cancel-reason"
+            label="Cancellation reason"
+            maxLength={500}
+            onChange={(event) => setCancelReason(event.target.value)}
+            placeholder="Enter a reason for canceling this meeting"
+            required
+            value={cancelReason}
+          />
+        </ActionConfirmDialog>
+      )}
     </div>
   );
 }

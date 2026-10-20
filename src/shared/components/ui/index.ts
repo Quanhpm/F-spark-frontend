@@ -1,4 +1,6 @@
 export { Badge } from "./badge";
+export { ActionConfirmDialog } from "./action-confirm-dialog";
+export type { ActionConfirmDialogProps } from "./action-confirm-dialog";
 export { Button } from "./button";
 export { Card, CardContent, CardHeader } from "./card";
 export { DateTimeInput } from "./date-time-input";

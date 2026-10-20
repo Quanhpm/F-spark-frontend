@@ -14,6 +14,7 @@ import {
 
 import { useAuthStore } from "@/modules/auth";
 import {
+  ActionConfirmDialog,
   Button,
   Badge,
   Card,
@@ -46,7 +47,6 @@ import type {
   InvitationDto,
 } from "../../types";
 import { ActiveGroupWorkspace } from "./active-group-workspace";
-import { ConfirmDialog } from "./confirm-dialog";
 import { DiscoverGroupCard } from "./discover-group-card";
 import { DiscoverGroupDetail } from "./discover-group-detail";
 import { GroupDetailModal } from "./group-detail-modal";
@@ -313,6 +313,22 @@ export function StudentGroupsPage({
       title: "Decline invitation",
       tone: "danger",
     });
+  }
+
+  function confirmCancelJoinRequest(request: GroupJoinRequestDto) {
+    setConfirmAction({
+      confirmLabel: "Cancel request",
+      description: `Cancel your pending request to join ${request.groupName}?`,
+      onConfirm: () =>
+        cancelJoinRequestMutation.mutateAsync({
+          groupId: request.groupId,
+          requestId: request.id,
+        }),
+      title: "Cancel join request?",
+      tone: "danger",
+    });
+
+    return Promise.resolve();
   }
 
   async function requestJoin(group: GroupSummaryDto, message?: string) {
@@ -599,12 +615,7 @@ export function StudentGroupsPage({
             >
               <DiscoverGroupDetail
                 groupId={selectedGroupId}
-                onCancelRequest={(request) =>
-                  cancelJoinRequestMutation.mutateAsync({
-                    groupId: request.groupId,
-                    requestId: request.id,
-                  })
-                }
+                onCancelRequest={confirmCancelJoinRequest}
                 onRequestJoin={requestJoin}
                 pendingRequest={
                   selectedGroupId
@@ -653,12 +664,7 @@ export function StudentGroupsPage({
       {selectedGroupId && activeSection !== "discover" && (
         <GroupDetailModal
           groupId={selectedGroupId}
-          onCancelRequest={(request) =>
-            cancelJoinRequestMutation.mutateAsync({
-              groupId: request.groupId,
-              requestId: request.id,
-            })
-          }
+          onCancelRequest={confirmCancelJoinRequest}
           onClose={() => setSelectedGroupId(null)}
           onRequestJoin={requestJoin}
           pendingRequest={pendingRequests.get(selectedGroupId) ?? null}
@@ -670,12 +676,7 @@ export function StudentGroupsPage({
         isCompactDiscoverLayout && (
           <GroupDetailModal
             groupId={selectedGroupId}
-            onCancelRequest={(request) =>
-              cancelJoinRequestMutation.mutateAsync({
-                groupId: request.groupId,
-                requestId: request.id,
-              })
-            }
+            onCancelRequest={confirmCancelJoinRequest}
             onClose={() => setSelectedGroupId(null)}
             onRequestJoin={requestJoin}
             pendingRequest={pendingRequests.get(selectedGroupId) ?? null}
@@ -683,7 +684,7 @@ export function StudentGroupsPage({
         )}
 
       {confirmAction && (
-        <ConfirmDialog
+        <ActionConfirmDialog
           confirmLabel={confirmAction.confirmLabel}
           description={confirmAction.description}
           onClose={() => setConfirmAction(null)}

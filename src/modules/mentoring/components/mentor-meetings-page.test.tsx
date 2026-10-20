@@ -5,6 +5,7 @@ import type { MentorMeetingDto } from "../types";
 import { MentorMeetingsPage } from "./mentor-meetings-page";
 
 const mocks = vi.hoisted(() => ({
+  cancelMeeting: vi.fn(),
   exportMeetingReport: vi.fn(),
   meetingQuery: vi.fn(),
   reportTerms: [] as Array<{
@@ -133,7 +134,10 @@ vi.mock("@/modules/auth", () => ({
 }));
 
 vi.mock("../hooks", () => ({
-  useCancelMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useCancelMeeting: () => ({
+    isPending: false,
+    mutateAsync: mocks.cancelMeeting,
+  }),
   useConfirmMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useCreateMeeting: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useExportMentorMeetingReport: () => ({
@@ -192,6 +196,36 @@ vi.mock("../hooks", () => ({
 }));
 
 vi.mock("@/shared/components", () => ({
+  ActionConfirmDialog: ({
+    children,
+    confirmDisabled,
+    confirmLabel,
+    description,
+    onClose,
+    onConfirm,
+    title,
+  }: {
+    children?: React.ReactNode;
+    confirmDisabled?: boolean;
+    confirmLabel: string;
+    description: React.ReactNode;
+    onClose: () => void;
+    onConfirm: () => Promise<unknown>;
+    title: string;
+  }) => (
+    <section role="dialog">
+      <h2>{title}</h2>
+      <div>{description}</div>
+      {children}
+      <button onClick={onClose}>Cancel dialog</button>
+      <button
+        disabled={confirmDisabled}
+        onClick={() => void onConfirm()}
+      >
+        {confirmLabel}
+      </button>
+    </section>
+  ),
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   Button: ({
     children,
@@ -292,13 +326,18 @@ vi.mock("@/shared/components", () => ({
       {children}
     </select>
   ),
-  TextInput: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} />
+  TextInput: ({
+    label,
+    ...props
+  }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string }) => (
+    <input aria-label={label} {...props} />
   ),
 }));
 
 describe("MentorMeetingsPage", () => {
   beforeEach(() => {
+    mocks.cancelMeeting.mockReset();
+    mocks.cancelMeeting.mockResolvedValue(undefined);
     mocks.reportTerms = [
       { code: "FA26", status: "OPEN" },
       { code: "SU26", status: "OPEN" },
@@ -325,6 +364,32 @@ describe("MentorMeetingsPage", () => {
     expect(screen.getByText("Mentor: Mentor Two · M002")).toBeInTheDocument();
     expect(screen.queryByText("Needs owner confirmation")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Undo confirmation" })).toBeInTheDocument();
+  });
+
+  it("requires a reason and confirmation before canceling a meeting", async () => {
+    render(<MentorMeetingsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(mocks.cancelMeeting).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("heading", { name: "Cancel mentor meeting?" }),
+    ).toBeInTheDocument();
+    const confirmButton = screen.getByRole("button", { name: "Cancel meeting" });
+    expect(confirmButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Cancellation reason"), {
+      target: { value: "  Schedule conflict  " },
+    });
+    fireEvent.click(confirmButton);
+
+    await waitFor(() =>
+      expect(mocks.cancelMeeting).toHaveBeenCalledWith({
+        groupId: 42,
+        meetingId: 100,
+        reason: "Schedule conflict",
+      }),
+    );
   });
 
   it("repeats the meeting owner in the edit dialog", () => {

@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { cn, getMinimumDateTimeLocal } from "@/shared/lib";
 import {
+  ActionConfirmDialog,
   Button,
   DateTimeInput,
   LoadingState,
@@ -192,6 +193,10 @@ type TaskDetailPanelProps = {
   readOnly?: boolean;
 };
 
+type PendingDeleteAction =
+  | { id: EntityId; kind: "checklist"; label: string }
+  | { id: EntityId; kind: "comment"; label: string };
+
 function TaskDrawerShell({
   children,
   description,
@@ -226,6 +231,8 @@ export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: 
   const [activeTab, setActiveTab] = useState<"comments" | "activities">("comments");
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [newCommentContent, setNewCommentContent] = useState("");
+  const [pendingDelete, setPendingDelete] =
+    useState<PendingDeleteAction | null>(null);
   
   // Comments pagination
   const [commentsPage, setCommentsPage] = useState(0);
@@ -348,9 +355,16 @@ export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: 
     });
   };
 
-  const handleChecklistDelete = (itemId: EntityId) => {
-    deleteChecklistItemMutation.mutate(itemId);
-  };
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+
+    if (pendingDelete.kind === "checklist") {
+      await deleteChecklistItemMutation.mutateAsync(pendingDelete.id);
+      return;
+    }
+
+    await deleteTaskCommentMutation.mutateAsync(pendingDelete.id);
+  }
 
   const handleAddComment = (e: FormEvent) => {
     e.preventDefault();
@@ -413,7 +427,8 @@ export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: 
   }
 
   return (
-    <TaskDrawerShell
+    <>
+      <TaskDrawerShell
       description={`Task #${task.id} · version ${task.version}`}
       headerActions={
         !readOnly ? <Button
@@ -611,7 +626,13 @@ export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: 
                     {!readOnly && <button
                       aria-label={`Delete checklist item: ${item.title}`}
                       type="button"
-                      onClick={() => handleChecklistDelete(item.id)}
+                      onClick={() =>
+                        setPendingDelete({
+                          id: item.id,
+                          kind: "checklist",
+                          label: item.title,
+                        })
+                      }
                       className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-transparent p-0 text-muted/50 opacity-100 transition-all hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 min-[761px]:size-7 min-[761px]:opacity-0 min-[761px]:group-hover/item:opacity-100"
                     >
                       <Trash2 className="size-3.5" />
@@ -718,7 +739,13 @@ export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: 
                               </span>
                               {!readOnly && <button
                                 type="button"
-                                onClick={() => deleteTaskCommentMutation.mutate(comment.id)}
+                                onClick={() =>
+                                  setPendingDelete({
+                                    id: comment.id,
+                                    kind: "comment",
+                                    label: comment.content,
+                                  })
+                                }
                                 className="min-h-11 rounded-lg px-2 text-red-500 hover:text-red-700 hover:underline"
                                 title="Delete comment"
                               >
@@ -844,6 +871,36 @@ export function TaskDetailPanel({ groupId, taskId, onClose, readOnly = false }: 
             </div>
           </div>
         </div>
-    </TaskDrawerShell>
+      </TaskDrawerShell>
+
+      {pendingDelete && (
+        <ActionConfirmDialog
+          confirmLabel={
+            pendingDelete.kind === "checklist"
+              ? "Delete checklist item"
+              : "Delete comment"
+          }
+          description={
+            pendingDelete.kind === "checklist"
+              ? `Delete checklist item “${pendingDelete.label}”?`
+              : "Delete this comment? This action cannot be undone."
+          }
+          onClose={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+          pendingLabel="Deleting..."
+          title={
+            pendingDelete.kind === "checklist"
+              ? "Delete checklist item?"
+              : "Delete comment?"
+          }
+        >
+          {pendingDelete.kind === "comment" && (
+            <p className="m-0 max-h-32 overflow-y-auto rounded-xl border border-border bg-background px-4 py-3 text-sm leading-relaxed break-words text-muted">
+              {pendingDelete.label}
+            </p>
+          )}
+        </ActionConfirmDialog>
+      )}
+    </>
   );
 }
