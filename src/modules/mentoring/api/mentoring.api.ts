@@ -11,6 +11,8 @@ import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types
 import type {
   AdminMentorActivityDto,
   AdminMentorActivityQuery,
+  AdminMentorSlotDetailDto,
+  AdminMentorSlotDetailQuery,
   AdminMeetingsQuery,
   BookMentorMeetingRequest,
   CreateMentorMeetingRequest,
@@ -152,6 +154,16 @@ export function listAdminMeetings(query: AdminMeetingsQuery = {}) {
 export function listAdminMentorActivity(query: AdminMentorActivityQuery = {}) {
   return apiGet<ApiResponse<PageResponse<AdminMentorActivityDto>>>(
     "/api/admin/mentor-activity",
+    { query },
+  );
+}
+
+export function listAdminMentorSlots(
+  mentorId: number,
+  query: AdminMentorSlotDetailQuery = {},
+) {
+  return apiGet<ApiResponse<PageResponse<AdminMentorSlotDetailDto>>>(
+    `/api/admin/mentor-activity/${mentorId}/slots`,
     { query },
   );
 }

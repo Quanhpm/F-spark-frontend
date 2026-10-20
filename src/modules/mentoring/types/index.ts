@@ -158,6 +158,32 @@ export type AdminMentorActivityDto = {
   latestMeetingStartAt: ISODateTimeString | null;
 };
 
+export type AdminMentorSlotDetailQuery = {
+  page?: number;
+  size?: number;
+  fromDate?: string;
+  toDate?: string;
+};
+
+export type AdminMentorSlotDetailDto = {
+  id: number;
+  startAt: ISODateTimeString;
+  endAt: ISODateTimeString;
+  status: SlotStatus;
+  meetLink: string;
+  note: string | null;
+  createdAt: ISODateTimeString;
+  updatedAt: ISODateTimeString;
+  meetingId: number | null;
+  meetingStatus: MeetingStatus | null;
+  groupId: number | null;
+  groupNo: string | null;
+  groupName: string | null;
+  bookedByStudentId: number | null;
+  bookedByStudentCode: string | null;
+  bookedByStudentName: string | null;
+};
+
 export type CreateAvailabilitySlotRequest = {
   startAt: ISODateTimeString;
   endAt: ISODateTimeString;

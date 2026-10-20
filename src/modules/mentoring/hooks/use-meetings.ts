@@ -13,6 +13,7 @@ import {
   getGroupMeetings,
   listAdminMeetings,
   listAdminMentorActivity,
+  listAdminMentorSlots,
   listMyMeetings,
   listMyCalendarMeetings,
   listMentorReportTerms,
@@ -23,6 +24,7 @@ import {
 } from "../api";
 import type {
   AdminMentorActivityQuery,
+  AdminMentorSlotDetailQuery,
   AdminMeetingsQuery,
   CreateMentorMeetingRequest,
   UpdateMentorMeetingRequest,
@@ -40,6 +42,25 @@ export function useAdminMentorActivity(query: AdminMentorActivityQuery = {}) {
   return useQuery({
     queryFn: () => listAdminMentorActivity(query),
     queryKey: queryKeys.mentoring.adminMentorActivity(query),
+  });
+}
+
+export function useAdminMentorSlots(
+  mentorId: number | null,
+  query: AdminMentorSlotDetailQuery = {},
+) {
+  return useQuery({
+    enabled: typeof mentorId === "number",
+    queryFn: () => {
+      if (typeof mentorId !== "number") {
+        throw new Error("A mentor id is required.");
+      }
+      return listAdminMentorSlots(mentorId, query);
+    },
+    queryKey:
+      typeof mentorId === "number"
+        ? queryKeys.mentoring.adminMentorSlots(mentorId, query)
+        : [...queryKeys.mentoring.adminMentorActivityAll(), "slots", "empty"],
   });
 }
 

@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  CalendarClock,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
@@ -29,6 +30,7 @@ import type {
   AdminMentorMeetingActivityFilter,
   AdminMentorSlotActivityFilter,
 } from "../types";
+import { AdminMentorSlotDetailsDialog } from "./admin-mentor-slot-details-dialog";
 
 const PAGE_SIZE = 20;
 const REPORT_TIME_ZONE = "Asia/Ho_Chi_Minh";
@@ -132,9 +134,11 @@ function MeetingSummary({ mentor }: { mentor: AdminMentorActivityDto }) {
 function MentorActivityCard({
   mentor,
   allTime,
+  onViewSlots,
 }: {
   mentor: AdminMentorActivityDto;
   allTime: boolean;
+  onViewSlots: () => void;
 }) {
   return (
     <article className="grid gap-4 rounded-xl border border-border bg-surface p-4 min-[761px]:hidden">
@@ -169,6 +173,16 @@ function MentorActivityCard({
           <dd className="m-0"><MeetingSummary mentor={mentor} /></dd>
         </div>
       </dl>
+      <Button
+        disabled={mentor.slotCount === 0}
+        icon={<CalendarClock size={16} />}
+        isFullWidth
+        onClick={onViewSlots}
+        size="sm"
+        variant="secondary"
+      >
+        View slots
+      </Button>
     </article>
   );
 }
@@ -185,6 +199,8 @@ export function AdminMentorActivityPage() {
   const [slotActivity, setSlotActivity] =
     useState<AdminMentorSlotActivityFilter>("ALL");
   const [page, setPage] = useState(0);
+  const [selectedMentor, setSelectedMentor] =
+    useState<AdminMentorActivityDto | null>(null);
 
   const allTime = !dateRange.fromDate && !dateRange.toDate;
   const query = useMemo(
@@ -375,7 +391,20 @@ export function AdminMentorActivityPage() {
                       </div>
                     </td>
                     <td className="px-5 py-4 font-medium text-foreground">{mentor.assignedGroupCount}</td>
-                    <td className="px-5 py-4"><SlotSummary mentor={mentor} /></td>
+                    <td className="px-5 py-4">
+                      <div className="grid gap-3">
+                        <SlotSummary mentor={mentor} />
+                        <Button
+                          disabled={mentor.slotCount === 0}
+                          icon={<CalendarClock size={15} />}
+                          onClick={() => setSelectedMentor(mentor)}
+                          size="sm"
+                          variant="secondary"
+                        >
+                          View slots
+                        </Button>
+                      </div>
+                    </td>
                     <td className="px-5 py-4"><MeetingSummary mentor={mentor} /></td>
                     <td className="px-5 py-4"><MentorActivityBadges allTime={allTime} mentor={mentor} /></td>
                   </tr>
@@ -385,7 +414,12 @@ export function AdminMentorActivityPage() {
           </div>
           <div className="grid gap-3 p-4 min-[761px]:hidden">
             {mentors.map((mentor) => (
-              <MentorActivityCard allTime={allTime} key={mentor.mentorId} mentor={mentor} />
+              <MentorActivityCard
+                allTime={allTime}
+                key={mentor.mentorId}
+                mentor={mentor}
+                onViewSlots={() => setSelectedMentor(mentor)}
+              />
             ))}
           </div>
         </Card>
@@ -422,6 +456,16 @@ export function AdminMentorActivityPage() {
       <span aria-live="polite" className="sr-only">
         {activityQuery.isFetching && !activityQuery.isLoading ? "Refreshing mentor activity" : ""}
       </span>
+
+      {selectedMentor && (
+        <AdminMentorSlotDetailsDialog
+          fromDate={dateRange.fromDate}
+          key={`${selectedMentor.mentorId}-${dateRange.fromDate ?? "all"}-${dateRange.toDate ?? "all"}`}
+          mentor={selectedMentor}
+          onClose={() => setSelectedMentor(null)}
+          toDate={dateRange.toDate}
+        />
+      )}
     </div>
   );
 }
