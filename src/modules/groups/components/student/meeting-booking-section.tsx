@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   CalendarClock,
   Clock3,
   ExternalLink,
@@ -502,6 +503,18 @@ export function MeetingBookingSection({
               {formatMentorIdentity(bookingSlot)}
             </strong>
           </p>
+          <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+            <AlertTriangle
+              aria-hidden="true"
+              className="mt-0.5 shrink-0"
+              size={18}
+            />
+            <p className="m-0">
+              After confirming this booking, students cannot cancel or
+              reschedule it themselves. Please contact the mentor if you need
+              help changing the meeting time.
+            </p>
+          </div>
           {!canBookMentorSlot(bookingSlot.startAt, now) && (
             <p className="m-0 mt-3 text-sm leading-6 text-amber-700">
               {BOOKING_LEAD_TIME_MESSAGE}

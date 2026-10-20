@@ -222,6 +222,45 @@ describe("MeetingBookingSection", () => {
       screen.getByRole("heading", { name: "Book this mentor slot?" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Mentor One · M001")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "After confirming this booking, students cannot cancel or reschedule it themselves. Please contact the mentor if you need help changing the meeting time.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("cancels or confirms from the booking dialog without changing the booking flow", async () => {
+    mocks.bookMeeting.mockResolvedValue({ data: { id: 30 } });
+    const group = {
+      id: 10,
+      mentor: {
+        email: "mentor.one@example.com",
+        fullName: "Mentor One",
+      },
+      name: "Team Alpha",
+      studentReadOnly: false,
+    } as GroupDetailDto;
+
+    render(<MeetingBookingSection canBook group={group} />);
+
+    const bookingButtons = screen.getAllByRole("button", {
+      name: "Book this slot",
+    });
+    fireEvent.click(bookingButtons[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(mocks.bookMeeting).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("heading", { name: "Book this mentor slot?" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(bookingButtons[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm booking" }));
+
+    expect(mocks.bookMeeting).toHaveBeenCalledWith({
+      groupId: 10,
+      slotId: 1,
+    });
   });
 
   it("lets the original submitter remove completed evidence for replacement", () => {
