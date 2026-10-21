@@ -27,6 +27,9 @@ export type MentorMeetingReportQuery = {
 export type MentorMeetingGroupOptionDto = {
   group: GroupSummaryDto;
   activeMeetingCount: number;
+  meetingLimit: number;
+  currentMentorActiveMeetingCount: number;
+  currentMentorMeetingLimit: number;
 };
 
 export type MentorMeetingReportGroupDto = MentorMeetingGroupOptionDto & {

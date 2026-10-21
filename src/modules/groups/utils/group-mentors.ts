@@ -1,5 +1,7 @@
 import type { GroupMentorDto, GroupWithMentors } from "../types";
 
+export const MEETINGS_PER_MENTOR = 2;
+
 export function getGroupMentors(group: GroupWithMentors): GroupMentorDto[] {
   const source: GroupMentorDto[] = group.mentors?.length
     ? group.mentors
@@ -43,6 +45,10 @@ export function formatGroupMentorContacts(group: GroupWithMentors): string {
       return email ? `${name} (${email})` : name;
     })
     .join(", ");
+}
+
+export function getGroupMeetingLimit(group: GroupWithMentors): number {
+  return getGroupMentors(group).length * MEETINGS_PER_MENTOR;
 }
 
 export function isMeetingOwnedByCurrentMentor(

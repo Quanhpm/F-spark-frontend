@@ -166,10 +166,17 @@ vi.mock("../hooks", () => ({
       : query.filter === "NEEDS_MY_CONFIRMATION" && query.term === "SU26"
         ? termMeetings
         : [];
+    const meetingLimit = query.term === "FA26" ? 4 : 2;
+    const currentMentorActiveMeetingCount = termMeetings.filter(
+      (meeting) => meeting.status !== "CANCELED" && meeting.mentorId === 5,
+    ).length;
     const reportGroups = matchedMeetings.length > 0 || query.filter === "ALL"
       ? assignedGroups.map((group) => ({
           activeMeetingCount: termMeetings.length,
+          currentMentorActiveMeetingCount,
+          currentMentorMeetingLimit: 2,
           group,
+          meetingLimit,
           meetings: matchedMeetings,
         }))
       : [];
@@ -180,8 +187,17 @@ vi.mock("../hooks", () => ({
           filter: query.filter,
           groups: reportGroups,
           recordableGroups: assignedGroups
-            .filter(() => termMeetings.length < 2)
-            .map((group) => ({ activeMeetingCount: termMeetings.length, group })),
+            .filter(() =>
+              termMeetings.length < meetingLimit &&
+              currentMentorActiveMeetingCount < 2,
+            )
+            .map((group) => ({
+              activeMeetingCount: termMeetings.length,
+              currentMentorActiveMeetingCount,
+              currentMentorMeetingLimit: 2,
+              group,
+              meetingLimit,
+            })),
           term: query.term,
           totalMatchedMeetings: matchedMeetings.length,
         },
@@ -360,6 +376,7 @@ describe("MentorMeetingsPage", () => {
   it("shows the owner for meetings from both assigned mentors", () => {
     render(<MentorMeetingsPage />);
 
+    expect(screen.getByText("2/4 meetings")).toBeInTheDocument();
     expect(screen.getByText("Mentor: Mentor One · M001")).toBeInTheDocument();
     expect(screen.getByText("Mentor: Mentor Two · M002")).toBeInTheDocument();
     expect(screen.queryByText("Needs owner confirmation")).not.toBeInTheDocument();
@@ -452,7 +469,7 @@ describe("MentorMeetingsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Record external meeting" }));
     expect(
       screen.getByRole("option", { name: /21 · Owner Action Team/ }),
-    ).toBeInTheDocument();
+    ).toHaveTextContent("1/2 for you");
     expect(
       screen.queryByRole("option", { name: /20 · Two Mentor Team/ }),
     ).not.toBeInTheDocument();

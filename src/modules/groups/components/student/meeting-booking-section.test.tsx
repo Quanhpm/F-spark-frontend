@@ -159,6 +159,23 @@ vi.mock("sonner", () => ({
 }));
 
 describe("MeetingBookingSection", () => {
+  function quotaMeeting(
+    id: number,
+    mentorId: number,
+    status: "SCHEDULED" | "COMPLETED",
+  ) {
+    return {
+      endAt: `2026-10-${10 + id}T04:15:00Z`,
+      id,
+      mentorCode: `M00${mentorId}`,
+      mentorId,
+      mentorName: `Mentor ${mentorId}`,
+      note: null,
+      startAt: `2026-10-${10 + id}T02:00:00Z`,
+      status,
+    };
+  }
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-14T03:15:00Z"));
@@ -261,6 +278,71 @@ describe("MeetingBookingSection", () => {
       groupId: 10,
       slotId: 1,
     });
+  });
+
+  it("uses four group slots while enforcing two meetings per mentor", () => {
+    mocks.meetings = [
+      quotaMeeting(1, 1, "SCHEDULED"),
+      quotaMeeting(2, 1, "COMPLETED"),
+    ];
+    const group = {
+      id: 10,
+      mentors: [
+        {
+          accountId: 101,
+          mentor: { id: 1, fullName: "Mentor One" },
+        },
+        {
+          accountId: 102,
+          mentor: { id: 2, fullName: "Mentor Two" },
+        },
+      ],
+      name: "Team Alpha",
+      studentReadOnly: false,
+    } as GroupDetailDto;
+
+    render(<MeetingBookingSection canBook group={group} />);
+
+    expect(screen.getByText("2/4 meetings")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Mentor limit reached" }),
+    ).toHaveLength(2);
+    expect(
+      screen.getByRole("button", { name: "Book this slot" }),
+    ).toBeEnabled();
+  });
+
+  it("locks every mentor slot when the group reaches four meetings", () => {
+    mocks.meetings = [
+      quotaMeeting(1, 1, "SCHEDULED"),
+      quotaMeeting(2, 1, "COMPLETED"),
+      quotaMeeting(3, 2, "SCHEDULED"),
+      quotaMeeting(4, 2, "COMPLETED"),
+    ];
+    const group = {
+      id: 10,
+      mentors: [
+        {
+          accountId: 101,
+          mentor: { id: 1, fullName: "Mentor One" },
+        },
+        {
+          accountId: 102,
+          mentor: { id: 2, fullName: "Mentor Two" },
+        },
+      ],
+      name: "Team Alpha",
+      studentReadOnly: false,
+    } as GroupDetailDto;
+
+    render(<MeetingBookingSection canBook group={group} />);
+
+    expect(screen.getByText("4/4 meetings")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Group limit reached" }),
+    ).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: "Book this slot" }))
+      .not.toBeInTheDocument();
   });
 
   it("lets the original submitter remove completed evidence for replacement", () => {

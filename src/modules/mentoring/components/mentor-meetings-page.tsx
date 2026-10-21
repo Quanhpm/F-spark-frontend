@@ -92,8 +92,14 @@ export function MentorMeetingsPage() {
   const filteredGroups = reportView?.groups ?? [];
   const eligibleGroupOptions = reportView?.recordableGroups ?? [];
   const eligibleGroups = eligibleGroupOptions.map((option) => option.group);
-  const recordableCounts = new Map(
-    eligibleGroupOptions.map((option) => [option.group.id, option.activeMeetingCount]),
+  const recordableQuotas = new Map(
+    eligibleGroupOptions.map((option) => [
+      option.group.id,
+      {
+        limit: option.currentMentorMeetingLimit,
+        used: option.currentMentorActiveMeetingCount,
+      },
+    ]),
   );
   const invalidStartPrecision = Boolean(form.startAt) && !isWholeMinute(form.startAt);
   const invalidDuration = Boolean(form.startAt && form.endAt) &&
@@ -261,10 +267,10 @@ export function MentorMeetingsPage() {
             />
           </Card>
         ) : <div className="grid gap-5">
-          {filteredGroups.map(({ group, meetings: groupMeetings, activeMeetingCount }) => {
+          {filteredGroups.map(({ group, meetings: groupMeetings, activeMeetingCount, meetingLimit }) => {
             const used = activeMeetingCount;
             return <Card key={group.id}>
-              <CardHeader title={`${group.groupNo} · ${group.name}`} description={`${group.term} / ${group.courseCode}`} actions={<Badge tone={used >= 2 ? "warning" : "neutral"}>{used}/2 slots</Badge>} />
+              <CardHeader title={`${group.groupNo} · ${group.name}`} description={`${group.term} / ${group.courseCode}`} actions={<Badge tone={used >= meetingLimit ? "warning" : "neutral"}>{used}/{meetingLimit} meetings</Badge>} />
               <CardContent className="grid gap-3">
                 {groupMeetings.length === 0 ? <EmptyState title="No meetings reported" /> : groupMeetings.map((meeting) => {
                   const isOwner = isMeetingOwnedByCurrentMentor(
@@ -308,7 +314,10 @@ export function MentorMeetingsPage() {
       {showForm && <ResponsiveDialog title={editing ? "Edit meeting record" : "Record external meeting"} description={editing ? `Mentor: ${formatMentorIdentity(editing)}` : "Record a meeting arranged outside the booking flow. Students can submit evidence after the recorded end time."} onClose={() => setShowForm(false)} footer={<><Button variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button><Button form="mentor-meeting-form" type="submit" disabled={createMutation.isPending || updateMutation.isPending || !form.startAt || !form.endAt || !form.meetLink.trim() || invalidStartPrecision || invalidDuration || crossesBusinessDay}>Save record</Button></>}>
         <form id="mentor-meeting-form" className="grid gap-4" onSubmit={submit}>
           <Select label="Team" value={form.groupId} disabled={Boolean(editing)} onChange={(event) => setForm((value) => ({ ...value, groupId: event.target.value }))} required>
-            {eligibleGroups.map((group) => <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({recordableCounts.get(group.id) ?? 0}/2)</option>)}
+            {eligibleGroups.map((group) => {
+              const quota = recordableQuotas.get(group.id);
+              return <option key={group.id} value={group.id}>{group.groupNo} · {group.name} ({quota?.used ?? 0}/{quota?.limit ?? 2} for you)</option>;
+            })}
             {editing && !eligibleGroups.some((group) => group.id === editing.groupId) && <option value={editing.groupId}>{editing.groupNo} · {editing.groupName}</option>}
           </Select>
           <DateTimeInput error={invalidStartPrecision ? "Choose a start time without seconds." : undefined} hint="Choose any date and minute." label="Start time" required step={60} type="datetime-local" value={form.startAt} onChange={(event) => updateStartAt(event.target.value)} />

@@ -39,6 +39,8 @@ import type { GroupDetailDto } from "../../types";
 import {
   formatGroupMentorContacts,
   getGroupMentors,
+  getGroupMeetingLimit,
+  MEETINGS_PER_MENTOR,
 } from "../../utils/group-mentors";
 import {
   BOOKING_LEAD_TIME_MESSAGE,
@@ -109,10 +111,19 @@ export function MeetingBookingSection({
       ),
     [availabilityQuery.data?.data, now],
   );
-  const activeMeetingCount = meetings.filter(
+  const activeMeetings = meetings.filter(
     (meeting) => meeting.status !== "CANCELED",
-  ).length;
-  const meetingLimitReached = activeMeetingCount >= 2;
+  );
+  const activeMeetingCount = activeMeetings.length;
+  const meetingLimit = getGroupMeetingLimit(group);
+  const meetingLimitReached = activeMeetingCount >= meetingLimit;
+  const activeMeetingCountsByMentor = activeMeetings.reduce(
+    (counts, meeting) => {
+      counts.set(meeting.mentorId, (counts.get(meeting.mentorId) ?? 0) + 1);
+      return counts;
+    },
+    new Map<number, number>(),
+  );
   const currentStudent = (group.members ?? []).find(
     (member) =>
       member.email.toLowerCase() === sessionEmail?.toLowerCase(),
@@ -223,7 +234,7 @@ export function MeetingBookingSection({
                     </p>
                   </div>
                   <Badge tone={meetingLimitReached ? "warning" : "neutral"}>
-                    {activeMeetingCount}/2 meetings
+                    {activeMeetingCount}/{meetingLimit} meetings
                   </Badge>
                 </div>
 
@@ -237,8 +248,8 @@ export function MeetingBookingSection({
                   </div>
                 ) : meetingLimitReached ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    This group already has the maximum of two non-canceled
-                    mentor meetings.
+                    This group already has the maximum of {meetingLimit}{" "}
+                    non-canceled mentor meetings.
                   </div>
                 ) : null}
 
@@ -261,6 +272,11 @@ export function MeetingBookingSection({
                         slot.startAt,
                         now,
                       );
+                      const mentorMeetingLimitReached =
+                        (activeMeetingCountsByMentor.get(slot.mentorId) ?? 0) >=
+                        MEETINGS_PER_MENTOR;
+                      const slotQuotaReached =
+                        meetingLimitReached || mentorMeetingLimitReached;
 
                       return (
                         <article
@@ -289,21 +305,26 @@ export function MeetingBookingSection({
                               {slot.note}
                             </p>
                           )}
-                          {canBook && !meetingLimitReached && (
+                          {canBook && (
                             <div className="grid gap-2">
                               <Button
                                 disabled={
                                   bookingMutation.isPending ||
-                                  !bookingWindowOpen
+                                  !bookingWindowOpen ||
+                                  slotQuotaReached
                                 }
                                 onClick={() => setBookingSlot(slot)}
                                 size="sm"
                               >
-                                {bookingWindowOpen
-                                  ? "Book this slot"
-                                  : "Booking closed"}
+                                {meetingLimitReached
+                                  ? "Group limit reached"
+                                  : mentorMeetingLimitReached
+                                    ? "Mentor limit reached"
+                                    : bookingWindowOpen
+                                      ? "Book this slot"
+                                      : "Booking closed"}
                               </Button>
-                              {!bookingWindowOpen && (
+                              {!slotQuotaReached && !bookingWindowOpen && (
                                 <p className="m-0 text-xs leading-5 text-amber-700">
                                   {BOOKING_LEAD_TIME_MESSAGE}
                                 </p>
@@ -495,7 +516,8 @@ export function MeetingBookingSection({
         >
           <p className="m-0 text-sm leading-6 text-muted">
             This availability slot will be reserved for {group.name} and will
-            count toward the group&apos;s two-meeting limit.
+            count toward this mentor&apos;s {MEETINGS_PER_MENTOR}-meeting limit
+            and the group&apos;s {meetingLimit}-meeting limit.
           </p>
           <p className="m-0 mt-3 break-words text-sm leading-6 text-muted">
             Mentor:{" "}
