@@ -122,6 +122,45 @@ function MessageBubble({ message, own }: { message: ChatMessageDto; own: boolean
   );
 }
 
+function ChatRoomEmptyIllustration() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-auto w-[min(420px,88%)]"
+      data-testid="chat-empty-illustration"
+      fill="none"
+      viewBox="0 0 420 240"
+    >
+      <circle cx="55" cy="54" fill="#FFF3ED" r="34" />
+      <circle cx="369" cy="188" fill="#FFF8E7" r="29" />
+      <circle cx="375" cy="49" fill="#F4511E" opacity="0.12" r="8" />
+      <path d="M38 184h18M47 175v18" stroke="#EDA12F" strokeLinecap="round" strokeWidth="3" />
+      <path d="m350 78 5 5 9-11" stroke="#F4511E" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+
+      <rect fill="#FFF" height="174" rx="26" stroke="#E5E7EB" strokeWidth="2" width="278" x="71" y="32" />
+      <path d="M72 67h276" stroke="#E5E7EB" strokeWidth="2" />
+      <circle cx="93" cy="50" fill="#F4511E" r="5" />
+      <circle cx="110" cy="50" fill="#EDA12F" r="5" />
+      <circle cx="127" cy="50" fill="#DDE4EA" r="5" />
+
+      <circle cx="108" cy="96" fill="#FFE4D8" r="15" />
+      <path d="M102 100c2-5 10-5 12 0" stroke="#F4511E" strokeLinecap="round" strokeWidth="2" />
+      <circle cx="108" cy="92" fill="#F4511E" r="4" />
+      <rect fill="#F4F5F6" height="36" rx="14" width="142" x="132" y="78" />
+      <path d="M148 91h83M148 101h55" stroke="#A3A9B1" strokeLinecap="round" strokeWidth="4" />
+
+      <rect fill="#F4511E" height="42" rx="15" width="132" x="177" y="128" />
+      <path d="M194 143h91M222 155h63" stroke="#FFF" strokeLinecap="round" strokeWidth="4" />
+      <circle cx="329" cy="149" fill="#FFF0E9" r="16" />
+      <circle cx="329" cy="145" fill="#EDA12F" r="4" />
+      <path d="M322 154c2-6 12-6 14 0" stroke="#EDA12F" strokeLinecap="round" strokeWidth="2" />
+
+      <path d="M105 196c21 16 48 24 76 24h71c30 0 58-9 80-25" stroke="#EDA12F" strokeDasharray="3 8" strokeLinecap="round" strokeWidth="3" />
+      <path d="m194 206 16 12 16-12" fill="#FFF8E7" stroke="#EDA12F" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  );
+}
+
 function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void }) {
   const accountId = useAuthStore((state) => state.session?.user.id);
   const messagesQuery = useChatMessages(room.groupId);
@@ -318,8 +357,8 @@ export function ChatPage() {
               <Conversation key={selectedRoom.groupId} onBack={clearSelection} room={selectedRoom} />
             ) : (
               <div className="grid h-full min-h-0 place-items-center p-8 text-center">
-                <div className="grid max-w-sm justify-items-center gap-3 text-muted">
-                  <span className="grid size-14 place-items-center rounded-full bg-surface-warm text-brand-primary"><MessageCircle size={26} /></span>
+                <div className="grid w-full max-w-xl justify-items-center gap-3 text-muted">
+                  <ChatRoomEmptyIllustration />
                   <strong className="text-lg text-foreground">Select a chat room</strong>
                   <span className="text-sm">Choose a current or archived group to view its conversation.</span>
                 </div>

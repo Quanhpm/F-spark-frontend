@@ -1,13 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChatPage } from "./chat-page";
 
 const replace = vi.fn();
+let queryString = "groupId=2";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/student/chat",
   useRouter: () => ({ replace }),
-  useSearchParams: () => new URLSearchParams("groupId=2"),
+  useSearchParams: () => new URLSearchParams(queryString),
 }));
 
 vi.mock("@/modules/auth", () => ({
@@ -63,6 +64,10 @@ vi.mock("../hooks", () => ({
 }));
 
 describe("ChatPage", () => {
+  beforeEach(() => {
+    queryString = "groupId=2";
+  });
+
   it("keeps closed-course history separate and read-only", () => {
     render(<ChatPage />);
 
@@ -75,5 +80,13 @@ describe("ChatPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Archived \(1\)/ }));
     expect(screen.getAllByText("Archived Team")).toHaveLength(2);
+  });
+
+  it("shows a branded illustration before a room is selected", () => {
+    queryString = "";
+    render(<ChatPage />);
+
+    expect(screen.getByTestId("chat-empty-illustration")).toBeInTheDocument();
+    expect(screen.getByText("Select a chat room")).toBeInTheDocument();
   });
 });
