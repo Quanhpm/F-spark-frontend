@@ -56,6 +56,15 @@ vi.mock("@/modules/notifications", () => ({
   ),
 }));
 
+vi.mock("@/modules/chat/components/chat-center-provider", () => ({
+  ChatCenterProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  useChatCenter: () => ({ unreadCount: 0 }),
+}));
+
+vi.mock("@/shared/realtime", () => ({
+  RealtimeProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
 describe("AppShell route guard", () => {
   beforeEach(() => {
     authState.hydrated = false;
@@ -101,7 +110,7 @@ describe("AppShell route guard", () => {
     expect(
       screen.getByRole("link", { name: "Open profile for admin@fspark.com" }),
     ).toHaveAttribute("href", "/admin/profile");
-    expect(screen.getByText("Version 12")).toBeInTheDocument();
+    expect(screen.getByText("Version 13")).toBeInTheDocument();
   });
 
   it("keeps only one admin navigation group open", () => {
@@ -202,7 +211,7 @@ describe("AppShell route guard", () => {
     render(<AppShell role="STUDENT">Student content</AppShell>);
 
     expect(screen.getByText("Student content")).toBeInTheDocument();
-    expect(screen.queryByText("Version 12")).not.toBeInTheDocument();
+    expect(screen.queryByText("Version 13")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Notifications" })).toHaveAttribute(
       "href",
       "/student/notifications",

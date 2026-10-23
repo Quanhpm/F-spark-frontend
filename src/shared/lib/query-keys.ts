@@ -158,6 +158,14 @@ export const queryKeys = {
     unreadCount: () =>
       [...queryKeys.notifications.all, "unread-count"] as const,
   },
+  chat: {
+    all: ["chat"] as const,
+    rooms: () => ["chat", "rooms"] as const,
+    unreadCount: () => ["chat", "unread-count"] as const,
+    messagesRoot: () => ["chat", "groups"] as const,
+    messages: (groupId: number) => ["chat", "groups", groupId, "messages"] as const,
+    emptyMessages: () => ["chat", "groups", "empty", "messages"] as const,
+  },
   feedback: {
     all: ["feedback"] as const,
     me: (filters?: QueryFilters) =>

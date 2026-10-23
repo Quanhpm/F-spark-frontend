@@ -1,8 +1,8 @@
 "use client";
 
-import { Client, type IMessage } from "@stomp/stompjs";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -10,9 +10,9 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { useAuthStore } from "@/modules/auth";
 import type { ApiResponse, PageResponse } from "@/shared/types";
 import { queryKeys } from "@/shared/lib";
+import { useRealtimeEvent } from "@/shared/realtime";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -45,9 +45,6 @@ const NotificationCenterContext = createContext<NotificationCenterValue | null>(
 
 export function NotificationCenterProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const accessToken = useAuthStore(
-    (state) => state.session?.tokens.accessToken ?? null,
-  );
   const notificationsQuery = useNotifications(recentNotificationsQuery, {
     refetchInterval: notificationPollInterval,
   });
@@ -69,24 +66,7 @@ export function NotificationCenterProvider({ children }: { children: ReactNode }
     }
   }, [unreadCountQuery.data]);
 
-  useEffect(() => {
-    if (!accessToken || typeof window === "undefined") return;
-
-    const apiBaseUrl =
-      process.env.NEXT_PUBLIC_API_BASE_URL ?? window.location.origin;
-    const websocketUrl =
-      process.env.NEXT_PUBLIC_WS_URL ??
-      `${apiBaseUrl.replace(/^http/, "ws").replace(/\/$/, "")}/ws`;
-    const client = new Client({
-      brokerURL: websocketUrl,
-      connectHeaders: { Authorization: `Bearer ${accessToken}` },
-      reconnectDelay: 5_000,
-      heartbeatIncoming: 10_000,
-      heartbeatOutgoing: 10_000,
-      debug: () => undefined,
-    });
-
-    const handleNotification = (message: IMessage) => {
+  const handleNotification = useCallback((message: { body: string }) => {
       let notification: NotificationDto;
       try {
         notification = JSON.parse(message.body) as NotificationDto;
@@ -128,22 +108,9 @@ export function NotificationCenterProvider({ children }: { children: ReactNode }
         queryKey: queryKeys.notifications.lists(),
         refetchType: "active",
       });
-    };
+  }, [queryClient]);
 
-    client.onConnect = () => {
-      client.subscribe("/user/queue/notifications", handleNotification, {
-        id: "fspark-notifications",
-      });
-    };
-    client.onStompError = () => {
-      void client.deactivate();
-    };
-    client.activate();
-
-    return () => {
-      void client.deactivate();
-    };
-  }, [accessToken, queryClient]);
+  useRealtimeEvent("notifications", handleNotification);
 
   return (
     <NotificationCenterContext.Provider

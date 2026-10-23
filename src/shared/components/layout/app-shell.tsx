@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  MessagesSquare,
   MonitorUp,
   UserRound,
   Users,
@@ -36,6 +37,11 @@ import {
   NotificationBell,
   NotificationCenterProvider,
 } from "@/modules/notifications";
+import {
+  ChatCenterProvider,
+  useChatCenter,
+} from "@/modules/chat/components/chat-center-provider";
+import { RealtimeProvider } from "@/shared/realtime";
 import { cn } from "@/shared/lib";
 import type { UserRole } from "@/shared/types";
 
@@ -61,7 +67,7 @@ type AdminNavGroup = {
   label: string;
 };
 
-const ADMIN_VERSION_LABEL = "Version 12" as const;
+const ADMIN_VERSION_LABEL = "Version 13" as const;
 
 function AdminVersionBadge() {
   return (
@@ -125,6 +131,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   STUDENT: [
     { href: "/student/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/student/groups", icon: Users, label: "Groups" },
+    { href: "/student/chat", icon: MessagesSquare, label: "Chat" },
     { href: "/student/tasks", icon: ClipboardList, label: "Tasks" },
     { href: "/student/grades", icon: Award, label: "Grades" },
     { href: "/student/problems", icon: BookOpen, label: "Problems" },
@@ -134,6 +141,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
   MENTOR: [
     { href: "/mentor/groups", icon: Users, label: "Groups" },
+    { href: "/mentor/chat", icon: MessagesSquare, label: "Chat" },
     {
       href: "/mentor/availability",
       icon: CalendarDays,
@@ -195,6 +203,7 @@ function WorkspaceNavigation({
   pathname,
   role,
 }: WorkspaceNavigationProps) {
+  const { unreadCount } = useChatCenter();
   const navClassName = "grid min-w-0 content-start gap-1.5";
   const linkClassName = cn(
     "flex min-w-0 items-center rounded-xl text-sm font-medium text-muted transition-[background,color] duration-[160ms] ease-in-out hover:bg-background hover:text-foreground",
@@ -219,6 +228,11 @@ function WorkspaceNavigation({
       >
         <Icon className="shrink-0" size={mobile ? 19 : 18} />
         <span className="min-w-0 break-words">{item.label}</span>
+        {item.href.endsWith("/chat") && unreadCount > 0 && (
+          <span className="ml-auto grid min-h-5 min-w-5 shrink-0 place-items-center rounded-full bg-brand-primary px-1.5 text-[11px] font-bold text-white">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </Link>
     );
   }
@@ -482,8 +496,10 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
   }
 
   return (
-    <NotificationCenterProvider>
-      <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
+    <RealtimeProvider>
+      <ChatCenterProvider>
+        <NotificationCenterProvider>
+          <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
       <aside className="sticky top-0 flex h-svh flex-col justify-between gap-6 overflow-y-auto border-r border-border bg-surface px-4 py-[22px] max-[960px]:hidden">
         <div className="flex min-w-0 flex-col gap-6">
           <div className="flex min-w-0 items-center justify-between gap-2 px-2">
@@ -641,7 +657,9 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
           </aside>
         </div>
       )}
-      </div>
-    </NotificationCenterProvider>
+          </div>
+        </NotificationCenterProvider>
+      </ChatCenterProvider>
+    </RealtimeProvider>
   );
 }
