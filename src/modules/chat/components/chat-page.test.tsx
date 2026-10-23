@@ -4,11 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatMessageDto } from "../types";
 import { ChatPage } from "./chat-page";
 
+const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
 const replace = vi.fn();
 const sendMessage = vi.fn();
+const fetchNextPage = vi.fn();
 let queryString = "groupId=2";
 let messageContent: ChatMessageDto[] = [];
 let messagePages: ChatMessageDto[][] | null = null;
+let hasNextPage = false;
 vi.mock("next/navigation", () => ({
   usePathname: () => "/student/chat",
   useRouter: () => ({ replace }),
@@ -19,6 +22,8 @@ vi.mock("@/modules/auth", () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
     selector({ session: { user: { id: 10, role: "STUDENT" } } }),
 }));
+
+vi.mock("sonner", () => ({ toast: { error: toastError } }));
 
 const rooms = [
   {
@@ -60,8 +65,8 @@ vi.mock("../hooks", () => ({
         data: { content, hasMore: false, nextBeforeId: null },
       })),
     },
-    fetchNextPage: vi.fn(),
-    hasNextPage: false,
+    fetchNextPage,
+    hasNextPage,
     isError: false,
     isFetchingNextPage: false,
     isLoading: false,
@@ -76,7 +81,14 @@ describe("ChatPage", () => {
     queryString = "groupId=2";
     messageContent = [];
     messagePages = null;
+    hasNextPage = false;
+    fetchNextPage.mockReset().mockResolvedValue({
+      data: { pages: [] },
+      hasNextPage: false,
+      isError: false,
+    });
     sendMessage.mockReset().mockResolvedValue(undefined);
+    toastError.mockReset();
   });
 
   it("keeps closed-course history separate and read-only", () => {
@@ -161,14 +173,135 @@ describe("ChatPage", () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
     expect(sendMessage).toHaveBeenCalledWith({ content: "Only once", groupId: 1 });
   });
+
+  it("selects, cancels, and sends a reply with the target id", async () => {
+    queryString = "groupId=1";
+    messageContent = [message(11, "Original message")];
+    render(<ChatPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reply to message from Mentor" }));
+    expect(screen.getByText("Replying to Mentor")).toBeInTheDocument();
+    expect(screen.getAllByText("Original message")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel reply" }));
+    expect(screen.queryByText("Replying to Mentor")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reply to message from Mentor" }));
+    const input = screen.getByRole("textbox", { name: "Message" });
+    fireEvent.change(input, { target: { value: "Reply body" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(sendMessage).toHaveBeenCalledWith({
+      content: "Reply body",
+      groupId: 1,
+      replyToMessageId: 11,
+    });
+    await waitFor(() => expect(screen.queryByText("Replying to Mentor")).not.toBeInTheDocument());
+  });
+
+  it("keeps the reply target and draft when sending fails", async () => {
+    queryString = "groupId=1";
+    messageContent = [message(12, "Original message")];
+    sendMessage.mockRejectedValueOnce(new Error("Send failed"));
+    render(<ChatPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reply to message from Mentor" }));
+    const input = screen.getByRole("textbox", { name: "Message" });
+    fireEvent.change(input, { target: { value: "Keep this draft" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Replying to Mentor")).toBeInTheDocument();
+    expect(input).toHaveValue("Keep this draft");
+  });
+
+  it("renders a reply quote and navigates to an already loaded original", async () => {
+    queryString = "groupId=1";
+    messageContent = [
+      message(20, "Original message"),
+      message(21, "Reply body", {
+        content: "Original message",
+        id: 20,
+        sender: { accountId: 20, displayName: "Mentor", role: "MENTOR" },
+      }),
+    ];
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(<ChatPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to replied message from Mentor" }));
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "center",
+    }));
+    expect(document.getElementById("chat-message-20")).toHaveClass("bg-[#fff3ed]");
+  });
+
+  it("loads older cursor pages before navigating to the original message", async () => {
+    queryString = "groupId=1";
+    hasNextPage = true;
+    const reply = message(31, "Reply body", {
+      content: "Older original",
+      id: 30,
+      sender: { accountId: 20, displayName: "Mentor", role: "MENTOR" },
+    });
+    messagePages = [[reply]];
+    fetchNextPage.mockImplementation(async () => {
+      messagePages = [[reply], [message(30, "Older original")]];
+      return {
+        data: {
+          pages: messagePages.map((content) => ({
+            data: { content, hasMore: false, nextBeforeId: null },
+          })),
+        },
+        hasNextPage: false,
+        isError: false,
+      };
+    });
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const view = render(<ChatPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to replied message from Mentor" }));
+    await waitFor(() => expect(fetchNextPage).toHaveBeenCalledTimes(1));
+    view.rerender(<ChatPage />);
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("reports an unavailable original and hides reply actions in archived rooms", async () => {
+    queryString = "groupId=1";
+    hasNextPage = false;
+    messageContent = [message(41, "Reply body", {
+      content: "Missing original",
+      id: 40,
+      sender: { accountId: 20, displayName: "Mentor", role: "MENTOR" },
+    })];
+    const view = render(<ChatPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to replied message from Mentor" }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Original message is unavailable."));
+
+    queryString = "groupId=2";
+    messageContent = [message(42, "Archived message")];
+    view.rerender(<ChatPage />);
+    expect(screen.queryByRole("button", { name: /Reply to message from/ })).not.toBeInTheDocument();
+  });
 });
 
-function message(id: number, content: string): ChatMessageDto {
+function message(
+  id: number,
+  content: string,
+  replyTo: ChatMessageDto["replyTo"] = null,
+): ChatMessageDto {
   return {
     content,
     createdAt: "2026-10-23T07:00:00Z",
     groupId: 1,
     id,
+    replyTo,
     sender: { accountId: 20, displayName: "Mentor", role: "MENTOR" },
   };
 }

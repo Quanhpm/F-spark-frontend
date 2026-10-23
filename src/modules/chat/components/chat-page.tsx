@@ -6,9 +6,12 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronRight,
+  LoaderCircle,
   LockKeyhole,
   MessageCircle,
+  Reply,
   Send,
+  X,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -19,6 +22,7 @@ import {
   type KeyboardEvent,
   type UIEvent,
 } from "react";
+import { toast } from "sonner";
 
 import { useAuthStore } from "@/modules/auth";
 import { ApiError, cn } from "@/shared/lib";
@@ -100,9 +104,45 @@ function RoomSection({ rooms, selectedId, onSelect }: {
   );
 }
 
-function MessageBubble({ message, own }: { message: ChatMessageDto; own: boolean }) {
+function MessageBubble({
+  highlighted,
+  locatingReplyId,
+  message,
+  onNavigateToReply,
+  onReply,
+  own,
+  readOnly,
+}: {
+  highlighted: boolean;
+  locatingReplyId: number | null;
+  message: ChatMessageDto;
+  onNavigateToReply: (messageId: number) => void;
+  onReply: (message: ChatMessageDto) => void;
+  own: boolean;
+  readOnly: boolean;
+}) {
+  const replyAction = !readOnly && (
+    <button
+      aria-label={`Reply to message from ${message.sender.displayName}`}
+      className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full border border-border bg-surface text-muted opacity-100 shadow-sm transition hover:border-brand-primary hover:text-brand-primary min-[761px]:opacity-0 min-[761px]:group-hover:opacity-100 min-[761px]:focus:opacity-100"
+      onClick={() => onReply(message)}
+      type="button"
+    >
+      <Reply size={15} />
+    </button>
+  );
+
   return (
-    <div className={cn("flex", own ? "justify-end" : "justify-start")}>
+    <div
+      className={cn(
+        "group flex items-end gap-1.5 rounded-xl px-1 py-0.5 transition-colors duration-300",
+        own ? "justify-end" : "justify-start",
+        highlighted && "bg-[#fff3ed] ring-1 ring-brand-primary/25",
+      )}
+      data-message-id={message.id}
+      id={`chat-message-${message.id}`}
+    >
+      {own && replyAction}
       <div className={cn("grid max-w-[min(78%,640px)] gap-1", own && "justify-items-end")}>
         {!own && (
           <span className="px-1 text-xs font-semibold text-muted">
@@ -110,15 +150,37 @@ function MessageBubble({ message, own }: { message: ChatMessageDto; own: boolean
           </span>
         )}
         <div className={cn(
-          "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          "grid w-fit max-w-full gap-2 whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
           own ? "rounded-br-md bg-brand-primary text-white" : "rounded-bl-md bg-background text-foreground",
         )}>
-          {message.content}
+          {message.replyTo && (
+            <button
+              aria-label={`Go to replied message from ${message.replyTo.sender.displayName}`}
+              className={cn(
+                "grid min-w-0 cursor-pointer gap-0.5 rounded-lg border-0 border-l-[3px] px-3 py-2 text-left",
+                own
+                  ? "border-white/80 bg-white/15 text-white hover:bg-white/20"
+                  : "border-brand-primary bg-surface text-foreground hover:bg-[#fff3ed]",
+              )}
+              disabled={locatingReplyId != null}
+              onClick={() => onNavigateToReply(message.replyTo!.id)}
+              type="button"
+            >
+              <strong className={cn("truncate text-xs", own ? "text-white" : "text-brand-primary")}>
+                {message.replyTo.sender.displayName}
+              </strong>
+              <span className={cn("line-clamp-2 text-xs", own ? "text-white/80" : "text-muted")}>
+                {locatingReplyId === message.replyTo.id ? "Finding original message…" : message.replyTo.content}
+              </span>
+            </button>
+          )}
+          <span>{message.content}</span>
         </div>
         <time className="px-1 text-[11px] text-muted" dateTime={message.createdAt}>
           {formatTime(message.createdAt)}
         </time>
       </div>
+      {!own && replyAction}
     </div>
   );
 }
@@ -168,11 +230,18 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   const sendMutation = useSendChatMessage();
   const readMutation = useMarkChatRead();
   const [content, setContent] = useState("");
+  const [replyTarget, setReplyTarget] = useState<ChatMessageDto | null>(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+  const [locatingReplyId, setLocatingReplyId] = useState<number | null>(null);
+  const [pendingNavigationId, setPendingNavigationId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previousHeightRef = useRef<number | null>(null);
   const shouldStickToBottomRef = useRef(true);
   const submittingRef = useRef(false);
+  const locatingReplyRef = useRef(false);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMarkedRef = useRef<string>("");
   const messages = useMemo(() => {
     const seenIds = new Set<number>();
@@ -184,6 +253,27 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
       });
   }, [messagesQuery.data]);
   const latest = messages.at(-1);
+
+  useEffect(() => () => {
+    if (highlightTimerRef.current != null) clearTimeout(highlightTimerRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (pendingNavigationId == null) return;
+    const target = document.getElementById(`chat-message-${pendingNavigationId}`);
+    if (!target) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(pendingNavigationId);
+      setPendingNavigationId(null);
+      setLocatingReplyId(null);
+      locatingReplyRef.current = false;
+      if (highlightTimerRef.current != null) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => setHighlightedMessageId(null), 1_500);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages, pendingNavigationId]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -213,8 +303,13 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
     shouldStickToBottomRef.current = true;
     setShowJumpToLatest(false);
     try {
-      await sendMutation.mutateAsync({ groupId: room.groupId, content: normalized });
+      await sendMutation.mutateAsync({
+        groupId: room.groupId,
+        content: normalized,
+        ...(replyTarget ? { replyToMessageId: replyTarget.id } : {}),
+      });
       setContent("");
+      setReplyTarget(null);
     } catch {
       // Keep the draft in place so the user can retry.
     } finally {
@@ -251,6 +346,43 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
     shouldStickToBottomRef.current = true;
     setShowJumpToLatest(false);
     element.scrollTop = element.scrollHeight;
+  }
+
+  function beginReply(message: ChatMessageDto) {
+    setReplyTarget(message);
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }
+
+  async function navigateToReply(messageId: number) {
+    if (locatingReplyRef.current) return;
+    locatingReplyRef.current = true;
+    shouldStickToBottomRef.current = false;
+    setShowJumpToLatest(true);
+    setLocatingReplyId(messageId);
+    setPendingNavigationId(messageId);
+
+    if (messages.some((message) => message.id === messageId)) return;
+
+    let hasMore = Boolean(messagesQuery.hasNextPage);
+    try {
+      while (hasMore) {
+        const result = await messagesQuery.fetchNextPage();
+        if (result.isError) throw result.error;
+        const found = result.data?.pages.some((page) =>
+          page.data.content.some((message) => message.id === messageId));
+        if (found) return;
+        hasMore = Boolean(result.hasNextPage);
+      }
+      setPendingNavigationId(null);
+      setLocatingReplyId(null);
+      locatingReplyRef.current = false;
+      toast.error("Original message is unavailable.");
+    } catch {
+      setPendingNavigationId(null);
+      setLocatingReplyId(null);
+      locatingReplyRef.current = false;
+      toast.error("Unable to load the original message.");
+    }
   }
 
   return (
@@ -290,7 +422,16 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
           <div className="grid gap-4">
             {messagesQuery.isFetchingNextPage && <p className="m-0 text-center text-xs text-muted">Loading older messages…</p>}
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} own={message.sender.accountId === accountId} />
+              <MessageBubble
+                highlighted={highlightedMessageId === message.id}
+                key={message.id}
+                locatingReplyId={locatingReplyId}
+                message={message}
+                onNavigateToReply={(messageId) => void navigateToReply(messageId)}
+                onReply={beginReply}
+                own={message.sender.accountId === accountId}
+                readOnly={room.readOnly}
+              />
             ))}
           </div>
         )}
@@ -318,6 +459,28 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
           </div>
         ) : (
           <div className="grid gap-2">
+            {replyTarget && (
+              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-background px-3 py-2">
+                <Reply className="shrink-0 text-brand-primary" size={16} />
+                <div className="grid min-w-0 flex-1 gap-0.5 border-l-[3px] border-brand-primary pl-3">
+                  <strong className="truncate text-xs text-brand-primary">
+                    Replying to {replyTarget.sender.displayName}
+                  </strong>
+                  <span className="line-clamp-2 text-xs text-muted">{replyTarget.content}</span>
+                </div>
+                <button
+                  aria-label="Cancel reply"
+                  className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-muted hover:bg-surface hover:text-foreground"
+                  onClick={() => {
+                    setReplyTarget(null);
+                    textareaRef.current?.focus();
+                  }}
+                  type="button"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <textarea
                 aria-label="Message"
@@ -326,11 +489,12 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
                 onChange={(event) => setContent(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Write a message…"
+                ref={textareaRef}
                 rows={1}
                 value={content}
               />
               <Button aria-label="Send message" disabled={!content.trim() || sendMutation.isPending} onClick={() => void submit()}>
-                <Send size={17} />
+                {sendMutation.isPending ? <LoaderCircle className="animate-spin" size={17} /> : <Send size={17} />}
               </Button>
             </div>
             <div className="flex justify-between gap-3 px-1 text-xs text-muted">

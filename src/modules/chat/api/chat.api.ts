@@ -26,10 +26,10 @@ export function listChatMessages(
   );
 }
 
-export function sendChatMessage(groupId: number, content: string) {
+export function sendChatMessage(groupId: number, content: string, replyToMessageId?: number) {
   return apiPost<ApiResponse<ChatMessageDto>>(
     `/api/chat/groups/${groupId}/messages`,
-    { content },
+    { content, ...(replyToMessageId == null ? {} : { replyToMessageId }) },
   );
 }
 

@@ -11,11 +11,18 @@ export type ChatSenderDto = {
   role: UserRole;
 };
 
+export type ChatReplyPreviewDto = {
+  id: number;
+  sender: ChatSenderDto;
+  content: string;
+};
+
 export type ChatMessageDto = {
   id: number;
   groupId: number;
   sender: ChatSenderDto;
   content: string;
+  replyTo: ChatReplyPreviewDto | null;
   createdAt: ISODateTimeString;
 };
 

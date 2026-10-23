@@ -55,8 +55,11 @@ export function useChatMessages(groupId: number | null) {
 export function useSendChatMessage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ groupId, content }: { groupId: number; content: string }) =>
-      sendChatMessage(groupId, content),
+    mutationFn: ({ groupId, content, replyToMessageId }: {
+      groupId: number;
+      content: string;
+      replyToMessageId?: number;
+    }) => sendChatMessage(groupId, content, replyToMessageId),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.chat.messages(variables.groupId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.chat.rooms() });
