@@ -124,11 +124,11 @@ function MessageBubble({
   const replyAction = !readOnly && (
     <button
       aria-label={`Reply to message from ${message.sender.displayName}`}
-      className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full border border-border bg-surface text-muted opacity-100 shadow-sm transition hover:border-brand-primary hover:text-brand-primary min-[761px]:opacity-0 min-[761px]:group-hover:opacity-100 min-[761px]:focus:opacity-100"
+      className="grid size-11 shrink-0 cursor-pointer place-items-center self-center rounded-full border-0 bg-surface-warm text-brand-primary opacity-100 transition-colors hover:bg-brand-primary hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary min-[761px]:size-8 min-[761px]:bg-transparent min-[761px]:text-muted min-[761px]:opacity-0 min-[761px]:group-hover:bg-surface-warm min-[761px]:group-hover:text-brand-primary min-[761px]:group-hover:opacity-100 min-[761px]:focus:opacity-100"
       onClick={() => onReply(message)}
       type="button"
     >
-      <Reply size={15} />
+      <Reply size={16} />
     </button>
   );
 
@@ -157,19 +157,29 @@ function MessageBubble({
             <button
               aria-label={`Go to replied message from ${message.replyTo.sender.displayName}`}
               className={cn(
-                "grid min-w-0 cursor-pointer gap-0.5 rounded-lg border-0 border-l-[3px] px-3 py-2 text-left",
+                "grid min-w-0 cursor-pointer gap-1 rounded-xl border px-3 py-2 text-left transition-colors",
                 own
-                  ? "border-white/80 bg-white/15 text-white hover:bg-white/20"
-                  : "border-brand-primary bg-surface text-foreground hover:bg-[#fff3ed]",
+                  ? "border-white/20 border-l-[3px] border-l-white/90 bg-white/15 text-white hover:bg-white/20"
+                  : "border-border border-l-[3px] border-l-brand-primary bg-surface text-foreground hover:border-brand-primary/40 hover:border-l-brand-primary hover:bg-surface-warm/50",
               )}
               disabled={locatingReplyId != null}
               onClick={() => onNavigateToReply(message.replyTo!.id)}
               type="button"
             >
-              <strong className={cn("truncate text-xs", own ? "text-white" : "text-brand-primary")}>
-                {message.replyTo.sender.displayName}
-              </strong>
-              <span className={cn("line-clamp-2 text-xs", own ? "text-white/80" : "text-muted")}>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Reply
+                  aria-hidden="true"
+                  className={cn(
+                    "shrink-0",
+                    own ? "text-white/80" : "text-brand-primary",
+                  )}
+                  size={13}
+                />
+                <strong className={cn("truncate text-xs", own ? "text-white" : "text-brand-primary")}>
+                  {message.replyTo.sender.displayName}
+                </strong>
+              </span>
+              <span className={cn("line-clamp-2 text-xs leading-relaxed", own ? "text-white/80" : "text-muted")}>
                 {locatingReplyId === message.replyTo.id ? "Finding original message…" : message.replyTo.content}
               </span>
             </button>
@@ -460,17 +470,20 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
         ) : (
           <div className="grid gap-2">
             {replyTarget && (
-              <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-background px-3 py-2">
-                <Reply className="shrink-0 text-brand-primary" size={16} />
-                <div className="grid min-w-0 flex-1 gap-0.5 border-l-[3px] border-brand-primary pl-3">
+              <div className="relative flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border border-border-warm bg-surface-warm/50 py-2 pr-2 pl-4 shadow-sm">
+                <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-brand-primary" />
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface text-brand-primary shadow-sm">
+                  <Reply aria-hidden="true" size={15} />
+                </span>
+                <div className="grid min-w-0 flex-1 gap-0.5">
                   <strong className="truncate text-xs text-brand-primary">
                     Replying to {replyTarget.sender.displayName}
                   </strong>
-                  <span className="line-clamp-2 text-xs text-muted">{replyTarget.content}</span>
+                  <span className="line-clamp-2 text-xs leading-relaxed text-muted">{replyTarget.content}</span>
                 </div>
                 <button
                   aria-label="Cancel reply"
-                  className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-muted hover:bg-surface hover:text-foreground"
+                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-muted transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary min-[761px]:size-8"
                   onClick={() => {
                     setReplyTarget(null);
                     textareaRef.current?.focus();
