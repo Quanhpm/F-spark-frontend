@@ -157,7 +157,7 @@ function MessageBubble({
             <button
               aria-label={`Go to replied message from ${message.replyTo.sender.displayName}`}
               className={cn(
-                "grid min-w-0 max-w-full cursor-pointer gap-1 overflow-hidden [overflow-wrap:anywhere] rounded-lg border-0 px-3 py-2 text-left transition-colors",
+                "relative grid min-w-0 max-w-full cursor-pointer gap-1 overflow-hidden [overflow-wrap:anywhere] rounded-lg border-0 py-2 pr-3 pl-4 text-left transition-colors",
                 own
                   ? "bg-black/10 text-white hover:bg-black/15"
                   : "bg-black/5 text-foreground hover:bg-black/10",
@@ -166,6 +166,13 @@ function MessageBubble({
               onClick={() => onNavigateToReply(message.replyTo!.id)}
               type="button"
             >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-y-2 left-1 w-[3px] rounded-full",
+                  own ? "bg-white/70" : "bg-muted/45",
+                )}
+              />
               <span className="flex min-w-0 items-center gap-1.5">
                 <Reply
                   aria-hidden="true"
