@@ -135,7 +135,7 @@ function MessageBubble({
   return (
     <div
       className={cn(
-        "group flex items-end gap-1.5 rounded-xl px-1 py-0.5 transition-colors duration-300",
+        "group flex w-full min-w-0 items-end gap-1.5 rounded-xl px-1 py-0.5 transition-colors duration-300",
         own ? "justify-end" : "justify-start",
         highlighted && "bg-[#fff3ed] ring-1 ring-brand-primary/25",
       )}
@@ -143,21 +143,21 @@ function MessageBubble({
       id={`chat-message-${message.id}`}
     >
       {own && replyAction}
-      <div className={cn("grid max-w-[min(78%,640px)] gap-1", own && "justify-items-end")}>
+      <div className={cn("grid min-w-0 max-w-[min(78%,640px)] gap-1", own && "justify-items-end")}>
         {!own && (
           <span className="px-1 text-xs font-semibold text-muted">
             {message.sender.displayName} · {message.sender.role === "MENTOR" ? "Mentor" : "Student"}
           </span>
         )}
         <div className={cn(
-          "grid w-fit max-w-full gap-2 whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          "grid min-w-0 w-fit max-w-full gap-2 overflow-hidden whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
           own ? "rounded-br-md bg-brand-primary text-white" : "rounded-bl-md bg-background text-foreground",
         )}>
           {message.replyTo && (
             <button
               aria-label={`Go to replied message from ${message.replyTo.sender.displayName}`}
               className={cn(
-                "grid min-w-0 cursor-pointer gap-1 rounded-xl border px-3 py-2 text-left transition-colors",
+                "grid min-w-0 max-w-full cursor-pointer gap-1 overflow-hidden [overflow-wrap:anywhere] rounded-xl border px-3 py-2 text-left transition-colors",
                 own
                   ? "border-white/20 border-l-[3px] border-l-white/90 bg-white/15 text-white hover:bg-white/20"
                   : "border-border border-l-[3px] border-l-brand-primary bg-surface text-foreground hover:border-brand-primary/40 hover:border-l-brand-primary hover:bg-surface-warm/50",
@@ -179,12 +179,12 @@ function MessageBubble({
                   {message.replyTo.sender.displayName}
                 </strong>
               </span>
-              <span className={cn("line-clamp-2 text-xs leading-relaxed", own ? "text-white/80" : "text-muted")}>
+              <span className={cn("min-w-0 line-clamp-2 text-xs leading-relaxed [overflow-wrap:anywhere]", own ? "text-white/80" : "text-muted")}>
                 {locatingReplyId === message.replyTo.id ? "Finding original message…" : message.replyTo.content}
               </span>
             </button>
           )}
-          <span>{message.content}</span>
+          <span className="min-w-0 [overflow-wrap:anywhere]">{message.content}</span>
         </div>
         <time className="px-1 text-[11px] text-muted" dateTime={message.createdAt}>
           {formatTime(message.createdAt)}
@@ -412,7 +412,7 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
 
       <div
         aria-label="Messages"
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface p-4"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain bg-surface p-4"
         onScroll={handleScroll}
         ref={scrollRef}
       >
@@ -479,7 +479,7 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
                   <strong className="truncate text-xs text-brand-primary">
                     Replying to {replyTarget.sender.displayName}
                   </strong>
-                  <span className="line-clamp-2 text-xs leading-relaxed text-muted">{replyTarget.content}</span>
+                  <span className="min-w-0 line-clamp-2 text-xs leading-relaxed text-muted [overflow-wrap:anywhere]">{replyTarget.content}</span>
                 </div>
                 <button
                   aria-label="Cancel reply"
