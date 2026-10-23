@@ -122,12 +122,12 @@ function MessageBubble({ message, own }: { message: ChatMessageDto; own: boolean
   );
 }
 
-function ChatRoomEmptyIllustration() {
+function ChatRoomEmptyIllustration({ compact = false }: { compact?: boolean }) {
   return (
     <svg
       aria-hidden="true"
-      className="h-auto w-[min(420px,88%)]"
-      data-testid="chat-empty-illustration"
+      className={compact ? "h-auto w-[min(340px,82%)]" : "h-auto w-[min(420px,88%)]"}
+      data-testid={compact ? "empty-conversation-illustration" : "chat-empty-illustration"}
       fill="none"
       viewBox="0 0 420 240"
     >
@@ -247,7 +247,13 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
         ) : messagesQuery.isError ? (
           <EmptyState description={errorMessage(messagesQuery.error)} title="Unable to load messages" />
         ) : messages.length === 0 ? (
-          <EmptyState description="Start the conversation with your group and mentors." icon={<MessageCircle size={22} />} title="No messages yet" />
+          <div className="grid min-h-full place-items-center py-8 text-center">
+            <div className="grid w-full max-w-lg justify-items-center gap-3 text-muted">
+              <ChatRoomEmptyIllustration compact />
+              <strong className="text-lg text-foreground">No messages yet</strong>
+              <span className="text-sm">Start the conversation with your group and mentors.</span>
+            </div>
+          </div>
         ) : (
           <div className="grid gap-4">
             {messagesQuery.isFetchingNextPage && <p className="m-0 text-center text-xs text-muted">Loading older messages…</p>}
