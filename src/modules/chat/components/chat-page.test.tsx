@@ -120,7 +120,9 @@ describe("ChatPage", () => {
     messages.scrollTop = 100;
     fireEvent.scroll(messages);
 
-    fireEvent.click(screen.getByRole("button", { name: "Jump to latest message" }));
+    const jumpButton = screen.getByRole("button", { name: "Jump to latest message" });
+    expect(jumpButton).toHaveClass("bg-brand-primary", "text-white");
+    fireEvent.click(jumpButton);
 
     expect(messages.scrollTop).toBe(1000);
     expect(screen.queryByRole("button", { name: "Jump to latest message" })).not.toBeInTheDocument();

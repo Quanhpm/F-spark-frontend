@@ -290,11 +290,11 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
         <div className="relative z-10 h-0 shrink-0">
           <Button
             aria-label="Jump to latest message"
-            className="absolute right-4 bottom-3 shadow-lg"
+            className="absolute right-4 bottom-3 border-white/70 shadow-[0_8px_24px_rgba(244,81,30,0.32)]"
             icon={<ArrowDown size={16} />}
             onClick={jumpToLatest}
             size="sm"
-            variant="secondary"
+            variant="primary"
           >
             Latest
           </Button>
