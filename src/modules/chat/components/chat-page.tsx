@@ -21,7 +21,7 @@ import {
 
 import { useAuthStore } from "@/modules/auth";
 import { ApiError, cn } from "@/shared/lib";
-import { Badge, Button, EmptyState, LoadingState, PageHeader } from "@/shared/components/ui";
+import { Badge, Button, EmptyState, LoadingState } from "@/shared/components/ui";
 import { useChatMessages, useChatRooms, useMarkChatRead, useSendChatMessage } from "../hooks";
 import type { ChatMessageDto, ChatRoomDto } from "../types";
 
@@ -277,8 +277,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-120px)] min-h-0 min-w-0 flex-col gap-6 overflow-hidden max-[960px]:h-[calc(100svh-104px)] max-[480px]:h-[calc(100svh-96px)]">
-      <PageHeader className="shrink-0" description="Talk with current group members and assigned mentors in real time." eyebrow="Collaboration" title="Chat" />
+    <div className="flex h-[calc(100svh-120px)] min-h-0 min-w-0 flex-col overflow-hidden max-[960px]:h-[calc(100svh-104px)] max-[480px]:h-[calc(100svh-96px)]">
       {roomsQuery.isLoading ? (
         <LoadingState title="Loading chat rooms" />
       ) : roomsQuery.isError ? (
