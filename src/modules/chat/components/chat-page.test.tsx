@@ -5,8 +5,10 @@ import type { ChatMessageDto } from "../types";
 import { ChatPage } from "./chat-page";
 
 const replace = vi.fn();
+const sendMessage = vi.fn();
 let queryString = "groupId=2";
 let messageContent: ChatMessageDto[] = [];
+let messagePages: ChatMessageDto[][] | null = null;
 vi.mock("next/navigation", () => ({
   usePathname: () => "/student/chat",
   useRouter: () => ({ replace }),
@@ -53,7 +55,11 @@ const rooms = [
 
 vi.mock("../hooks", () => ({
   useChatMessages: () => ({
-    data: { pages: [{ data: { content: messageContent, hasMore: false, nextBeforeId: null } }] },
+    data: {
+      pages: (messagePages ?? [messageContent]).map((content) => ({
+        data: { content, hasMore: false, nextBeforeId: null },
+      })),
+    },
     fetchNextPage: vi.fn(),
     hasNextPage: false,
     isError: false,
@@ -62,13 +68,15 @@ vi.mock("../hooks", () => ({
   }),
   useChatRooms: () => ({ data: { data: rooms }, isError: false, isLoading: false }),
   useMarkChatRead: () => ({ mutate: vi.fn() }),
-  useSendChatMessage: () => ({ isError: false, isPending: false, mutateAsync: vi.fn() }),
+  useSendChatMessage: () => ({ isError: false, isPending: false, mutateAsync: sendMessage }),
 }));
 
 describe("ChatPage", () => {
   beforeEach(() => {
     queryString = "groupId=2";
     messageContent = [];
+    messagePages = null;
+    sendMessage.mockReset().mockResolvedValue(undefined);
   });
 
   it("keeps closed-course history separate and read-only", () => {
@@ -126,6 +134,32 @@ describe("ChatPage", () => {
 
     expect(messages.scrollTop).toBe(1000);
     expect(screen.queryByRole("button", { name: "Jump to latest message" })).not.toBeInTheDocument();
+  });
+
+  it("renders a message only once when cursor pages overlap", () => {
+    queryString = "groupId=1";
+    messagePages = [
+      [message(2, "Newest message")],
+      [message(1, "Older message"), message(2, "Newest message")],
+    ];
+
+    render(<ChatPage />);
+
+    expect(screen.getAllByText("Newest message")).toHaveLength(1);
+    expect(screen.getByText("Older message")).toBeInTheDocument();
+  });
+
+  it("submits only once when send events happen before pending state updates", () => {
+    queryString = "groupId=1";
+    render(<ChatPage />);
+    const input = screen.getByRole("textbox", { name: "Message" });
+    fireEvent.change(input, { target: { value: "Only once" } });
+
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith({ content: "Only once", groupId: 1 });
   });
 });
 

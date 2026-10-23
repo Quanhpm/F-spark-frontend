@@ -172,11 +172,17 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   const scrollRef = useRef<HTMLDivElement>(null);
   const previousHeightRef = useRef<number | null>(null);
   const shouldStickToBottomRef = useRef(true);
+  const submittingRef = useRef(false);
   const lastMarkedRef = useRef<string>("");
-  const messages = useMemo(
-    () => messagesQuery.data?.pages.slice().reverse().flatMap((page) => page.data.content) ?? [],
-    [messagesQuery.data],
-  );
+  const messages = useMemo(() => {
+    const seenIds = new Set<number>();
+    return (messagesQuery.data?.pages.slice().reverse().flatMap((page) => page.data.content) ?? [])
+      .filter((message) => {
+        if (seenIds.has(message.id)) return false;
+        seenIds.add(message.id);
+        return true;
+      });
+  }, [messagesQuery.data]);
   const latest = messages.at(-1);
 
   useEffect(() => {
@@ -202,7 +208,8 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
 
   async function submit() {
     const normalized = content.trim();
-    if (!normalized || room.readOnly || sendMutation.isPending) return;
+    if (!normalized || room.readOnly || sendMutation.isPending || submittingRef.current) return;
+    submittingRef.current = true;
     shouldStickToBottomRef.current = true;
     setShowJumpToLatest(false);
     try {
@@ -210,10 +217,13 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
       setContent("");
     } catch {
       // Keep the draft in place so the user can retry.
+    } finally {
+      submittingRef.current = false;
     }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing || event.repeat) return;
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void submit();
