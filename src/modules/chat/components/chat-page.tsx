@@ -183,8 +183,8 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   }
 
   return (
-    <section className="flex min-h-[620px] min-w-0 flex-col bg-surface max-[760px]:min-h-[calc(100svh-130px)]">
-      <header className="flex min-w-0 items-center gap-3 border-b border-border px-4 py-3">
+    <section aria-label="Conversation" className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface">
+      <header className="flex min-w-0 shrink-0 items-center gap-3 border-b border-border px-4 py-3">
         <Button aria-label="Back to chat rooms" className="min-[761px]:hidden" onClick={onBack} size="sm" variant="ghost">
           <ArrowLeft size={18} />
         </Button>
@@ -197,7 +197,12 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
         </Badge>
       </header>
 
-      <div className="flex-1 overflow-y-auto bg-surface p-4" onScroll={handleScroll} ref={scrollRef}>
+      <div
+        aria-label="Messages"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-surface p-4"
+        onScroll={handleScroll}
+        ref={scrollRef}
+      >
         {messagesQuery.isLoading ? (
           <LoadingState title="Loading messages" />
         ) : messagesQuery.isError ? (
@@ -214,7 +219,7 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
         )}
       </div>
 
-      <footer className="border-t border-border p-3">
+      <footer className="shrink-0 border-t border-border p-3">
         {room.readOnly ? (
           <div className="flex items-center justify-center gap-2 rounded-xl bg-background px-4 py-3 text-sm text-muted">
             <LockKeyhole size={16} /> This archived room is read-only.
@@ -272,8 +277,8 @@ export function ChatPage() {
   }
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <PageHeader description="Talk with current group members and assigned mentors in real time." eyebrow="Collaboration" title="Chat" />
+    <div className="flex h-[calc(100svh-120px)] min-h-0 min-w-0 flex-col gap-6 overflow-hidden max-[960px]:h-[calc(100svh-104px)] max-[480px]:h-[calc(100svh-96px)]">
+      <PageHeader className="shrink-0" description="Talk with current group members and assigned mentors in real time." eyebrow="Collaboration" title="Chat" />
       {roomsQuery.isLoading ? (
         <LoadingState title="Loading chat rooms" />
       ) : roomsQuery.isError ? (
@@ -281,8 +286,14 @@ export function ChatPage() {
       ) : rooms.length === 0 ? (
         <EmptyState description="A chat room appears when you belong to a group or are assigned as its mentor." icon={<MessageCircle size={22} />} title="No chat rooms" />
       ) : (
-        <div className="grid min-h-[620px] grid-cols-[minmax(260px,340px)_minmax(0,1fr)] overflow-hidden rounded-xl border border-border bg-surface shadow-card max-[760px]:grid-cols-1">
-          <aside className={cn("min-w-0 border-r border-border max-[760px]:border-r-0", selectedRoom && "max-[760px]:hidden")}>
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(260px,340px)_minmax(0,1fr)] overflow-hidden rounded-xl border border-border bg-surface shadow-card max-[760px]:grid-cols-1">
+          <aside
+            aria-label="Chat rooms"
+            className={cn(
+              "min-h-0 min-w-0 overflow-y-auto overscroll-contain border-r border-border max-[760px]:border-r-0",
+              selectedRoom && "max-[760px]:hidden",
+            )}
+          >
             <div className="border-b border-border px-4 py-3 text-sm font-bold text-foreground">Current</div>
             {currentRooms.length > 0 ? (
               <RoomSection onSelect={selectRoom} rooms={currentRooms} selectedId={selectedId} />
@@ -303,11 +314,11 @@ export function ChatPage() {
             </button>
             {archivedOpen && <RoomSection onSelect={selectRoom} rooms={archivedRooms} selectedId={selectedId} />}
           </aside>
-          <div className={cn("min-w-0", !selectedRoom && "max-[760px]:hidden")}>
+          <div className={cn("h-full min-h-0 min-w-0 overflow-hidden", !selectedRoom && "max-[760px]:hidden")}>
             {selectedRoom ? (
               <Conversation key={selectedRoom.groupId} onBack={clearSelection} room={selectedRoom} />
             ) : (
-              <div className="grid min-h-[620px] place-items-center p-8 text-center">
+              <div className="grid h-full min-h-0 place-items-center p-8 text-center">
                 <div className="grid max-w-sm justify-items-center gap-3 text-muted">
                   <span className="grid size-14 place-items-center rounded-full bg-surface-warm text-brand-primary"><MessageCircle size={26} /></span>
                   <strong className="text-lg text-foreground">Select a chat room</strong>

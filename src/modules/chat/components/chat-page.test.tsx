@@ -69,6 +69,9 @@ describe("ChatPage", () => {
     expect(screen.getByText("FA26 · EXE201 · G01")).toBeInTheDocument();
     expect(screen.getByText("SU26 · EXE101 · G01")).toBeInTheDocument();
     expect(screen.getByText("This archived room is read-only.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Chat rooms")).toHaveClass("overflow-y-auto", "overscroll-contain");
+    expect(screen.getByLabelText("Messages")).toHaveClass("overflow-y-auto", "overscroll-contain");
+    expect(screen.getByLabelText("Conversation")).toHaveClass("h-full", "overflow-hidden");
 
     fireEvent.click(screen.getByRole("button", { name: /Archived \(1\)/ }));
     expect(screen.getAllByText("Archived Team")).toHaveLength(2);
