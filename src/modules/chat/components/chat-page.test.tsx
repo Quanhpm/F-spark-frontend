@@ -1,10 +1,12 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { ChatMessageDto } from "../types";
 import { ChatPage } from "./chat-page";
 
 const replace = vi.fn();
 let queryString = "groupId=2";
+let messageContent: ChatMessageDto[] = [];
 vi.mock("next/navigation", () => ({
   usePathname: () => "/student/chat",
   useRouter: () => ({ replace }),
@@ -51,7 +53,7 @@ const rooms = [
 
 vi.mock("../hooks", () => ({
   useChatMessages: () => ({
-    data: { pages: [{ data: { content: [], hasMore: false, nextBeforeId: null } }] },
+    data: { pages: [{ data: { content: messageContent, hasMore: false, nextBeforeId: null } }] },
     fetchNextPage: vi.fn(),
     hasNextPage: false,
     isError: false,
@@ -66,6 +68,7 @@ vi.mock("../hooks", () => ({
 describe("ChatPage", () => {
   beforeEach(() => {
     queryString = "groupId=2";
+    messageContent = [];
   });
 
   it("keeps closed-course history separate and read-only", () => {
@@ -90,4 +93,46 @@ describe("ChatPage", () => {
     expect(screen.getByTestId("chat-empty-illustration")).toBeInTheDocument();
     expect(screen.getByText("Select a chat room")).toBeInTheDocument();
   });
+
+  it("keeps following the newest message when the page size stays unchanged", async () => {
+    queryString = "groupId=1";
+    messageContent = [message(1, "First message")];
+    const { rerender } = render(<ChatPage />);
+    const messages = screen.getByLabelText("Messages");
+    Object.defineProperty(messages, "clientHeight", { configurable: true, value: 300 });
+    Object.defineProperty(messages, "scrollHeight", { configurable: true, value: 1000 });
+    messages.scrollTop = 650;
+    fireEvent.scroll(messages);
+
+    messageContent = [message(2, "Replacement newest message")];
+    rerender(<ChatPage />);
+
+    await waitFor(() => expect(messages.scrollTop).toBe(1000));
+  });
+
+  it("shows a button for returning to the latest message after scrolling up", () => {
+    queryString = "groupId=1";
+    messageContent = [message(1, "A message")];
+    render(<ChatPage />);
+    const messages = screen.getByLabelText("Messages");
+    Object.defineProperty(messages, "clientHeight", { configurable: true, value: 300 });
+    Object.defineProperty(messages, "scrollHeight", { configurable: true, value: 1000 });
+    messages.scrollTop = 100;
+    fireEvent.scroll(messages);
+
+    fireEvent.click(screen.getByRole("button", { name: "Jump to latest message" }));
+
+    expect(messages.scrollTop).toBe(1000);
+    expect(screen.queryByRole("button", { name: "Jump to latest message" })).not.toBeInTheDocument();
+  });
 });
+
+function message(id: number, content: string): ChatMessageDto {
+  return {
+    content,
+    createdAt: "2026-10-23T07:00:00Z",
+    groupId: 1,
+    id,
+    sender: { accountId: 20, displayName: "Mentor", role: "MENTOR" },
+  };
+}

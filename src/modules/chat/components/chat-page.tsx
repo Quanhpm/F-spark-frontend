@@ -2,6 +2,7 @@
 
 import {
   Archive,
+  ArrowDown,
   ArrowLeft,
   ChevronDown,
   ChevronRight,
@@ -167,8 +168,10 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   const sendMutation = useSendChatMessage();
   const readMutation = useMarkChatRead();
   const [content, setContent] = useState("");
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const previousHeightRef = useRef<number | null>(null);
+  const shouldStickToBottomRef = useRef(true);
   const lastMarkedRef = useRef<string>("");
   const messages = useMemo(
     () => messagesQuery.data?.pages.slice().reverse().flatMap((page) => page.data.content) ?? [],
@@ -184,8 +187,10 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
       previousHeightRef.current = null;
       return;
     }
-    element.scrollTop = element.scrollHeight;
-  }, [messages.length, room.groupId]);
+    if (shouldStickToBottomRef.current) {
+      element.scrollTop = element.scrollHeight;
+    }
+  }, [latest?.id, messages.length, room.groupId]);
 
   useEffect(() => {
     if (!latest || document.visibilityState !== "visible") return;
@@ -198,6 +203,8 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   async function submit() {
     const normalized = content.trim();
     if (!normalized || room.readOnly || sendMutation.isPending) return;
+    shouldStickToBottomRef.current = true;
+    setShowJumpToLatest(false);
     try {
       await sendMutation.mutateAsync({ groupId: room.groupId, content: normalized });
       setContent("");
@@ -215,10 +222,25 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
 
   function handleScroll(event: UIEvent<HTMLDivElement>) {
     const element = event.currentTarget;
+    const distanceFromBottom = Math.max(
+      0,
+      element.scrollHeight - element.scrollTop - element.clientHeight,
+    );
+    const isNearBottom = distanceFromBottom <= 120;
+    shouldStickToBottomRef.current = isNearBottom;
+    setShowJumpToLatest(!isNearBottom && messages.length > 0);
     if (element.scrollTop < 80 && messagesQuery.hasNextPage && !messagesQuery.isFetchingNextPage) {
       previousHeightRef.current = element.scrollHeight;
       void messagesQuery.fetchNextPage();
     }
+  }
+
+  function jumpToLatest() {
+    const element = scrollRef.current;
+    if (!element) return;
+    shouldStickToBottomRef.current = true;
+    setShowJumpToLatest(false);
+    element.scrollTop = element.scrollHeight;
   }
 
   return (
@@ -263,6 +285,21 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
           </div>
         )}
       </div>
+
+      {showJumpToLatest && (
+        <div className="relative z-10 h-0 shrink-0">
+          <Button
+            aria-label="Jump to latest message"
+            className="absolute right-4 bottom-3 shadow-lg"
+            icon={<ArrowDown size={16} />}
+            onClick={jumpToLatest}
+            size="sm"
+            variant="secondary"
+          >
+            Latest
+          </Button>
+        </div>
+      )}
 
       <footer className="shrink-0 border-t border-border p-3">
         {room.readOnly ? (
