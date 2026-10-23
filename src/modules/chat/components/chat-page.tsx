@@ -109,7 +109,7 @@ function MessageBubble({ message, own }: { message: ChatMessageDto; own: boolean
           </span>
         )}
         <div className={cn(
-          "whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          "w-fit max-w-full whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
           own ? "rounded-br-md bg-brand-primary text-white" : "rounded-bl-md bg-background text-foreground",
         )}>
           {message.content}
