@@ -110,7 +110,7 @@ describe("AppShell route guard", () => {
     expect(
       screen.getByRole("link", { name: "Open profile for admin@fspark.com" }),
     ).toHaveAttribute("href", "/admin/profile");
-    expect(screen.getByText("Version 13")).toBeInTheDocument();
+    expect(screen.getByText("Version 14")).toBeInTheDocument();
   });
 
   it("keeps only one admin navigation group open", () => {
@@ -211,7 +211,7 @@ describe("AppShell route guard", () => {
     render(<AppShell role="STUDENT">Student content</AppShell>);
 
     expect(screen.getByText("Student content")).toBeInTheDocument();
-    expect(screen.queryByText("Version 13")).not.toBeInTheDocument();
+    expect(screen.queryByText("Version 14")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Notifications" })).toHaveAttribute(
       "href",
       "/student/notifications",
