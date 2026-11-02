@@ -41,11 +41,31 @@ async function getRegistration() {
   return existing ?? navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
 }
 
+function hasApplicationServerKey(subscription: PushSubscription, expectedKey: Uint8Array) {
+  const currentKey = subscription.options.applicationServerKey;
+  if (!currentKey) return false;
+  const currentBytes = new Uint8Array(currentKey);
+  return currentBytes.length === expectedKey.length
+    && currentBytes.every((value, index) => value === expectedKey[index]);
+}
+
 export async function syncWebPushSubscription(publicKey: string) {
   const registration = await getRegistration();
-  const existing = await registration.pushManager.getSubscription();
-  const subscription = existing ?? await registration.pushManager.subscribe({
-    applicationServerKey: urlBase64ToUint8Array(publicKey),
+  const expectedKey = urlBase64ToUint8Array(publicKey);
+  let subscription = await registration.pushManager.getSubscription();
+  if (subscription && !hasApplicationServerKey(subscription, expectedKey)) {
+    await apiRequest<ApiResponse<null>>("/api/push/subscriptions", {
+      body: { endpoint: subscription.endpoint },
+      method: "DELETE",
+    }).catch(() => undefined);
+    const removed = await subscription.unsubscribe();
+    if (!removed) {
+      throw new Error("The old push subscription could not be replaced.");
+    }
+    subscription = null;
+  }
+  subscription ??= await registration.pushManager.subscribe({
+    applicationServerKey: expectedKey,
     userVisibleOnly: true,
   });
   const json = subscription.toJSON();
