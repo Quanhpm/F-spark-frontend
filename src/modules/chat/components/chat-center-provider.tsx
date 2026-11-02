@@ -5,9 +5,10 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuthStore } from "@/modules/auth";
 import { queryKeys } from "@/shared/lib";
+import type { ApiResponse } from "@/shared/types";
 import { useRealtimeEvent, useRealtimeReconnect } from "@/shared/realtime";
 import { useChatUnreadCount } from "../hooks";
-import type { ChatMessageDto } from "../types";
+import type { ChatMessageDto, ChatReadReceiptDto } from "../types";
 
 type ChatCenterValue = { unreadCount: number };
 
@@ -37,11 +38,42 @@ export function ChatCenterProvider({ children }: { children: ReactNode }) {
 
   useRealtimeEvent("chat", handleMessage);
 
+  const handleReadReceipt = useCallback(
+    (message: { body: string }) => {
+      let payload: ChatReadReceiptDto;
+      try {
+        payload = JSON.parse(message.body) as ChatReadReceiptDto;
+      } catch {
+        return;
+      }
+      if (!payload || typeof payload.groupId !== "number" || typeof payload.accountId !== "number") return;
+      const queryKey = queryKeys.chat.receipts(payload.groupId);
+      queryClient.setQueryData<ApiResponse<ChatReadReceiptDto[]>>(queryKey, (current) => {
+        if (!current) {
+          void queryClient.invalidateQueries({ queryKey });
+          return current;
+        }
+        const existing = current.data.find((item) => item.accountId === payload.accountId);
+        if (existing && (existing.lastReadMessageId ?? 0) >= (payload.lastReadMessageId ?? 0)) {
+          return current;
+        }
+        const data = existing
+          ? current.data.map((item) => item.accountId === payload.accountId ? payload : item)
+          : [...current.data, payload];
+        return { ...current, data };
+      });
+    },
+    [queryClient],
+  );
+
+  useRealtimeEvent("chatReadReceipts", handleReadReceipt);
+
   const handleReconnect = useCallback(() => {
     if (!enabled) return;
     void queryClient.invalidateQueries({ queryKey: queryKeys.chat.rooms() });
     void queryClient.invalidateQueries({ queryKey: queryKeys.chat.messagesRoot() });
     void queryClient.invalidateQueries({ queryKey: queryKeys.chat.unreadCount() });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.chat.receiptsRoot() });
   }, [enabled, queryClient]);
 
   useRealtimeReconnect(handleReconnect);

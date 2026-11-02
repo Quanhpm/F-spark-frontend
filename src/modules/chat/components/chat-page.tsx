@@ -25,10 +25,17 @@ import {
 import { toast } from "sonner";
 
 import { useAuthStore } from "@/modules/auth";
+import { PushNotificationButton } from "@/modules/push";
 import { ApiError, cn } from "@/shared/lib";
-import { Badge, Button, EmptyState, LoadingState } from "@/shared/components/ui";
-import { useChatMessages, useChatRooms, useMarkChatRead, useSendChatMessage } from "../hooks";
-import type { ChatMessageDto, ChatRoomDto } from "../types";
+import { Badge, Button, EmptyState, LoadingState, ResponsiveDialog } from "@/shared/components/ui";
+import {
+  useChatMessages,
+  useChatReadReceipts,
+  useChatRooms,
+  useMarkChatRead,
+  useSendChatMessage,
+} from "../hooks";
+import type { ChatMessageDto, ChatReadReceiptDto, ChatRoomDto } from "../types";
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -110,16 +117,20 @@ function MessageBubble({
   message,
   onNavigateToReply,
   onReply,
+  onShowReceipts,
   own,
   readOnly,
+  seenCount,
 }: {
   highlighted: boolean;
   locatingReplyId: number | null;
   message: ChatMessageDto;
   onNavigateToReply: (messageId: number) => void;
   onReply: (message: ChatMessageDto) => void;
+  onShowReceipts: (message: ChatMessageDto) => void;
   own: boolean;
   readOnly: boolean;
+  seenCount: number;
 }) {
   const replyAction = !readOnly && (
     <button
@@ -193,9 +204,18 @@ function MessageBubble({
           )}
           <span className="min-w-0 [overflow-wrap:anywhere]">{message.content}</span>
         </div>
-        <time className="px-1 text-[11px] text-muted" dateTime={message.createdAt}>
-          {formatTime(message.createdAt)}
-        </time>
+        <span className={cn("flex items-center gap-2 px-1 text-[11px] text-muted", own && "justify-end")}>
+          <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
+          {own && (
+            <button
+              className="cursor-pointer border-0 bg-transparent p-0 text-[11px] font-semibold text-brand-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+              onClick={() => onShowReceipts(message)}
+              type="button"
+            >
+              Đã xem · {seenCount}
+            </button>
+          )}
+        </span>
       </div>
       {!own && replyAction}
     </div>
@@ -241,9 +261,28 @@ function ChatRoomEmptyIllustration({ compact = false }: { compact?: boolean }) {
   );
 }
 
+function ReceiptPeople({ empty, people }: { empty: string; people: ChatReadReceiptDto[] }) {
+  if (people.length === 0) {
+    return <p className="m-0 text-sm text-muted">{empty}</p>;
+  }
+  return (
+    <ul className="m-0 grid list-none gap-2 p-0">
+      {people.map((person) => (
+        <li className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2.5" key={person.accountId}>
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">{person.displayName}</span>
+          <Badge size="sm" tone={person.role === "MENTOR" ? "brand" : "neutral"}>
+            {person.role === "MENTOR" ? "Mentor" : "Student"}
+          </Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void }) {
   const accountId = useAuthStore((state) => state.session?.user.id);
   const messagesQuery = useChatMessages(room.groupId);
+  const receiptsQuery = useChatReadReceipts(room.groupId);
   const sendMutation = useSendChatMessage();
   const readMutation = useMarkChatRead();
   const [content, setContent] = useState("");
@@ -252,6 +291,7 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const [locatingReplyId, setLocatingReplyId] = useState<number | null>(null);
   const [pendingNavigationId, setPendingNavigationId] = useState<number | null>(null);
+  const [receiptMessage, setReceiptMessage] = useState<ChatMessageDto | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previousHeightRef = useRef<number | null>(null);
@@ -259,6 +299,7 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
   const submittingRef = useRef(false);
   const locatingReplyRef = useRef(false);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const readDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMarkedRef = useRef<string>("");
   const messages = useMemo(() => {
     const seenIds = new Set<number>();
@@ -273,7 +314,18 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
 
   useEffect(() => () => {
     if (highlightTimerRef.current != null) clearTimeout(highlightTimerRef.current);
+    if (readDebounceRef.current != null) clearTimeout(readDebounceRef.current);
   }, []);
+
+  useEffect(() => {
+    const ownReceipt = receiptsQuery.data?.data.find((receipt) => receipt.accountId === accountId);
+    if (ownReceipt?.lastReadMessageId != null) {
+      const currentId = Number(lastMarkedRef.current.split(":")[1] ?? 0);
+      if (ownReceipt.lastReadMessageId > currentId) {
+        lastMarkedRef.current = `${room.groupId}:${ownReceipt.lastReadMessageId}`;
+      }
+    }
+  }, [accountId, receiptsQuery.data, room.groupId]);
 
   useEffect(() => {
     if (pendingNavigationId == null) return;
@@ -304,14 +356,6 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
       element.scrollTop = element.scrollHeight;
     }
   }, [latest?.id, messages.length, room.groupId]);
-
-  useEffect(() => {
-    if (!latest || document.visibilityState !== "visible") return;
-    const key = `${room.groupId}:${latest.id}`;
-    if (lastMarkedRef.current === key) return;
-    lastMarkedRef.current = key;
-    readMutation.mutate({ groupId: room.groupId, messageId: latest.id });
-  }, [latest?.id, room.groupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit() {
     const normalized = content.trim();
@@ -351,11 +395,72 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
     const isNearBottom = distanceFromBottom <= 120;
     shouldStickToBottomRef.current = isNearBottom;
     setShowJumpToLatest(!isNearBottom && messages.length > 0);
+    scheduleVisibleRead();
     if (element.scrollTop < 80 && messagesQuery.hasNextPage && !messagesQuery.isFetchingNextPage) {
       previousHeightRef.current = element.scrollHeight;
       void messagesQuery.fetchNextPage();
     }
   }
+
+  function highestVisibleMessageId() {
+    const root = scrollRef.current;
+    if (!root || document.visibilityState !== "visible") return null;
+    const rootRect = root.getBoundingClientRect();
+    let highest: number | null = null;
+    root.querySelectorAll<HTMLElement>("[data-message-id]").forEach((element) => {
+      const rect = element.getBoundingClientRect();
+      const visibleHeight = Math.max(
+        0,
+        Math.min(rect.bottom, rootRect.bottom) - Math.max(rect.top, rootRect.top),
+      );
+      const requiredHeight = Math.min(rect.height, rootRect.height) * 0.25;
+      const id = Number(element.dataset.messageId);
+      if (visibleHeight >= requiredHeight && Number.isSafeInteger(id)) {
+        highest = highest == null ? id : Math.max(highest, id);
+      }
+    });
+    return highest;
+  }
+
+  function scheduleVisibleRead() {
+    const messageId = highestVisibleMessageId();
+    if (messageId == null) return;
+    const lastMarkedId = Number(lastMarkedRef.current.split(":")[1] ?? 0);
+    if (messageId <= lastMarkedId) return;
+    if (readDebounceRef.current != null) clearTimeout(readDebounceRef.current);
+    readDebounceRef.current = setTimeout(() => {
+      const latestVisibleId = highestVisibleMessageId();
+      const currentMarkedId = Number(lastMarkedRef.current.split(":")[1] ?? 0);
+      if (latestVisibleId == null || latestVisibleId <= currentMarkedId) return;
+      const previousKey = lastMarkedRef.current;
+      lastMarkedRef.current = `${room.groupId}:${latestVisibleId}`;
+      readMutation.mutate(
+        { groupId: room.groupId, messageId: latestVisibleId },
+        { onError: () => { lastMarkedRef.current = previousKey; } },
+      );
+    }, 300);
+  }
+
+  function receiptsFor(message: ChatMessageDto) {
+    const participants = (receiptsQuery.data?.data ?? [])
+      .filter((receipt) => receipt.accountId !== message.sender.accountId);
+    return {
+      seen: participants.filter((receipt) => (receipt.lastReadMessageId ?? 0) >= message.id),
+      unseen: participants.filter((receipt) => (receipt.lastReadMessageId ?? 0) < message.id),
+    };
+  }
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => scheduleVisibleRead());
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") scheduleVisibleRead();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [messages, room.groupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function jumpToLatest() {
     const element = scrollRef.current;
@@ -412,6 +517,7 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
           <strong className="truncate text-base text-foreground">{room.groupName}</strong>
           <span className="text-xs text-muted">{room.term} · {room.courseCode} · {room.groupNo}</span>
         </div>
+        <PushNotificationButton />
         <Badge tone={room.archived ? "neutral" : "success"}>
           {room.termStatus === "CLOSED" ? "Closed term" : room.groupStatus === "INACTIVE" ? "Inactive" : "Current"}
         </Badge>
@@ -446,8 +552,10 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
                 message={message}
                 onNavigateToReply={(messageId) => void navigateToReply(messageId)}
                 onReply={beginReply}
+                onShowReceipts={setReceiptMessage}
                 own={message.sender.accountId === accountId}
                 readOnly={room.readOnly}
+                seenCount={receiptsFor(message).seen.length}
               />
             ))}
           </div>
@@ -524,6 +632,34 @@ function Conversation({ room, onBack }: { room: ChatRoomDto; onBack: () => void 
           </div>
         )}
       </footer>
+
+      {receiptMessage && (() => {
+        const { seen, unseen } = receiptsFor(receiptMessage);
+        return (
+          <ResponsiveDialog
+            description="Trạng thái đọc của các thành viên hiện tại trong nhóm."
+            onClose={() => setReceiptMessage(null)}
+            title="Chi tiết đã xem"
+          >
+            {receiptsQuery.isLoading ? (
+              <LoadingState title="Đang tải trạng thái đã xem" />
+            ) : receiptsQuery.isError ? (
+              <EmptyState description={errorMessage(receiptsQuery.error)} title="Không thể tải trạng thái đã xem" />
+            ) : (
+              <div className="grid gap-5">
+                <section className="grid gap-2">
+                  <h3 className="m-0 text-sm font-bold text-foreground">Đã xem ({seen.length})</h3>
+                  <ReceiptPeople empty="Chưa có thành viên nào xem tin nhắn này." people={seen} />
+                </section>
+                <section className="grid gap-2">
+                  <h3 className="m-0 text-sm font-bold text-foreground">Chưa xem ({unseen.length})</h3>
+                  <ReceiptPeople empty="Tất cả thành viên đã xem tin nhắn này." people={unseen} />
+                </section>
+              </div>
+            )}
+          </ResponsiveDialog>
+        );
+      })()}
     </section>
   );
 }

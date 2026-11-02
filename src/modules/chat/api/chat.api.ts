@@ -3,6 +3,7 @@ import type { ApiResponse } from "@/shared/types";
 import type {
   ChatMessageDto,
   ChatMessagePageDto,
+  ChatReadReceiptDto,
   ChatReadStateDto,
   ChatRoomDto,
 } from "../types";
@@ -37,5 +38,11 @@ export function markChatRead(groupId: number, lastReadMessageId: number) {
   return apiPatch<ApiResponse<ChatReadStateDto>>(
     `/api/chat/groups/${groupId}/read`,
     { lastReadMessageId },
+  );
+}
+
+export function listChatReadReceipts(groupId: number) {
+  return apiGet<ApiResponse<ChatReadReceiptDto[]>>(
+    `/api/chat/groups/${groupId}/read-receipts`,
   );
 }

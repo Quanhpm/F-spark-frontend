@@ -165,6 +165,8 @@ export const queryKeys = {
     messagesRoot: () => ["chat", "groups"] as const,
     messages: (groupId: number) => ["chat", "groups", groupId, "messages"] as const,
     emptyMessages: () => ["chat", "groups", "empty", "messages"] as const,
+    receiptsRoot: () => ["chat", "read-receipts"] as const,
+    receipts: (groupId: number) => ["chat", "read-receipts", groupId] as const,
   },
   feedback: {
     all: ["feedback"] as const,

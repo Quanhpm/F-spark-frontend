@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ChatMessageDto } from "../types";
+import type { ChatMessageDto, ChatReadReceiptDto } from "../types";
 import { ChatPage } from "./chat-page";
 
 const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }));
@@ -12,6 +12,7 @@ let queryString = "groupId=2";
 let messageContent: ChatMessageDto[] = [];
 let messagePages: ChatMessageDto[][] | null = null;
 let hasNextPage = false;
+let readReceipts: ChatReadReceiptDto[] = [];
 vi.mock("next/navigation", () => ({
   usePathname: () => "/student/chat",
   useRouter: () => ({ replace }),
@@ -22,6 +23,8 @@ vi.mock("@/modules/auth", () => ({
   useAuthStore: (selector: (state: unknown) => unknown) =>
     selector({ session: { user: { id: 10, role: "STUDENT" } } }),
 }));
+
+vi.mock("@/modules/push", () => ({ PushNotificationButton: () => null }));
 
 vi.mock("sonner", () => ({ toast: { error: toastError } }));
 
@@ -72,6 +75,7 @@ vi.mock("../hooks", () => ({
     isLoading: false,
   }),
   useChatRooms: () => ({ data: { data: rooms }, isError: false, isLoading: false }),
+  useChatReadReceipts: () => ({ data: { data: readReceipts }, isError: false, isLoading: false }),
   useMarkChatRead: () => ({ mutate: vi.fn() }),
   useSendChatMessage: () => ({ isError: false, isPending: false, mutateAsync: sendMessage }),
 }));
@@ -82,6 +86,7 @@ describe("ChatPage", () => {
     messageContent = [];
     messagePages = null;
     hasNextPage = false;
+    readReceipts = [];
     fetchNextPage.mockReset().mockResolvedValue({
       data: { pages: [] },
       hasNextPage: false,
@@ -89,6 +94,43 @@ describe("ChatPage", () => {
     });
     sendMessage.mockReset().mockResolvedValue(undefined);
     toastError.mockReset();
+  });
+
+  it("shows read counts only on own messages and opens viewed and unviewed details", () => {
+    queryString = "groupId=1";
+    messageContent = [
+      {
+        content: "Please review",
+        createdAt: "2026-10-20T10:00:00Z",
+        groupId: 1,
+        id: 20,
+        replyTo: null,
+        sender: { accountId: 10, displayName: "Me", role: "STUDENT" },
+      },
+      {
+        content: "Reply",
+        createdAt: "2026-10-20T10:01:00Z",
+        groupId: 1,
+        id: 21,
+        replyTo: null,
+        sender: { accountId: 11, displayName: "Other", role: "STUDENT" },
+      },
+    ];
+    readReceipts = [
+      { accountId: 10, displayName: "Me", groupId: 1, lastReadMessageId: 21, role: "STUDENT" },
+      { accountId: 11, displayName: "Other", groupId: 1, lastReadMessageId: 20, role: "STUDENT" },
+      { accountId: 12, displayName: "Mentor One", groupId: 1, lastReadMessageId: null, role: "MENTOR" },
+    ];
+
+    render(<ChatPage />);
+
+    expect(screen.getAllByRole("button", { name: "Đã xem · 1" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Đã xem · 1" }));
+    expect(screen.getByRole("dialog", { name: "Chi tiết đã xem" })).toBeInTheDocument();
+    expect(screen.getByText("Đã xem (1)")).toBeInTheDocument();
+    expect(screen.getByText("Chưa xem (1)")).toBeInTheDocument();
+    expect(screen.getByText("Other")).toBeInTheDocument();
+    expect(screen.getByText("Mentor One")).toBeInTheDocument();
   });
 
   it("keeps closed-course history separate and read-only", () => {

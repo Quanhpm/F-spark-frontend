@@ -37,6 +37,7 @@ import {
   NotificationBell,
   NotificationCenterProvider,
 } from "@/modules/notifications";
+import { WebPushProvider } from "@/modules/push";
 import {
   ChatCenterProvider,
   useChatCenter,
@@ -497,8 +498,9 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
 
   return (
     <RealtimeProvider>
-      <ChatCenterProvider>
-        <NotificationCenterProvider>
+      <WebPushProvider>
+        <ChatCenterProvider>
+          <NotificationCenterProvider>
           <div className="grid min-h-svh grid-cols-[260px_minmax(0,1fr)] overflow-x-clip bg-background font-sans text-foreground max-[960px]:grid-cols-[minmax(0,1fr)]">
       <aside className="sticky top-0 flex h-svh flex-col justify-between gap-6 overflow-y-auto border-r border-border bg-surface px-4 py-[22px] max-[960px]:hidden">
         <div className="flex min-w-0 flex-col gap-6">
@@ -658,8 +660,9 @@ export function AppShell({ children, role, topbarContent }: AppShellProps) {
         </div>
       )}
           </div>
-        </NotificationCenterProvider>
-      </ChatCenterProvider>
+          </NotificationCenterProvider>
+        </ChatCenterProvider>
+      </WebPushProvider>
     </RealtimeProvider>
   );
 }

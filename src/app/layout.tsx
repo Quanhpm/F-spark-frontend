@@ -16,6 +16,14 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "F-Spark",
   description: "EXE Project Management System",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "F-Spark",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 type RootLayoutProps = Readonly<{

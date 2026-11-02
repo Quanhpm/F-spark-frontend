@@ -12,7 +12,7 @@ import {
 
 import { useAuthStore } from "@/modules/auth";
 
-type RealtimeChannel = "chat" | "notifications";
+type RealtimeChannel = "chat" | "chatReadReceipts" | "notifications";
 type RealtimeHandler = (message: IMessage) => void;
 
 type RealtimeContextValue = {
@@ -27,7 +27,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     (state) => state.session?.tokens.accessToken ?? null,
   );
   const listenersRef = useRef<Record<RealtimeChannel, Set<RealtimeHandler>>>(
-    { chat: new Set(), notifications: new Set() },
+    { chat: new Set(), chatReadReceipts: new Set(), notifications: new Set() },
   );
   const reconnectListenersRef = useRef(new Set<() => void>());
 
@@ -62,9 +62,14 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     let subscriptions: StompSubscription[] = [];
 
     client.onConnect = () => {
-      subscriptions = (["notifications", "chat"] as const).map((channel) =>
+      const destinations: Record<RealtimeChannel, string> = {
+        chat: "chat",
+        chatReadReceipts: "chat-read-receipts",
+        notifications: "notifications",
+      };
+      subscriptions = (["notifications", "chat", "chatReadReceipts"] as const).map((channel) =>
         client.subscribe(
-          `/user/queue/${channel}`,
+          `/user/queue/${destinations[channel]}`,
           (message) => {
             listenersRef.current[channel].forEach((handler) => handler(message));
           },

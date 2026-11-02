@@ -9,6 +9,7 @@ import type { ApiResponse } from "@/shared/types";
 import { queryKeys } from "@/shared/lib";
 import {
   getChatUnreadCount,
+  listChatReadReceipts,
   listChatMessages,
   listChatRooms,
   markChatRead,
@@ -47,6 +48,20 @@ export function useChatMessages(groupId: number | null) {
     queryFn: ({ pageParam }) => {
       if (groupId == null) throw new Error("A group id is required");
       return listChatMessages(groupId, pageParam);
+    },
+    queryKey,
+  });
+}
+
+export function useChatReadReceipts(groupId: number | null) {
+  const queryKey = groupId == null
+    ? queryKeys.chat.receiptsRoot()
+    : queryKeys.chat.receipts(groupId);
+  return useQuery({
+    enabled: groupId != null,
+    queryFn: () => {
+      if (groupId == null) throw new Error("A group id is required");
+      return listChatReadReceipts(groupId);
     },
     queryKey,
   });

@@ -60,3 +60,11 @@ export type ChatReadStateDto = {
   roomUnreadCount: number;
   totalUnreadCount: number;
 };
+
+export type ChatReadReceiptDto = {
+  groupId: number;
+  accountId: number;
+  displayName: string;
+  role: UserRole;
+  lastReadMessageId: number | null;
+};

@@ -7,6 +7,10 @@ import { logout } from "../api/auth.api";
 import { useAuthStore } from "../stores/auth.store";
 import { useLogout } from "./use-logout";
 
+vi.mock("@/modules/push/web-push", () => ({
+  unsubscribeCurrentWebPush: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("../api/auth.api", () => ({
   logout: vi.fn(),
 }));
