@@ -252,13 +252,15 @@ export function MeetingAttendanceDialog({
       </Button>
     </>
   ) : (
+    // The footer is column-reverse on mobile: the last button renders on top, so the
+    // primary action goes last.
     <>
+      <Button onClick={onClose} variant="secondary">Close</Button>
       {!admin && view?.canEdit && tab === "sheet" && (
-        <Button icon={<Pencil size={14} />} onClick={startEditing} variant="secondary">
+        <Button icon={<Pencil size={14} />} onClick={startEditing}>
           Edit attendance
         </Button>
       )}
-      <Button onClick={onClose} variant="secondary">Close</Button>
     </>
   );
 
