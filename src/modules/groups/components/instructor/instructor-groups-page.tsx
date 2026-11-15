@@ -17,7 +17,12 @@ import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAvailableAcademicTerms } from "@/modules/feedback";
-import { MeetingConfirmationStatus, getMeetingDisplayStatus, useGroupMeetings } from "@/modules/mentoring";
+import {
+  GroupAttendanceSummary,
+  MeetingConfirmationStatus,
+  getMeetingDisplayStatus,
+  useGroupMeetings,
+} from "@/modules/mentoring";
 import {
   Badge,
   Button,
@@ -133,6 +138,10 @@ function MeetingReportsDialog({
         <EmptyState title="No meetings reported" />
       ) : (
         <div className="grid gap-3">
+          <section aria-label="Attendance by student" className="grid gap-2 rounded-xl border border-border bg-background p-4">
+            <strong className="text-sm text-foreground">Attendance by student</strong>
+            <GroupAttendanceSummary groupId={groupId} />
+          </section>
           {meetings.map((meeting) => (
             <article
               className="grid gap-2 rounded-xl border border-border bg-background p-4"

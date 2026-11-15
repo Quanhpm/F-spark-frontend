@@ -3,6 +3,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   ExternalLink,
   FileImage,
   History,
@@ -29,9 +30,11 @@ import type { MeetingStatus } from "@/shared/types";
 
 import { useAdminMeetings } from "../hooks";
 import type {
+  AdminMeetingAttendanceFilter,
   AdminMeetingEvidenceFilter,
   MentorMeetingDto,
 } from "../types";
+import { MeetingAttendanceDialog } from "./meeting-attendance-dialog";
 import { MeetingReopenHistoryDialog } from "./meeting-reopen-history-dialog";
 import { ReopenMeetingDialog } from "./reopen-meeting-dialog";
 import { getMeetingDisplayStatus } from "./availability-calendar.utils";
@@ -146,7 +149,7 @@ function MeetingCard({
           </dd>
         </div>
       </dl>
-      <MeetingConfirmationStatus meeting={meeting} />
+      <MeetingConfirmationStatus adminAttendance meeting={meeting} />
       <div className="border-t border-border pt-3">
         <EvidenceDetails meeting={meeting} />
       </div>
@@ -173,6 +176,8 @@ export function AdminMeetingEvidencePage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<MeetingStatus | "ALL">("ALL");
   const [evidence, setEvidence] = useState<AdminMeetingEvidenceFilter>("ALL");
+  const [attendance, setAttendance] = useState<AdminMeetingAttendanceFilter>("ALL");
+  const [attendanceMeeting, setAttendanceMeeting] = useState<MentorMeetingDto | null>(null);
   const [page, setPage] = useState(0);
   const [reopening, setReopening] = useState<MentorMeetingDto | null>(null);
   const [historyMeeting, setHistoryMeeting] = useState<MentorMeetingDto | null>(null);
@@ -184,9 +189,10 @@ export function AdminMeetingEvidencePage() {
       search: search || undefined,
       status,
       evidence,
+      attendance,
       groupId,
     }),
-    [evidence, groupId, page, search, status],
+    [attendance, evidence, groupId, page, search, status],
   );
   const meetingsQuery = useAdminMeetings(query);
   const result = meetingsQuery.data?.data;
@@ -217,7 +223,7 @@ export function AdminMeetingEvidencePage() {
       <Card>
         <CardContent className="grid gap-4">
           <form
-            className="grid grid-cols-[minmax(220px,1fr)_minmax(160px,220px)_minmax(160px,220px)_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]"
+            className="grid grid-cols-[minmax(220px,1fr)_minmax(150px,200px)_minmax(150px,200px)_minmax(150px,200px)_auto] items-end gap-3 max-[760px]:grid-cols-[minmax(0,1fr)]"
             onSubmit={applySearch}
           >
             <TextInput
@@ -251,6 +257,18 @@ export function AdminMeetingEvidencePage() {
               <option value="ALL">All evidence states</option>
               <option value="SUBMITTED">Submitted</option>
               <option value="MISSING">Missing</option>
+            </Select>
+            <Select
+              label="Attendance"
+              onChange={(event) => {
+                setAttendance(event.target.value as AdminMeetingAttendanceFilter);
+                setPage(0);
+              }}
+              value={attendance}
+            >
+              <option value="ALL">All attendance states</option>
+              <option value="RECORDED">Recorded</option>
+              <option value="MISSING">Not recorded</option>
             </Select>
             <Button icon={<Search size={16} />} type="submit">Search</Button>
           </form>
@@ -348,6 +366,11 @@ export function AdminMeetingEvidencePage() {
                             Reopen
                           </Button>
                         )}
+                        {meeting.status !== "CANCELED" && (
+                          <Button icon={<ClipboardList size={14} />} onClick={() => setAttendanceMeeting(meeting)} size="sm" variant="secondary">
+                            Attendance
+                          </Button>
+                        )}
                         <Button icon={<History size={14} />} onClick={() => setHistoryMeeting(meeting)} size="sm" variant="ghost">
                           Reopen history
                         </Button>
@@ -405,6 +428,9 @@ export function AdminMeetingEvidencePage() {
       {reopening && <ReopenMeetingDialog meeting={reopening} onClose={() => setReopening(null)} />}
       {historyMeeting && (
         <MeetingReopenHistoryDialog meeting={historyMeeting} onClose={() => setHistoryMeeting(null)} />
+      )}
+      {attendanceMeeting && (
+        <MeetingAttendanceDialog admin meeting={attendanceMeeting} onClose={() => setAttendanceMeeting(null)} />
       )}
     </div>
   );

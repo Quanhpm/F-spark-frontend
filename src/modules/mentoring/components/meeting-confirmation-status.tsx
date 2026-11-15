@@ -1,7 +1,12 @@
-import { CheckCircle2, Clock3 } from "lucide-react";
+"use client";
+
+import { CheckCircle2, ClipboardList, Clock3 } from "lucide-react";
+import { useState } from "react";
 
 import type { MentorMeetingDto } from "../types";
 import { formatMentorIdentity } from "./availability-calendar.utils";
+import { MeetingAttendanceDialog } from "./meeting-attendance-dialog";
+import { formatAttendanceSummary } from "./meeting-attendance.utils";
 
 function formatConfirmationTime(value: string | null) {
   if (!value) return null;
@@ -21,12 +26,19 @@ function ConfirmedIcon() {
 }
 
 export function MeetingConfirmationStatus({
+  adminAttendance = false,
   compact = false,
   meeting,
 }: {
+  /** Open the attendance dialog in admin correction mode. */
+  adminAttendance?: boolean;
   compact?: boolean;
   meeting: MentorMeetingDto;
 }) {
+  const [attendanceOpen, setAttendanceOpen] = useState(false);
+  const attendanceText = formatAttendanceSummary(meeting.attendanceSummary);
+  const showAttendance = meeting.status !== "CANCELED"
+    && (Boolean(meeting.mentorConfirmedAt) || Boolean(attendanceText) || adminAttendance);
   const studentConfirmed = Boolean(
     meeting.evidenceImageUrl?.trim() || meeting.evidenceSubmittedAt,
   );
@@ -73,6 +85,34 @@ export function MeetingConfirmationStatus({
           {mentorTime && <span className="block text-[11px] text-muted">{mentorTime}</span>}
         </div>
       </div>
+
+      {showAttendance && (
+        <div className={compact ? "flex min-w-0 items-start gap-2" : "flex min-w-0 items-start gap-2 sm:col-span-2"}>
+          <ClipboardList aria-hidden="true" className="mt-0.5 shrink-0 text-muted" size={17} />
+          <div className="min-w-0">
+            <strong className="block text-xs text-foreground">Attendance</strong>
+            <span className="block break-words text-muted">
+              {attendanceText ?? "Not recorded"}
+            </span>
+            {!compact && (
+              <button
+                className="mt-1 text-xs font-semibold text-brand-primary hover:underline"
+                onClick={() => setAttendanceOpen(true)}
+                type="button"
+              >
+                View attendance
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {attendanceOpen && (
+        <MeetingAttendanceDialog
+          admin={adminAttendance}
+          meeting={meeting}
+          onClose={() => setAttendanceOpen(false)}
+        />
+      )}
     </section>
   );
 }

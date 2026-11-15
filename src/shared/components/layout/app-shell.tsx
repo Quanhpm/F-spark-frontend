@@ -102,6 +102,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
       { href: "/admin/meeting-evidence", icon: FileImage, label: "Meeting evidence" },
+      { href: "/admin/attendance", icon: ClipboardList, label: "Meeting attendance" },
       { href: "/admin/mentor-activity", icon: ChartNoAxesCombined, label: "Mentor activity" },
     ],
     label: "Engagement",

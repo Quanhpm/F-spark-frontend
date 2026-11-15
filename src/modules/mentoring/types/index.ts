@@ -88,6 +88,106 @@ export type MentorMeetingDto = {
   evidenceSubmittedAt: ISODateTimeString | null;
   createdAt: ISODateTimeString;
   updatedAt: ISODateTimeString;
+  attendanceSummary?: MeetingAttendanceSummaryDto;
+};
+
+export type MeetingAttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
+
+export type MeetingAttendanceSummaryDto = {
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  total: number;
+};
+
+export type MeetingAttendanceDto = {
+  id: number | null;
+  studentId: number | null;
+  studentCode: string;
+  studentName: string;
+  status: MeetingAttendanceStatus | null;
+  note: string | null;
+  markedAt: ISODateTimeString | null;
+  markedByEmail: string | null;
+  stillInGroup: boolean;
+};
+
+export type MeetingAttendanceViewDto = {
+  meetingId: number;
+  recorded: boolean;
+  mentorEditableUntil: ISODateTimeString | null;
+  canEdit: boolean;
+  summary: MeetingAttendanceSummaryDto;
+  attendances: MeetingAttendanceDto[];
+};
+
+export type AttendanceEntryRequest = {
+  studentId: number;
+  status: MeetingAttendanceStatus;
+  note?: string | null;
+};
+
+export type MeetingAttendanceRequest = {
+  attendances: AttendanceEntryRequest[];
+};
+
+export type AdminAttendanceOverrideRequest = {
+  status: MeetingAttendanceStatus;
+  note?: string | null;
+  reason: string;
+};
+
+export type MeetingAttendanceEventAction =
+  | "MARK"
+  | "UPDATE"
+  | "ADMIN_OVERRIDE"
+  | "ROSTER_ADD"
+  | "ROSTER_REMOVE";
+
+export type MeetingAttendanceEventDto = {
+  id: number;
+  meetingId: number;
+  studentId: number | null;
+  studentCode: string;
+  studentName: string;
+  action: MeetingAttendanceEventAction;
+  previousStatus: MeetingAttendanceStatus | null;
+  newStatus: MeetingAttendanceStatus | null;
+  previousNote: string | null;
+  newNote: string | null;
+  changedByAccountId: number | null;
+  changedByEmail: string;
+  changedByRole: string;
+  reason: string | null;
+  changedAt: ISODateTimeString;
+};
+
+export type StudentAttendanceSummaryDto = {
+  groupId: number;
+  groupName: string;
+  groupNo: string;
+  term: string;
+  studentId: number | null;
+  studentCode: string;
+  studentName: string;
+  totalMeetings: number;
+  presentCount: number;
+  lateCount: number;
+  absentCount: number;
+  excusedCount: number;
+  attendanceRate: number;
+};
+
+export type AdminMeetingAttendanceFilter = "ALL" | "RECORDED" | "MISSING";
+
+export type AdminAttendanceSummaryQuery = {
+  page?: number;
+  size?: number;
+  term?: string;
+  groupId?: number;
+  mentorId?: number;
+  search?: string;
 };
 
 export type ReopenMeetingRequest = {
@@ -118,6 +218,7 @@ export type AdminMeetingsQuery = {
   search?: string;
   status?: MeetingStatus | "ALL";
   evidence?: AdminMeetingEvidenceFilter;
+  attendance?: AdminMeetingAttendanceFilter;
   groupId?: number;
 };
 

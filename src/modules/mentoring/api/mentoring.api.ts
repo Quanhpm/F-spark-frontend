@@ -5,6 +5,7 @@ import {
   apiPatch,
   apiPost,
   apiPut,
+  apiRequest,
 } from "@/shared/lib";
 import type { ApiResponse, EmptyApiResponse, PageResponse } from "@/shared/types";
 
@@ -14,7 +15,13 @@ import type {
   AdminMentorSlotDetailDto,
   AdminMentorSlotDetailQuery,
   AdminMeetingsQuery,
+  AdminAttendanceOverrideRequest,
+  AdminAttendanceSummaryQuery,
   BookMentorMeetingRequest,
+  MeetingAttendanceEventDto,
+  MeetingAttendanceRequest,
+  MeetingAttendanceViewDto,
+  StudentAttendanceSummaryDto,
   CreateMentorMeetingRequest,
   CreateAvailabilitySlotRequest,
   MentorAvailabilitySlotDto,
@@ -126,9 +133,74 @@ export function deleteMeetingEvidence(groupId: number, meetingId: number) {
   );
 }
 
-export function confirmMeeting(groupId: number, meetingId: number) {
+export function confirmMeeting(
+  groupId: number,
+  meetingId: number,
+  payload: MeetingAttendanceRequest,
+) {
   return apiPatch<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings/${meetingId}/confirm`,
+    payload,
+  );
+}
+
+export function getMeetingAttendance(groupId: number, meetingId: number) {
+  return apiGet<ApiResponse<MeetingAttendanceViewDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/attendance`,
+  );
+}
+
+export function updateMeetingAttendance(
+  groupId: number,
+  meetingId: number,
+  payload: MeetingAttendanceRequest,
+) {
+  return apiPut<ApiResponse<MeetingAttendanceViewDto>>(
+    `/api/groups/${groupId}/mentor/meetings/${meetingId}/attendance`,
+    payload,
+  );
+}
+
+export function getGroupAttendanceSummary(groupId: number) {
+  return apiGet<ApiResponse<StudentAttendanceSummaryDto[]>>(
+    `/api/groups/${groupId}/mentor/meetings/attendance-summary`,
+  );
+}
+
+export function getAdminMeetingAttendance(meetingId: number) {
+  return apiGet<ApiResponse<MeetingAttendanceViewDto>>(
+    `/api/admin/meetings/${meetingId}/attendance`,
+  );
+}
+
+export function overrideMeetingAttendance(
+  meetingId: number,
+  studentId: number,
+  payload: AdminAttendanceOverrideRequest,
+) {
+  return apiPut<ApiResponse<MeetingAttendanceViewDto>>(
+    `/api/admin/meetings/${meetingId}/attendance/${studentId}`,
+    payload,
+  );
+}
+
+export function removeMeetingAttendance(meetingId: number, studentId: number, reason: string) {
+  return apiRequest<ApiResponse<MeetingAttendanceViewDto>>(
+    `/api/admin/meetings/${meetingId}/attendance/${studentId}`,
+    { body: { reason }, method: "DELETE" },
+  );
+}
+
+export function getMeetingAttendanceHistory(meetingId: number) {
+  return apiGet<ApiResponse<MeetingAttendanceEventDto[]>>(
+    `/api/admin/meetings/${meetingId}/attendance-history`,
+  );
+}
+
+export function listAdminAttendanceSummaries(query: AdminAttendanceSummaryQuery = {}) {
+  return apiGet<ApiResponse<PageResponse<StudentAttendanceSummaryDto>>>(
+    "/api/admin/attendance/students",
+    { query },
   );
 }
 

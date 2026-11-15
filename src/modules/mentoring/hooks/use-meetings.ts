@@ -18,11 +18,22 @@ import {
   listMyCalendarMeetings,
   listMentorReportTerms,
   getMeetingReopenHistory,
+  getAdminMeetingAttendance,
+  getGroupAttendanceSummary,
+  getMeetingAttendance,
+  getMeetingAttendanceHistory,
+  listAdminAttendanceSummaries,
+  overrideMeetingAttendance,
+  removeMeetingAttendance,
+  updateMeetingAttendance,
   reopenMeeting,
   updateMeeting,
   submitMeetingEvidence,
 } from "../api";
 import type {
+  AdminAttendanceOverrideRequest,
+  AdminAttendanceSummaryQuery,
+  MeetingAttendanceRequest,
   AdminMentorActivityQuery,
   AdminMentorSlotDetailQuery,
   AdminMeetingsQuery,
@@ -223,9 +234,17 @@ export function useDeleteMeetingEvidence() {
 export function useConfirmMeeting() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ groupId, meetingId }: { groupId: number; meetingId: number }) =>
-      confirmMeeting(groupId, meetingId),
+    mutationFn: ({
+      groupId,
+      meetingId,
+      attendance,
+    }: {
+      groupId: number;
+      meetingId: number;
+      attendance: MeetingAttendanceRequest;
+    }) => confirmMeeting(groupId, meetingId, attendance),
     onSettled: (_response, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.attendanceAll() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(variables.groupId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
@@ -328,5 +347,106 @@ export function useMeetingReopenHistory(meetingId: number | null) {
     queryKey: meetingId === null
       ? [...queryKeys.mentoring.adminMeetingsAll(), "empty", "reopen-history"]
       : queryKeys.mentoring.meetingReopenHistory(meetingId),
+  });
+}
+
+function invalidateMeetingLists(queryClient: ReturnType<typeof useQueryClient>, groupId?: number) {
+  if (groupId !== undefined) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.meetings(groupId) });
+  }
+  queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.attendanceAll() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myMeetingsAll() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.myCalendarMeetings() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.adminMeetingsAll() });
+}
+
+/** Attendance sheet. Pass `admin` to read through the admin endpoint (no group check). */
+export function useMeetingAttendance(
+  meeting: { groupId: number; id: number } | null,
+  { admin = false, enabled = true }: { admin?: boolean; enabled?: boolean } = {},
+) {
+  return useQuery({
+    enabled: Boolean(meeting) && enabled,
+    queryFn: () =>
+      admin
+        ? getAdminMeetingAttendance(meeting!.id)
+        : getMeetingAttendance(meeting!.groupId, meeting!.id),
+    queryKey: [
+      ...queryKeys.mentoring.meetingAttendance(meeting?.id ?? 0),
+      admin ? "admin" : "group",
+    ],
+  });
+}
+
+export function useUpdateMeetingAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      groupId,
+      meetingId,
+      attendance,
+    }: {
+      groupId: number;
+      meetingId: number;
+      attendance: MeetingAttendanceRequest;
+    }) => updateMeetingAttendance(groupId, meetingId, attendance),
+    onSettled: (_response, _error, variables) => invalidateMeetingLists(queryClient, variables.groupId),
+  });
+}
+
+export function useGroupAttendanceSummary(groupId: number | null | undefined) {
+  return useQuery({
+    enabled: typeof groupId === "number",
+    queryFn: () => getGroupAttendanceSummary(groupId as number),
+    queryKey: queryKeys.mentoring.groupAttendanceSummary(groupId ?? 0),
+  });
+}
+
+export function useOverrideMeetingAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      studentId,
+      payload,
+    }: {
+      groupId: number;
+      meetingId: number;
+      studentId: number;
+      payload: AdminAttendanceOverrideRequest;
+    }) => overrideMeetingAttendance(meetingId, studentId, payload),
+    onSettled: (_response, _error, variables) => invalidateMeetingLists(queryClient, variables.groupId),
+  });
+}
+
+export function useRemoveMeetingAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      meetingId,
+      studentId,
+      reason,
+    }: {
+      groupId: number;
+      meetingId: number;
+      studentId: number;
+      reason: string;
+    }) => removeMeetingAttendance(meetingId, studentId, reason),
+    onSettled: (_response, _error, variables) => invalidateMeetingLists(queryClient, variables.groupId),
+  });
+}
+
+export function useMeetingAttendanceHistory(meetingId: number, enabled = true) {
+  return useQuery({
+    enabled,
+    queryFn: () => getMeetingAttendanceHistory(meetingId),
+    queryKey: queryKeys.mentoring.meetingAttendanceHistory(meetingId),
+  });
+}
+
+export function useAdminAttendanceSummaries(query: AdminAttendanceSummaryQuery = {}) {
+  return useQuery({
+    queryFn: () => listAdminAttendanceSummaries(query),
+    queryKey: queryKeys.mentoring.adminAttendanceSummaries(query),
   });
 }
