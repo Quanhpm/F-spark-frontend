@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ClipboardList, Search } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
+import { useAdminFeatures } from "@/modules/features";
 import {
   Button,
   Card,
@@ -20,6 +21,10 @@ import { useAdminAttendanceSummaries } from "../hooks";
 const PAGE_SIZE = 20;
 
 export function AdminAttendancePage() {
+  const featuresQuery = useAdminFeatures();
+  const attendanceHidden = featuresQuery.data?.data.some(
+    (feature) => feature.key === "MEETING_ATTENDANCE" && !feature.enabled,
+  ) ?? false;
   const [searchInput, setSearchInput] = useState("");
   const [termInput, setTermInput] = useState("");
   const [search, setSearch] = useState("");
@@ -48,6 +53,13 @@ export function AdminAttendancePage() {
         eyebrow="Admin"
         title="Meeting attendance"
       />
+
+      {attendanceHidden && (
+        <div className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm leading-normal text-yellow-800">
+          Meeting attendance is currently hidden from mentors, students and instructors. You can still test it here.{" "}
+          <Link className="font-semibold underline" href="/admin/features">Manage feature toggles</Link>
+        </div>
+      )}
 
       <Card>
         <CardContent>

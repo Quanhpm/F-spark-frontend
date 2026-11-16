@@ -6,6 +6,7 @@ import { ConfirmMeetingDialog } from "./confirm-meeting-dialog";
 
 const mocks = vi.hoisted(() => ({
   attendance: vi.fn(),
+  attendanceOn: true,
   mutateAsync: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
@@ -13,6 +14,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("sonner", () => ({
   toast: { error: mocks.toastError, success: mocks.toastSuccess },
+}));
+
+vi.mock("@/modules/features", () => ({
+  useFeatureEnabled: () => ({ enabled: mocks.attendanceOn, isLoading: false }),
 }));
 
 vi.mock("../hooks", () => ({
@@ -65,6 +70,7 @@ const roster: MeetingAttendanceViewDto = {
 
 describe("ConfirmMeetingDialog", () => {
   beforeEach(() => {
+    mocks.attendanceOn = true;
     mocks.attendance.mockReturnValue({ data: { data: roster }, isError: false, isLoading: false });
     mocks.mutateAsync.mockReset();
     mocks.mutateAsync.mockResolvedValue({ data: { ...meeting, status: "SCHEDULED" } });
@@ -92,5 +98,18 @@ describe("ConfirmMeetingDialog", () => {
       groupId: 42,
       meetingId: 100,
     });
+  });
+
+  it("confirms without attendance while the feature is turned off", async () => {
+    mocks.attendanceOn = false;
+    const onClose = vi.fn();
+    render(<ConfirmMeetingDialog meeting={meeting} onClose={onClose} />);
+
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(screen.queryByText(/Attendance \(/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm meeting" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(mocks.mutateAsync).toHaveBeenCalledWith({ attendance: undefined, groupId: 42, meetingId: 100 });
   });
 });

@@ -22,6 +22,12 @@ export const queryKeys = {
     batchErrors: (id: number, filters?: QueryFilters) =>
       [...queryKeys.imports.batch(id), "errors", filters ?? {}] as const,
   },
+  features: {
+    all: ["features"] as const,
+    mine: () => [...queryKeys.features.all, "mine"] as const,
+    adminList: () => [...queryKeys.features.all, "admin"] as const,
+    history: (key: string) => [...queryKeys.features.all, "history", key] as const,
+  },
   backups: {
     all: ["backups"] as const,
     lists: () => [...queryKeys.backups.all, "list"] as const,

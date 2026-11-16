@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MentorMeetingDto } from "../types";
 import { MentorMeetingsPage } from "./mentor-meetings-page";
 
+vi.mock("@/modules/features", () => ({
+  useAdminFeatures: () => ({ data: undefined }),
+  useFeatureEnabled: () => ({ enabled: true, isLoading: false }),
+}));
+
 const mocks = vi.hoisted(() => ({
   cancelMeeting: vi.fn(),
   exportMeetingReport: vi.fn(),

@@ -6,6 +6,11 @@ import type { PositionedCalendarEvent } from "./availability-calendar.types";
 import { SelectedEventPanel } from "./selected-event-panel";
 import { TimelineEventCard } from "./timeline-day-canvas";
 
+vi.mock("@/modules/features", () => ({
+  useAdminFeatures: () => ({ data: undefined }),
+  useFeatureEnabled: () => ({ enabled: true, isLoading: false }),
+}));
+
 const meeting: MentorMeetingDto = {
   bookedByStudentCode: "SE001",
   bookedByStudentId: 1,

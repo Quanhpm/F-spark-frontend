@@ -3,6 +3,8 @@
 import { CheckCircle2, ClipboardList, Clock3 } from "lucide-react";
 import { useState } from "react";
 
+import { useFeatureEnabled } from "@/modules/features";
+
 import type { MentorMeetingDto } from "../types";
 import { formatMentorIdentity } from "./availability-calendar.utils";
 import { MeetingAttendanceDialog } from "./meeting-attendance-dialog";
@@ -37,7 +39,8 @@ export function MeetingConfirmationStatus({
 }) {
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const attendanceText = formatAttendanceSummary(meeting.attendanceSummary);
-  const showAttendance = meeting.status !== "CANCELED"
+  const { enabled: attendanceOn } = useFeatureEnabled("MEETING_ATTENDANCE");
+  const showAttendance = (attendanceOn || adminAttendance) && meeting.status !== "CANCELED"
     && (Boolean(meeting.mentorConfirmedAt) || Boolean(attendanceText) || adminAttendance);
   const studentConfirmed = Boolean(
     meeting.evidenceImageUrl?.trim() || meeting.evidenceSubmittedAt,

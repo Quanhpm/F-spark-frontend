@@ -1,8 +1,13 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { MentorMeetingDto } from "../types";
 import { MeetingConfirmationStatus } from "./meeting-confirmation-status";
+
+vi.mock("@/modules/features", () => ({
+  useAdminFeatures: () => ({ data: undefined }),
+  useFeatureEnabled: () => ({ enabled: true, isLoading: false }),
+}));
 
 const meeting: MentorMeetingDto = {
   bookedByStudentCode: "SE001",

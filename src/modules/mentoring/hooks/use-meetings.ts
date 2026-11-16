@@ -241,7 +241,8 @@ export function useConfirmMeeting() {
     }: {
       groupId: number;
       meetingId: number;
-      attendance: MeetingAttendanceRequest;
+      /** Omitted while the attendance feature is turned off. */
+      attendance?: MeetingAttendanceRequest;
     }) => confirmMeeting(groupId, meetingId, attendance),
     onSettled: (_response, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.attendanceAll() });
@@ -394,9 +395,9 @@ export function useUpdateMeetingAttendance() {
   });
 }
 
-export function useGroupAttendanceSummary(groupId: number | null | undefined) {
+export function useGroupAttendanceSummary(groupId: number | null | undefined, enabled = true) {
   return useQuery({
-    enabled: typeof groupId === "number",
+    enabled: typeof groupId === "number" && enabled,
     queryFn: () => getGroupAttendanceSummary(groupId as number),
     queryKey: queryKeys.mentoring.groupAttendanceSummary(groupId ?? 0),
   });

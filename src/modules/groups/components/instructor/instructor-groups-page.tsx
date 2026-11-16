@@ -16,6 +16,7 @@ import {
 import { FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { useFeatureEnabled } from "@/modules/features";
 import { useAvailableAcademicTerms } from "@/modules/feedback";
 import {
   GroupAttendanceSummary,
@@ -123,6 +124,7 @@ function MeetingReportsDialog({
 }) {
   const query = useGroupMeetings(groupId);
   const meetings = query.data?.data ?? [];
+  const { enabled: attendanceOn } = useFeatureEnabled("MEETING_ATTENDANCE");
 
   return (
     <ResponsiveDialog
@@ -138,10 +140,12 @@ function MeetingReportsDialog({
         <EmptyState title="No meetings reported" />
       ) : (
         <div className="grid gap-3">
-          <section aria-label="Attendance by student" className="grid gap-2 rounded-xl border border-border bg-background p-4">
-            <strong className="text-sm text-foreground">Attendance by student</strong>
-            <GroupAttendanceSummary groupId={groupId} />
-          </section>
+          {attendanceOn && (
+            <section aria-label="Attendance by student" className="grid gap-2 rounded-xl border border-border bg-background p-4">
+              <strong className="text-sm text-foreground">Attendance by student</strong>
+              <GroupAttendanceSummary groupId={groupId} />
+            </section>
+          )}
           {meetings.map((meeting) => (
             <article
               className="grid gap-2 rounded-xl border border-border bg-background p-4"

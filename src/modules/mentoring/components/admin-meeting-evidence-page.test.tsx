@@ -7,6 +7,11 @@ import {
   isSafeEvidenceUrl,
 } from "./admin-meeting-evidence-page";
 
+vi.mock("@/modules/features", () => ({
+  useAdminFeatures: () => ({ data: undefined }),
+  useFeatureEnabled: () => ({ enabled: true, isLoading: false }),
+}));
+
 const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   searchParams: new URLSearchParams("groupId=42"),

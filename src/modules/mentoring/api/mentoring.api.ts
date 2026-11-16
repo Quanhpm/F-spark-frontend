@@ -136,7 +136,7 @@ export function deleteMeetingEvidence(groupId: number, meetingId: number) {
 export function confirmMeeting(
   groupId: number,
   meetingId: number,
-  payload: MeetingAttendanceRequest,
+  payload?: MeetingAttendanceRequest,
 ) {
   return apiPatch<ApiResponse<MentorMeetingDto>>(
     `/api/groups/${groupId}/mentor/meetings/${meetingId}/confirm`,

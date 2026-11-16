@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button, EmptyState, LoadingState, ResponsiveDialog } from "@/shared/components";
+import { useFeatureEnabled } from "@/modules/features";
 import { ApiError } from "@/shared/lib";
 
 import { useConfirmMeeting, useMeetingAttendance } from "../hooks";
@@ -29,7 +30,8 @@ export function ConfirmMeetingDialog({
   onClose: () => void;
 }) {
   const confirmMutation = useConfirmMeeting();
-  const attendanceQuery = useMeetingAttendance(meeting);
+  const { enabled: attendanceOn, isLoading: featuresLoading } = useFeatureEnabled("MEETING_ATTENDANCE");
+  const attendanceQuery = useMeetingAttendance(meeting, { enabled: attendanceOn });
   const roster = useMemo(
     () => (attendanceQuery.data?.data.attendances ?? []).filter((row) => row.studentId !== null),
     [attendanceQuery.data],
@@ -44,7 +46,9 @@ export function ConfirmMeetingDialog({
   }
 
   const missingCount = roster.filter((row) => !entryFor(row.studentId as number).status).length;
-  const canSubmit = roster.length > 0 && missingCount === 0 && !confirmMutation.isPending;
+  const canSubmit = attendanceOn
+    ? roster.length > 0 && missingCount === 0 && !confirmMutation.isPending
+    : !featuresLoading && !confirmMutation.isPending;
 
   function update(studentId: number, patch: Partial<DraftEntry>) {
     setDraft((current) => ({
@@ -63,16 +67,18 @@ export function ConfirmMeetingDialog({
   async function confirm() {
     try {
       const response = await confirmMutation.mutateAsync({
-        attendance: {
-          attendances: roster.map((row) => {
-            const entry = entryFor(row.studentId as number);
-            return {
-              note: entry?.note.trim() || null,
-              status: entry?.status as MeetingAttendanceStatus,
-              studentId: row.studentId as number,
-            };
-          }),
-        },
+        attendance: attendanceOn
+          ? {
+            attendances: roster.map((row) => {
+              const entry = entryFor(row.studentId as number);
+              return {
+                note: entry?.note.trim() || null,
+                status: entry?.status as MeetingAttendanceStatus,
+                studentId: row.studentId as number,
+              };
+            }),
+          }
+          : undefined,
         groupId: meeting.groupId,
         meetingId: meeting.id,
       });
@@ -106,7 +112,7 @@ export function ConfirmMeetingDialog({
         </>
       )}
       onClose={onClose}
-      title="Confirm meeting and take attendance"
+      title={attendanceOn ? "Confirm meeting and take attendance" : "Confirm meeting"}
     >
       <div className="grid gap-4 text-sm leading-6 text-muted">
         <div className="grid gap-1">
@@ -120,7 +126,9 @@ export function ConfirmMeetingDialog({
           </p>
         </div>
 
-        {attendanceQuery.isLoading ? (
+        {!attendanceOn ? (
+          featuresLoading ? <LoadingState title="Loading" /> : null
+        ) : attendanceQuery.isLoading ? (
           <LoadingState title="Loading group members" />
         ) : attendanceQuery.isError ? (
           <EmptyState

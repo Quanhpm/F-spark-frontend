@@ -1,5 +1,6 @@
 "use client";
 
+import { useFeatureEnabled } from "@/modules/features";
 import { EmptyState, LoadingState } from "@/shared/components";
 import { ApiError } from "@/shared/lib";
 
@@ -7,9 +8,11 @@ import { useGroupAttendanceSummary } from "../hooks";
 
 /** Per-student attendance totals across a group's meetings (instructor, mentor and members). */
 export function GroupAttendanceSummary({ groupId }: { groupId: number }) {
-  const summaryQuery = useGroupAttendanceSummary(groupId);
+  const { enabled: attendanceOn } = useFeatureEnabled("MEETING_ATTENDANCE");
+  const summaryQuery = useGroupAttendanceSummary(groupId, attendanceOn);
   const rows = summaryQuery.data?.data ?? [];
 
+  if (!attendanceOn) return null;
   if (summaryQuery.isLoading) return <LoadingState title="Loading attendance" />;
   if (summaryQuery.isError) {
     return (
