@@ -36,6 +36,8 @@ export type TermFeedbackDto = {
   status: FeedbackStatus;
   submittedAt: ISODateTimeString | null;
   version: number;
+  /** Whether the term currently accepts feedback submissions. */
+  feedbackOpen: boolean;
 };
 
 export type SubmitFeedbackVariables = {
@@ -89,6 +91,7 @@ export type FeedbackTermDto = {
   id: number;
   code: string;
   status: AcademicTermStatus;
+  feedbackOpen: boolean;
 };
 
 export type AdminTermsQuery = PaginationQuery;
@@ -156,4 +159,8 @@ export type AcademicTermResponseDto = {
   groupCount: number;
   totalExpectedFeedbacks: number;
   totalSubmittedFeedbacks: number;
+  /** Students can submit feedback only while this is true. Independent of the term status. */
+  feedbackOpen: boolean;
+  feedbackOpenedAt: ISODateTimeString | null;
+  feedbackOpenedByEmail: string | null;
 };

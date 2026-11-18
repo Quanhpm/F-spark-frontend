@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
-import { Archive, LockKeyhole, Plus, Trash2 } from "lucide-react";
+import { Archive, LockKeyhole, MessageSquare, MessageSquareOff, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import {
   Badge,
@@ -21,8 +21,10 @@ import {
   useArchiveTermStudents,
   useAvailableAcademicTerms,
   useCloseAcademicTerm,
+  useCloseTermFeedback,
   useCreateAcademicTerm,
   useDeleteEmptyAcademicTerm,
+  useOpenTermFeedback,
 } from "../hooks";
 import type {
   AcademicTermResponseDto,
@@ -269,12 +271,148 @@ function CloseTermModal({ onClose, term }: CloseTermModalProps) {
         Closing this term makes every student group in {term.code} read-only
         and removes it from TV Display. This action cannot be undone from the frontend.
       </p>
+      <p className="m-0 text-muted">
+        Closing the term does not open or close feedback. Use{" "}
+        <strong>{term.feedbackOpen ? "Close feedback" : "Open feedback"}</strong> for that.
+      </p>
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700">
           {error}
         </div>
       )}
     </ResponsiveDialog>
+  );
+}
+
+type FeedbackAction = "open" | "sync" | "close";
+
+const FEEDBACK_ACTION_COPY: Record<FeedbackAction, { title: string; confirm: string; pending: string }> = {
+  close: { confirm: "Close feedback", pending: "Closing...", title: "Close feedback" },
+  open: { confirm: "Open feedback", pending: "Opening...", title: "Open feedback" },
+  sync: { confirm: "Add missing forms", pending: "Adding...", title: "Add missing feedback forms" },
+};
+
+function FeedbackWindowModal({
+  action,
+  onClose,
+  term,
+}: {
+  action: FeedbackAction;
+  onClose: () => void;
+  term: AcademicTermResponseDto;
+}) {
+  const openMutation = useOpenTermFeedback();
+  const closeMutation = useCloseTermFeedback();
+  const mutation = action === "close" ? closeMutation : openMutation;
+  const [error, setError] = useState("");
+  const copy = FEEDBACK_ACTION_COPY[action];
+
+  async function handleConfirm() {
+    setError("");
+    try {
+      await mutation.mutateAsync(term.code);
+      onClose();
+    } catch (mutationError) {
+      setError(getCloseErrorMessage(mutationError));
+    }
+  }
+
+  return (
+    <ResponsiveDialog
+      bodyClassName="grid gap-3 text-sm leading-relaxed text-foreground"
+      className="min-[761px]:max-w-[510px]"
+      closeLabel="Close confirmation dialog"
+      description={<>{term.code} · term is {term.status}</>}
+      footer={
+        <>
+          <Button onClick={onClose} variant="secondary">
+            Cancel
+          </Button>
+          <Button
+            disabled={mutation.isPending}
+            onClick={handleConfirm}
+            variant={action === "close" ? "danger" : "primary"}
+          >
+            {mutation.isPending ? copy.pending : copy.confirm}
+          </Button>
+        </>
+      }
+      onClose={onClose}
+      title={copy.title}
+    >
+      {action === "open" && (
+        <p className="m-0">
+          Students in {term.code} get a feedback form for each assigned mentor and the instructor of their
+          group, are notified, and can submit right away. The term stays {term.status}, and feedback stays
+          linked to {term.code}.
+        </p>
+      )}
+      {action === "sync" && (
+        <p className="m-0">
+          Creates forms for members, mentors or instructors added since feedback was opened.
+          Existing forms and answers are not changed.
+        </p>
+      )}
+      {action === "close" && (
+        <p className="m-0">
+          Students can no longer submit or edit feedback for {term.code}. Submitted answers are kept,
+          and you can open feedback again later.
+        </p>
+      )}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-700">
+          {error}
+        </div>
+      )}
+    </ResponsiveDialog>
+  );
+}
+
+function FeedbackStateBadge({ term }: { term: AcademicTermResponseDto }) {
+  return (
+    <Badge tone={term.feedbackOpen ? "success" : "neutral"}>
+      {term.feedbackOpen ? "Feedback open" : "Feedback closed"}
+    </Badge>
+  );
+}
+
+function FeedbackButtons({
+  className,
+  onAction,
+  term,
+}: {
+  className?: string;
+  onAction: (action: FeedbackAction) => void;
+  term: AcademicTermResponseDto;
+}) {
+  if (!term.feedbackOpen) {
+    return (
+      <Button className={className} icon={<MessageSquare size={15} />} onClick={() => onAction("open")} size="sm">
+        Open feedback
+      </Button>
+    );
+  }
+  return (
+    <>
+      <Button
+        className={className}
+        icon={<RefreshCw size={15} />}
+        onClick={() => onAction("sync")}
+        size="sm"
+        variant="secondary"
+      >
+        Add missing forms
+      </Button>
+      <Button
+        className={className}
+        icon={<MessageSquareOff size={15} />}
+        onClick={() => onAction("close")}
+        size="sm"
+        variant="secondary"
+      >
+        Close feedback
+      </Button>
+    </>
   );
 }
 
@@ -401,6 +539,8 @@ export function AdminTermsPage() {
     useState<AcademicTermResponseDto | null>(null);
   const [termToDelete, setTermToDelete] =
     useState<AcademicTermResponseDto | null>(null);
+  const [feedbackAction, setFeedbackAction] =
+    useState<{ action: FeedbackAction; term: AcademicTermResponseDto } | null>(null);
   const termsPage = termsQuery.data?.data;
   const terms = termsPage?.content ?? [];
   const openTerm = availableTermsQuery.data?.data?.[0] ?? null;
@@ -428,7 +568,7 @@ export function AdminTermsPage() {
             Create term
           </Button>
         }
-        description="Create academic terms, review feedback progress, and close a term when its cycle is complete."
+        description="Create academic terms, open or close student feedback at any time, and close a term when its cycle is complete."
         eyebrow="Admin"
         title="Academic terms"
       />
@@ -481,6 +621,7 @@ export function AdminTermsPage() {
                             <span>{term.totalSubmittedFeedbacks}/{term.totalExpectedFeedbacks} submitted</span>
                             <span>{progress}%</span>
                           </div>
+                          <div><FeedbackStateBadge term={term} /></div>
                           <div className="h-2 overflow-hidden rounded-full bg-background">
                             <div
                               className="h-full rounded-full bg-brand-primary"
@@ -502,6 +643,7 @@ export function AdminTermsPage() {
                       </td>
                       <td className={tableCellClassName}>
                         <div className="flex flex-wrap gap-2">
+                        <FeedbackButtons onAction={(action) => setFeedbackAction({ action, term })} term={term} />
                         {term.status === "OPEN" ? (
                           <Button
                             icon={<LockKeyhole size={15} />}
@@ -569,6 +711,7 @@ export function AdminTermsPage() {
                       </span>
                       <span>{progress}%</span>
                     </div>
+                    <div><FeedbackStateBadge term={term} /></div>
                     <div className="h-2 overflow-hidden rounded-full bg-surface-warm">
                       <div
                         className="h-full rounded-full bg-brand-primary"
@@ -589,6 +732,11 @@ export function AdminTermsPage() {
                     </span>
                   </div>
 
+                  <FeedbackButtons
+                    className="w-full"
+                    onAction={(action) => setFeedbackAction({ action, term })}
+                    term={term}
+                  />
                   {term.status === "OPEN" && (
                     <Button
                       className="w-full"
@@ -656,6 +804,13 @@ export function AdminTermsPage() {
 
       {termToClose && (
         <CloseTermModal onClose={() => setTermToClose(null)} term={termToClose} />
+      )}
+      {feedbackAction && (
+        <FeedbackWindowModal
+          action={feedbackAction.action}
+          onClose={() => setFeedbackAction(null)}
+          term={feedbackAction.term}
+        />
       )}
       {termToArchive && (
         <ArchiveTermModal onClose={() => setTermToArchive(null)} term={termToArchive} />

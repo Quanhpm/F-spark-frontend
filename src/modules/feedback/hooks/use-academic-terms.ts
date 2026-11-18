@@ -5,10 +5,12 @@ import { queryKeys } from "@/shared/lib";
 import {
   archiveTermStudents,
   closeAcademicTerm,
+  closeTermFeedback,
   createAcademicTerm,
   deleteEmptyAcademicTerm,
   listAcademicTerms,
   listAvailableAcademicTerms,
+  openTermFeedback,
 } from "../api";
 import type { AdminTermsQuery, CreateAcademicTermRequest } from "../types";
 
@@ -48,6 +50,31 @@ export function useCloseAcademicTerm() {
       queryClient.invalidateQueries({ queryKey: queryKeys.terms.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.feedback.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.admin.all });
+    },
+  });
+}
+
+export function useOpenTermFeedback() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: openTermFeedback,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.terms.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedback.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.admin.all });
+    },
+  });
+}
+
+export function useCloseTermFeedback() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: closeTermFeedback,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.terms.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.feedback.all });
     },
   });
 }

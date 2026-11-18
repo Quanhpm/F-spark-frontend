@@ -205,7 +205,7 @@ function FeedbackCard({
             {feedback.groupName}
           </span>
           <span className="text-muted">
-            Term status: {feedback.academicTermStatus}
+            Term {feedback.academicTermCode} · {feedback.academicTermStatus}
           </span>
         </div>
 
@@ -225,13 +225,19 @@ function FeedbackCard({
           </div>
         )}
 
-        <Button
-          icon={<MessageSquareText size={16} />}
-          onClick={() => onEdit(feedback)}
-          variant={feedback.status === "SUBMITTED" ? "secondary" : "primary"}
-        >
-          {feedback.status === "SUBMITTED" ? "Update feedback" : "Submit feedback"}
-        </Button>
+        {feedback.feedbackOpen ? (
+          <Button
+            icon={<MessageSquareText size={16} />}
+            onClick={() => onEdit(feedback)}
+            variant={feedback.status === "SUBMITTED" ? "secondary" : "primary"}
+          >
+            {feedback.status === "SUBMITTED" ? "Update feedback" : "Submit feedback"}
+          </Button>
+        ) : (
+          <p className="m-0 rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted">
+            Feedback is closed for this term. You can view it but not submit or change it.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -258,7 +264,7 @@ export function StudentFeedbackPage() {
   return (
     <div className={pageClassName}>
       <PageHeader
-        description="Review end-of-term requests and share constructive feedback with your assigned mentor or instructor."
+        description="Share constructive feedback with your assigned mentor or instructor while feedback is open for your term."
         eyebrow="Student"
         title="Feedback"
       />

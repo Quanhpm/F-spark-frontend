@@ -78,6 +78,18 @@ export function closeAcademicTerm(term: string) {
   );
 }
 
+export function openTermFeedback(term: string) {
+  return apiPost<ApiResponse<AcademicTermResponseDto>>(
+    `/api/admin/terms/${encodeURIComponent(term)}/feedback/open`,
+  );
+}
+
+export function closeTermFeedback(term: string) {
+  return apiPost<ApiResponse<AcademicTermResponseDto>>(
+    `/api/admin/terms/${encodeURIComponent(term)}/feedback/close`,
+  );
+}
+
 export function exportAdminFeedback(term: string) {
   return apiDownload("/api/admin/feedback/export.xlsx", {
     query: { term },
