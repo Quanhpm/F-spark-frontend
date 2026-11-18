@@ -69,7 +69,7 @@ type AdminNavGroup = {
   label: string;
 };
 
-const ADMIN_VERSION_LABEL = "Version 14" as const;
+const ADMIN_VERSION_LABEL = "Version 15" as const;
 
 function AdminVersionBadge() {
   return (
