@@ -18,6 +18,11 @@ export function useAcademicTerms(query: AdminTermsQuery = {}) {
   return useQuery({
     queryFn: () => listAcademicTerms(query),
     queryKey: queryKeys.terms.list(query),
+    // Poll while feedback forms are being generated in the background.
+    refetchInterval: (current) =>
+      current.state.data?.data.content.some((term) => term.feedbackSyncStatus === "RUNNING")
+        ? 3_000
+        : false,
   });
 }
 

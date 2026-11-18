@@ -344,7 +344,8 @@ function FeedbackWindowModal({
         <p className="m-0">
           Students in {term.code} get a feedback form for each assigned mentor and the instructor of their
           group, are notified, and can submit right away. The term stays {term.status}, and feedback stays
-          linked to {term.code}.
+          linked to {term.code}. Forms are created in the background; large terms can take a minute, and
+          this page updates when it is done.
         </p>
       )}
       {action === "sync" && (
@@ -370,10 +371,43 @@ function FeedbackWindowModal({
 
 function FeedbackStateBadge({ term }: { term: AcademicTermResponseDto }) {
   return (
-    <Badge tone={term.feedbackOpen ? "success" : "neutral"}>
-      {term.feedbackOpen ? "Feedback open" : "Feedback closed"}
-    </Badge>
+    <div className="grid gap-1">
+      <div>
+        <Badge tone={term.feedbackOpen ? "success" : "neutral"}>
+          {term.feedbackOpen ? "Feedback open" : "Feedback closed"}
+        </Badge>
+      </div>
+      <FeedbackSyncNote term={term} />
+    </div>
   );
+}
+
+/** Progress of the background job that creates feedback forms. */
+function FeedbackSyncNote({ term }: { term: AcademicTermResponseDto }) {
+  if (term.feedbackSyncStatus === "RUNNING") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted" role="status">
+        <RefreshCw className="animate-spin" size={12} />
+        Generating feedback forms...
+      </span>
+    );
+  }
+  if (term.feedbackSyncStatus === "FAILED") {
+    return (
+      <span className="text-xs text-red-700" role="alert">
+        Generating forms failed: {term.feedbackSyncError ?? "Unknown error"}. Open feedback again to retry.
+      </span>
+    );
+  }
+  if (term.feedbackSyncStatus === "SUCCEEDED" && term.feedbackSyncCreatedCount !== null) {
+    return (
+      <span className="text-xs text-muted">
+        Last run added {term.feedbackSyncCreatedCount} form{term.feedbackSyncCreatedCount === 1 ? "" : "s"}
+        {term.feedbackSyncFinishedAt ? ` · ${formatDateTime(term.feedbackSyncFinishedAt)}` : ""}
+      </span>
+    );
+  }
+  return null;
 }
 
 function FeedbackButtons({
@@ -385,23 +419,44 @@ function FeedbackButtons({
   onAction: (action: FeedbackAction) => void;
   term: AcademicTermResponseDto;
 }) {
-  if (!term.feedbackOpen) {
+  const running = term.feedbackSyncStatus === "RUNNING";
+  if (!term.feedbackOpen || term.feedbackSyncStatus === "FAILED") {
     return (
-      <Button className={className} icon={<MessageSquare size={15} />} onClick={() => onAction("open")} size="sm">
-        Open feedback
-      </Button>
+      <>
+        <Button
+          className={className}
+          disabled={running}
+          icon={<MessageSquare size={15} />}
+          onClick={() => onAction(term.feedbackOpen ? "sync" : "open")}
+          size="sm"
+        >
+          {term.feedbackOpen ? "Retry generating forms" : "Open feedback"}
+        </Button>
+        {term.feedbackOpen && (
+          <Button
+            className={className}
+            icon={<MessageSquareOff size={15} />}
+            onClick={() => onAction("close")}
+            size="sm"
+            variant="secondary"
+          >
+            Close feedback
+          </Button>
+        )}
+      </>
     );
   }
   return (
     <>
       <Button
         className={className}
+        disabled={running}
         icon={<RefreshCw size={15} />}
         onClick={() => onAction("sync")}
         size="sm"
         variant="secondary"
       >
-        Add missing forms
+        {running ? "Generating forms..." : "Add missing forms"}
       </Button>
       <Button
         className={className}

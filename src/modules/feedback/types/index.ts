@@ -163,4 +163,12 @@ export type AcademicTermResponseDto = {
   feedbackOpen: boolean;
   feedbackOpenedAt: ISODateTimeString | null;
   feedbackOpenedByEmail: string | null;
+  /** Background job that creates feedback forms; null when it has never run. */
+  feedbackSyncStatus: FeedbackSyncStatus | null;
+  feedbackSyncStartedAt: ISODateTimeString | null;
+  feedbackSyncFinishedAt: ISODateTimeString | null;
+  feedbackSyncCreatedCount: number | null;
+  feedbackSyncError: string | null;
 };
+
+export type FeedbackSyncStatus = "RUNNING" | "SUCCEEDED" | "FAILED";
