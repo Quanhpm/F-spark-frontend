@@ -68,6 +68,12 @@ describe("AdminTermsPage feedback generation status", () => {
     for (const button of screen.getAllByRole("button", { name: /Generating forms/ })) {
       expect((button as HTMLButtonElement).disabled).toBe(true);
     }
+    // Closing mid-run would let the job announce feedback that is already closed.
+    const closeButtons = screen.getAllByRole("button", { name: /Close feedback/ });
+    expect(closeButtons.length).toBeGreaterThan(0);
+    for (const button of closeButtons) {
+      expect((button as HTMLButtonElement).disabled).toBe(true);
+    }
   });
 
   it("shows the error and a retry button when generation failed", () => {

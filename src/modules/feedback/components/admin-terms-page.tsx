@@ -435,6 +435,7 @@ function FeedbackButtons({
         {term.feedbackOpen && (
           <Button
             className={className}
+            disabled={running}
             icon={<MessageSquareOff size={15} />}
             onClick={() => onAction("close")}
             size="sm"
@@ -460,6 +461,7 @@ function FeedbackButtons({
       </Button>
       <Button
         className={className}
+        disabled={running}
         icon={<MessageSquareOff size={15} />}
         onClick={() => onAction("close")}
         size="sm"
