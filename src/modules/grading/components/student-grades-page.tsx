@@ -322,8 +322,20 @@ export function StudentGradesPage({
                               : "Not available"}
                           </strong>
                           <span className="text-xs text-muted">
-                            Individual weighted total of graded milestones.
+                            {matrix.attendanceWeight > 0
+                              ? `Individual weighted total of graded milestones (${100 - matrix.attendanceWeight}%) and FAP class attendance (${matrix.attendanceWeight}%).`
+                              : "Individual weighted total of graded milestones."}
                           </span>
+                          {matrix.attendanceWeight > 0 && (
+                            <span className="text-xs text-foreground">
+                              Attendance{myMemberRow.fapClassCode ? ` (${myMemberRow.fapClassCode})` : ""}:{" "}
+                              <strong>
+                                {myMemberRow.attendanceScore !== null
+                                  ? `${myMemberRow.attendanceScore}/10`
+                                  : "not graded yet"}
+                              </strong>
+                            </span>
+                          )}
                         </div>
                       )}
                     </CardContent>

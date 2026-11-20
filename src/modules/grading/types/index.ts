@@ -46,6 +46,10 @@ export type MemberRow = {
   totalScore: number;
   complete: boolean;
   milestoneScores: MemberMilestoneScore[];
+  /** FAP class of the student; only set when the course counts attendance. */
+  fapClassCode: string | null;
+  /** 0-10 score from the FAP class lecturer; only set when the course counts attendance. */
+  attendanceScore: number | null;
 };
 
 export type GroupGradeMatrixDto = {
@@ -57,6 +61,8 @@ export type GroupGradeMatrixDto = {
   milestones: MilestoneColumn[];
   members: MemberRow[];
   complete: boolean;
+  /** Share (0-100) of the final score that comes from FAP class attendance; 0 = none. */
+  attendanceWeight: number;
 };
 
 export type MilestoneMemberScoreDto = {

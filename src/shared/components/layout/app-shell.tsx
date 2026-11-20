@@ -9,6 +9,7 @@ import {
   ChartNoAxesCombined,
   ChevronDown,
   FileImage,
+  ClipboardCheck,
   ClipboardList,
   Database,
   LayoutDashboard,
@@ -17,6 +18,7 @@ import {
   MessageSquare,
   MessagesSquare,
   MonitorUp,
+  Scale,
   ToggleRight,
   UserRound,
   Users,
@@ -69,7 +71,7 @@ type AdminNavGroup = {
   label: string;
 };
 
-const ADMIN_VERSION_LABEL = "Version 15" as const;
+const ADMIN_VERSION_LABEL = "Version 16" as const;
 
 function AdminVersionBadge() {
   return (
@@ -93,6 +95,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/users", icon: Users, label: "Users" },
       { href: "/admin/groups", icon: Users, label: "Groups" },
       { href: "/admin/terms", icon: CalendarClock, label: "Terms" },
+      { href: "/admin/grading", icon: Scale, label: "Grading setup" },
       { href: "/admin/problems", icon: BookOpen, label: "Problem Bank" },
     ],
     label: "Management",
@@ -174,6 +177,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     },
     { href: "/instructor/problems", icon: BookOpen, label: "Problems" },
     { href: "/instructor/grading", icon: ClipboardList, label: "Grading" },
+    { href: "/instructor/fap-classes", icon: ClipboardCheck, label: "FAP classes" },
     { href: "/instructor/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/instructor/notifications", icon: Bell, label: "Notifications" },
     { href: "/instructor/profile", icon: UserRound, label: "Profile" },

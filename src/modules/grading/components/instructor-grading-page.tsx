@@ -146,6 +146,12 @@ function GradeModal({
                       <div>
                         <span className="font-bold text-foreground">{member.studentName}</span>
                         <span className="text-xs text-muted ml-2 font-mono">{member.studentCode}</span>
+                        {(matrix?.attendanceWeight ?? 0) > 0 && (
+                          <span className="block text-xs text-muted">
+                            Attendance ({member.fapClassCode ?? "no FAP class"}):{" "}
+                            {member.attendanceScore !== null ? `${member.attendanceScore}/10` : "not graded yet"}
+                          </span>
+                        )}
                       </div>
                       <Badge tone={hasContribution ? "brand" : "neutral"} size="sm">
                         {hasContribution

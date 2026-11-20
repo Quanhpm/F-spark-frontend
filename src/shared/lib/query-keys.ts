@@ -132,6 +132,15 @@ export const queryKeys = {
     mine: (filters?: QueryFilters) =>
       [...queryKeys.tasks.all, "me", filters ?? {}] as const,
   },
+  attendance: {
+    all: ["attendance"] as const,
+    myCourses: () => [...queryKeys.attendance.all, "my-courses"] as const,
+    myClasses: (filters?: QueryFilters) =>
+      [...queryKeys.attendance.all, "my-classes", filters ?? {}] as const,
+    policies: (term: string) => [...queryKeys.attendance.all, "policies", term] as const,
+    enrollments: (filters?: QueryFilters) =>
+      [...queryKeys.attendance.all, "enrollments", filters ?? {}] as const,
+  },
   grading: {
     all: ["grading"] as const,
     groupGradeMatrix: (groupId: number) =>
