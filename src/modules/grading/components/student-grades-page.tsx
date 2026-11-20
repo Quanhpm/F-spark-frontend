@@ -318,7 +318,7 @@ export function StudentGradesPage({
                           <strong className="text-3xl leading-none font-extrabold text-brand-primary">
                             {typeof myMemberRow.totalScore === "number" &&
                             Number.isFinite(myMemberRow.totalScore)
-                              ? myMemberRow.totalScore.toFixed(2)
+                              ? myMemberRow.totalScore.toFixed(1)
                               : "Not available"}
                           </strong>
                           <span className="text-xs text-muted">
