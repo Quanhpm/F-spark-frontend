@@ -159,7 +159,7 @@ function AssignRow({ enrollment, term, courseCode }: { enrollment: FapEnrollment
   );
 }
 
-function FapClassesCard({ term, courseCode }: { term: string; courseCode: string }) {
+function FapClassesCard({ term, courseCode, termOpen }: { term: string; courseCode: string; termOpen: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const [rebuildResult, setRebuildResult] = useState<FapClassRebuildResultDto | null>(null);
   const enrollmentsQuery = useFapEnrollments({ courseCode, term }, !showAll);
@@ -185,10 +185,11 @@ function FapClassesCard({ term, courseCode }: { term: string; courseCode: string
               {showAll ? "Show missing only" : "Show all students"}
             </Button>
             <Button
-              disabled={rebuildMutation.isPending}
+              disabled={!termOpen || rebuildMutation.isPending}
               icon={<RefreshCw size={15} />}
               onClick={handleRebuild}
               size="sm"
+              title={termOpen ? undefined : "Closed terms keep their FAP classes"}
               variant="secondary"
             >
               {rebuildMutation.isPending ? "Reading..." : "Read FAP classes from imported data"}
@@ -372,7 +373,12 @@ export function AdminGradingSetupPage() {
           </Card>
 
           {attendanceCourses.map((policy) => (
-            <FapClassesCard courseCode={policy.courseCode} key={`${term}-${policy.courseCode}`} term={term} />
+            <FapClassesCard
+              courseCode={policy.courseCode}
+              key={`${term}-${policy.courseCode}`}
+              term={term}
+              termOpen={selectedTerm?.status === "OPEN"}
+            />
           ))}
           {!policiesQuery.isLoading && attendanceCourses.length === 0 && (
             <Badge tone="neutral">No course in {term} counts attendance, so FAP classes are not needed.</Badge>
