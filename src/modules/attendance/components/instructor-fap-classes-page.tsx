@@ -141,7 +141,7 @@ function ClassScoresCard({ overview }: { overview: FapClassOverviewDto }) {
             </Button>
           </div>
         }
-        description={`Attendance is ${overview.attendanceWeight}% of the final ${overview.courseCode} score. Enter 0–10 for each student of your FAP class, even if their group is graded by another instructor.`}
+        description={`Attendance is ${overview.attendanceWeight}% of the final ${overview.courseCode} score. Enter 0–10 for each student of your FAP class, even if their group is graded by another instructor. Import takes the grade sheet layout (RollNumber, Fullname, Email, SubjectCode, GroupName, Constructivism), the same as the Template.`}
         title={`${overview.courseCode} · ${overview.term}`}
       />
       <CardContent>
