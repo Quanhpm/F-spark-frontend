@@ -16,7 +16,7 @@ import {
   TextInput,
 } from "@/shared/components";
 import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-react";
-import { useExportGradesCsv, useGradeGroup, useGroupGradeMatrix } from "../hooks";
+import { useExportGrades, useGradeGroup, useGroupGradeMatrix } from "../hooks";
 import { useInstructorMilestoneDashboard } from "@/modules/dashboards";
 import type { DashboardMilestoneStatusDto } from "@/modules/dashboards";
 import { useInstructorGroups } from "@/modules/groups";
@@ -283,7 +283,7 @@ export function InstructorGradingPage({
     [dashboardResponse?.data]
   );
 
-  const exportMutation = useExportGradesCsv();
+  const exportMutation = useExportGrades();
 
   // Group status values by groupId
   const groupedData = useMemo(() => {
@@ -389,7 +389,7 @@ export function InstructorGradingPage({
           size="md"
         >
           <Download className="size-4 mr-1.5" />
-          <span>{exportMutation.isPending ? "Exporting..." : "Export CSV"}</span>
+          <span>{exportMutation.isPending ? "Exporting..." : "Export Excel"}</span>
         </Button>
       </div>
 

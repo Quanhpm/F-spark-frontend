@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/shared/lib";
 import {
-  exportGradesCsv,
+  exportGrades,
   getGroupGradeMatrix,
   gradeGroup,
   updateContributions,
@@ -67,14 +67,14 @@ export function useUpdateContributions(groupId: number, milestoneId: number) {
   });
 }
 
-export function useExportGradesCsv() {
+export function useExportGrades() {
   return useMutation({
-    mutationFn: (query: ExportGradesQuery) => exportGradesCsv(query),
+    mutationFn: (query: ExportGradesQuery) => exportGrades(query),
     onSuccess: (blob) => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `grades_export.csv`;
+      a.download = `grades_export.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

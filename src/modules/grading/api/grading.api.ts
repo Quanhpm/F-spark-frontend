@@ -46,6 +46,7 @@ export function getGroupGradeMatrix(groupId: number) {
   );
 }
 
-export function exportGradesCsv(query: ExportGradesQuery) {
-  return apiDownload(`/api/instructor/grades/export.csv`, { query });
+/** Excel export: same columns as the CSV export, with column widths sized to the content. */
+export function exportGrades(query: ExportGradesQuery) {
+  return apiDownload(`/api/instructor/grades/export.xlsx`, { query });
 }
