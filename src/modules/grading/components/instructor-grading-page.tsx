@@ -15,6 +15,7 @@ import {
   Select,
   TextInput,
 } from "@/shared/components";
+import { cn } from "@/shared/lib";
 import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-react";
 import { useExportGrades, useGradeGroup, useGroupGradeMatrix } from "../hooks";
 import { formatModeration } from "./grade-moderation-card";
@@ -539,7 +540,13 @@ export function InstructorGradingPage({
 
                       return (
                         <td className="border-b border-border px-4 py-3 align-top" key={m.milestoneId}>
-                          <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2 shadow-sm transition-colors group-hover:border-orange-200 group-hover:bg-orange-50/40">
+                          <div
+                            className={cn(
+                              "flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2 shadow-sm transition-colors group-hover:border-orange-200 group-hover:bg-orange-50/40",
+                              // Two scores need more room than one; keep them off the status badge.
+                              typeof status.moderatedScore === "number" && "flex-wrap",
+                            )}
+                          >
                             <div className="flex min-w-0 flex-wrap items-center gap-1">
                               {status.graded ? (
                                 <Badge tone="success" size="sm" icon={<CheckCircle size={12} />} className="justify-start">
