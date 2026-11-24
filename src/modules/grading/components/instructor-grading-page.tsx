@@ -534,7 +534,7 @@ export function InstructorGradingPage({
               </thead>
               <tbody className="text-sm">
                 {groupedData.map((row) => (
-                  <tr className="group odd:bg-surface even:bg-background hover:bg-brand-primary/5" key={row.groupId}>
+                  <tr className="group odd:bg-surface even:bg-background hover:bg-orange-50" key={row.groupId}>
                     <td className="sticky left-0 z-10 border-r border-b border-border bg-inherit px-4 py-3 font-bold text-foreground shadow-[8px_0_12px_-12px_rgba(15,23,42,0.45)]">
                       <div className="max-w-44 break-words">{row.groupName}</div>
                       <div className="mt-1 text-xs font-normal text-muted">{row.groupNo}</div>
