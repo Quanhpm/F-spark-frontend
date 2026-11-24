@@ -49,6 +49,11 @@ export function getGroupGradeMatrix(groupId: number) {
   );
 }
 
+/** Closed terms whose groups were archived; filtering by one shows its grades, read-only. */
+export function listArchivedGradeTerms() {
+  return apiGet<ApiResponse<string[]>>("/api/instructor/grades/archived-terms");
+}
+
 /** Excel export: same columns as the CSV export, with column widths sized to the content. */
 export function exportGrades(query: ExportGradesQuery) {
   return apiDownload(`/api/instructor/grades/export.xlsx`, { query });

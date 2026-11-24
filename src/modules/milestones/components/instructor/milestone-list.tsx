@@ -20,6 +20,8 @@ type MilestoneListProps = {
   hasActiveFilters: boolean;
   isArchiving: boolean;
   isLoading: boolean;
+  /** Milestones of closed terms can only be viewed. */
+  isTermClosed: (term: string) => boolean;
   milestones: CourseMilestoneDto[];
   onArchive: (milestone: CourseMilestoneDto) => void;
   onEdit: (milestone: CourseMilestoneDto) => void;
@@ -60,6 +62,7 @@ export function MilestoneList({
   hasActiveFilters,
   isArchiving,
   isLoading,
+  isTermClosed,
   milestones,
   onArchive,
   onEdit,
@@ -105,6 +108,7 @@ export function MilestoneList({
                     <Badge tone={getStatusTone(milestone.status)}>
                       {milestone.status}
                     </Badge>
+                    {isTermClosed(milestone.term) && <Badge tone="neutral">Term closed</Badge>}
                     {milestone.locked && <Badge tone="brand">Final milestone · locked</Badge>}
                     <span className="text-xs font-medium text-muted">
                       Position {formatNumber(milestone.position)}
@@ -137,15 +141,17 @@ export function MilestoneList({
                 </div>
 
                 <div className="flex items-start justify-end gap-2 max-[480px]:grid max-[480px]:[&>button]:min-h-11 max-[480px]:[&>button]:w-full">
-                  <Button
-                    icon={<Pencil size={15} />}
-                    onClick={() => onEdit(milestone)}
-                    size="sm"
-                    variant="secondary"
-                  >
-                    Edit
-                  </Button>
-                  {!milestone.locked && (
+                  {!isTermClosed(milestone.term) && (
+                    <Button
+                      icon={<Pencil size={15} />}
+                      onClick={() => onEdit(milestone)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {!milestone.locked && !isTermClosed(milestone.term) && (
                     <Button
                       disabled={isArchiving}
                       icon={<Trash2 size={15} />}

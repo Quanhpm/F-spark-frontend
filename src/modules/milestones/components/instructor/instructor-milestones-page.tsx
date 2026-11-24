@@ -445,6 +445,14 @@ export function InstructorMilestonesPage() {
 
   const hasActiveFilters = Boolean(term.trim() || courseCode.trim());
 
+  // Only OPEN terms are listed; until they load, nothing is treated as closed.
+  function isTermClosed(milestoneTerm: string) {
+    return (
+      availableTermsQuery.isSuccess &&
+      !availableTermCodes.some((code) => code.toLowerCase() === milestoneTerm.trim().toLowerCase())
+    );
+  }
+
   function handleArchive(milestone: CourseMilestoneDto) {
     const confirmed = window.confirm(
       `Archive "${milestone.title}"? Submissions and grades will be preserved.`,
@@ -492,6 +500,7 @@ export function InstructorMilestonesPage() {
         hasActiveFilters={hasActiveFilters}
         isArchiving={deleteMutation.isPending}
         isLoading={milestonesQuery.isLoading}
+        isTermClosed={isTermClosed}
         milestones={milestones}
         onArchive={handleArchive}
         onEdit={setActiveMilestone}

@@ -145,6 +145,7 @@ export const queryKeys = {
     all: ["grading"] as const,
     groupGradeMatrix: (groupId: number) =>
       [...queryKeys.grading.all, "groups", groupId, "matrix"] as const,
+    archivedTerms: () => [...queryKeys.grading.all, "archived-terms"] as const,
     moderation: (term: string, courseCode: string, preview: QueryFilters | null) =>
       [...queryKeys.grading.all, "moderation", term, courseCode, preview] as const,
     milestoneContributions: (groupId: number, milestoneId: number) =>

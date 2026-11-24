@@ -16,8 +16,8 @@ import {
   TextInput,
 } from "@/shared/components";
 import { cn } from "@/shared/lib";
-import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-react";
-import { useExportGrades, useGradeGroup, useGroupGradeMatrix } from "../hooks";
+import { Download, Edit3, Eye, CheckCircle, AlertCircle, FileText } from "lucide-react";
+import { useArchivedGradeTerms, useExportGrades, useGradeGroup, useGroupGradeMatrix } from "../hooks";
 import { formatModeration } from "./grade-moderation-card";
 import { useInstructorMilestoneDashboard } from "@/modules/dashboards";
 import type { DashboardMilestoneStatusDto } from "@/modules/dashboards";
@@ -29,6 +29,8 @@ type GradeModalProps = {
   milestoneId: number;
   milestoneTitle: string;
   onClose: () => void;
+  /** Closed terms: grades can be viewed but not changed. */
+  readOnly?: boolean;
 };
 
 function GradeModal({
@@ -37,6 +39,7 @@ function GradeModal({
   milestoneId,
   milestoneTitle,
   onClose,
+  readOnly = false,
 }: GradeModalProps) {
   const formId = useId();
   const { data: matrixResponse, isLoading } = useGroupGradeMatrix(groupId);
@@ -47,7 +50,7 @@ function GradeModal({
   const maxScore = column?.maxScore ?? 10;
   const isContributionsComplete = column?.contributionsComplete ?? false;
   const contributionsAgreed = column?.contributionAgreementStatus === "AGREED";
-  const canGrade = isContributionsComplete && contributionsAgreed;
+  const canGrade = !readOnly && isContributionsComplete && contributionsAgreed;
   const isModerated = Boolean(matrix?.moderation) && column?.moderated === true;
   
   const [score, setScore] = useState<string>(() =>
@@ -113,20 +116,22 @@ function GradeModal({
             type="button"
             variant="secondary"
           >
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </Button>
-          <Button
-            disabled={gradeMutation.isPending || !canGrade || Boolean(scoreError)}
-            form={formId}
-            type="submit"
-          >
-            {gradeMutation.isPending ? "Submitting..." : "Save Grade"}
-          </Button>
+          {!readOnly && (
+            <Button
+              disabled={gradeMutation.isPending || !canGrade || Boolean(scoreError)}
+              form={formId}
+              type="submit"
+            >
+              {gradeMutation.isPending ? "Submitting..." : "Save Grade"}
+            </Button>
+          )}
         </>
       }
       mobileMode="fullscreen"
       onClose={onClose}
-      title="Grade Group Milestone"
+      title={readOnly ? "Group Milestone Grade" : "Grade Group Milestone"}
       description={`${groupName} · ${milestoneTitle}`}
     >
         {isLoading ? (
@@ -176,7 +181,13 @@ function GradeModal({
               </div>
             </div>
 
-            {!canGrade && (
+            {readOnly && (
+              <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
+                This term is closed. Grades can be viewed and exported, but not changed.
+              </div>
+            )}
+
+            {!readOnly && !canGrade && (
               <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-sm text-amber-800 flex items-start gap-2.5">
                 <AlertCircle className="size-5 shrink-0 mt-0.5 text-amber-600" />
                 <div>
@@ -276,6 +287,7 @@ export function InstructorGradingPage({
     groupName: string;
     milestoneId: number;
     milestoneTitle: string;
+    readOnly: boolean;
   } | null>(null);
 
   const instructorGroupsQuery = useInstructorGroups();
@@ -289,6 +301,10 @@ export function InstructorGradingPage({
         new Set(assignedGroups.map((group) => group.term).filter(Boolean)),
       ).sort(),
     [assignedGroups],
+  );
+  const archivedTermsQuery = useArchivedGradeTerms();
+  const archivedTerms = (archivedTermsQuery.data?.data ?? []).filter(
+    (item) => !termOptions.includes(item),
   );
   const courseOptions = useMemo(
     () =>
@@ -390,6 +406,7 @@ export function InstructorGradingPage({
       groupName: group.groupName,
       milestoneId: initialMilestoneId,
       milestoneTitle: status.milestoneTitle,
+      readOnly: status.termClosed,
     });
   }, [groupedData, initialGroupId, initialMilestoneId]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -422,7 +439,7 @@ export function InstructorGradingPage({
       <Card>
         <CardHeader
           title="Filter and Export"
-          description="Leave filters empty to show all assigned groups and milestones."
+          description="Leave filters empty to show all assigned groups and milestones. Choose an archived term to view or export its grades."
         />
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
@@ -435,6 +452,11 @@ export function InstructorGradingPage({
               {termOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
+                </option>
+              ))}
+              {archivedTerms.map((item) => (
+                <option key={item} value={item}>
+                  {item} (archived)
                 </option>
               ))}
             </Select>
@@ -516,6 +538,11 @@ export function InstructorGradingPage({
                     <td className="sticky left-0 z-10 border-r border-b border-border bg-inherit px-4 py-3 font-bold text-foreground shadow-[8px_0_12px_-12px_rgba(15,23,42,0.45)]">
                       <div className="max-w-44 break-words">{row.groupName}</div>
                       <div className="mt-1 text-xs font-normal text-muted">{row.groupNo}</div>
+                      {Object.values(row.milestones).some((status) => status.termClosed) && (
+                        <Badge className="mt-1" size="sm" tone="neutral">
+                          {Object.values(row.milestones).some((status) => status.archived) ? "Archived" : "Term closed"}
+                        </Badge>
+                      )}
                     </td>
 
                     {milestonesList.map((m) => {
@@ -599,12 +626,13 @@ export function InstructorGradingPage({
                                   groupName: row.groupName,
                                   milestoneId: m.milestoneId,
                                   milestoneTitle: m.milestoneTitle,
+                                  readOnly: status.termClosed,
                                 })
                               }
                               className="h-8 shrink-0 !border-orange-500 !bg-orange-500 px-3 text-xs font-bold !text-white shadow-sm hover:!border-orange-600 hover:!bg-orange-600"
                             >
-                              <Edit3 className="size-3" />
-                              <span>Grade</span>
+                              {status.termClosed ? <Eye className="size-3" /> : <Edit3 className="size-3" />}
+                              <span>{status.termClosed ? "View" : "Grade"}</span>
                             </Button>
                           </div>
                         </td>
@@ -632,6 +660,7 @@ export function InstructorGradingPage({
           groupName={activeGradeModal.groupName}
           milestoneId={activeGradeModal.milestoneId}
           milestoneTitle={activeGradeModal.milestoneTitle}
+          readOnly={activeGradeModal.readOnly}
           onClose={() => setActiveGradeModal(null)}
         />
       )}

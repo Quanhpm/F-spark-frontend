@@ -5,6 +5,7 @@ import {
   getGradeModeration,
   getGroupGradeMatrix,
   gradeGroup,
+  listArchivedGradeTerms,
   updateContributions,
   respondToContributions,
   saveGradeModeration,
@@ -69,6 +70,13 @@ export function useUpdateContributions(groupId: number, milestoneId: number) {
         queryKey: queryKeys.grading.groupGradeMatrix(groupId),
       });
     },
+  });
+}
+
+export function useArchivedGradeTerms() {
+  return useQuery({
+    queryFn: listArchivedGradeTerms,
+    queryKey: queryKeys.grading.archivedTerms(),
   });
 }
 

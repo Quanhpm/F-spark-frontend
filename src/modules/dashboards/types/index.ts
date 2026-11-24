@@ -193,6 +193,10 @@ export type DashboardMilestoneStatusDto = {
   moderatedScore: number | null;
   contributionsComplete: boolean;
   gradeComplete: boolean;
+  /** The term is closed; grades can be viewed but not changed. */
+  termClosed: boolean;
+  /** The closed term's groups and students were archived. */
+  archived: boolean;
 };
 
 export type InstructorMilestoneDashboardQuery = {

@@ -127,8 +127,8 @@ function Warnings({ overview }: { overview: GradeModerationOverviewDto }) {
       <AlertTriangle className="mt-0.5 size-4 shrink-0" />
       <div className="grid min-w-0 gap-1">
         <strong>
-          {overview.gradedGroups}/{overview.totalGroups} groups are graded. You can still save; groups graded later are
-          moderated the same way.
+          {overview.gradedGroups}/{overview.totalGroups} groups are graded.
+          {overview.editable && " You can still save; groups graded later are moderated the same way."}
         </strong>
         {lines.map(({ groups, label }) => (
           <details key={label}>
