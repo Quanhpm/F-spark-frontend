@@ -31,7 +31,7 @@ export function StudentSubmissionsPage({
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
-        description="Review milestone deliverables, grades, and instructor feedback for your project groups."
+        description="Review milestone deliverables for your project groups."
         eyebrow="Student"
         title="Submissions"
       />

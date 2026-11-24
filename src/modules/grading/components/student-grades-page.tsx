@@ -161,13 +161,13 @@ export function StudentGradesPage({
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
-        description="View milestone grades, instructor feedback, and member contributions."
-        title="My Thesis Grades"
+        description="Follow your milestones and agree on member contributions. Scores are only visible to your group's instructor."
+        title="Milestones & Contributions"
       />
 
       {group?.studentReadOnly && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-          Term {group.term} has ended — read-only. Grades and contribution history remain available.
+          Term {group.term} has ended — read-only. Contribution history remains available.
         </div>
       )}
 
@@ -175,7 +175,7 @@ export function StudentGradesPage({
         <LoadingState title="Loading your groups..." />
       ) : !myGroups || myGroups.length === 0 ? (
         <EmptyState
-          description="You must be in a group to view grade reports."
+          description="You must be in a group to view milestones and contributions."
           title="No groups found"
         />
       ) : (
@@ -213,7 +213,7 @@ export function StudentGradesPage({
           </Card>
 
           {isLoadingDetails ? (
-            <LoadingState title="Loading grading information..." />
+            <LoadingState title="Loading milestones..." />
           ) : !matrix || !hasMilestones ? (
             <EmptyState
               description="Course milestones have not been created for this group yet."
@@ -225,14 +225,12 @@ export function StudentGradesPage({
                 <div className="space-y-6 lg:col-span-2">
                   <Card>
                     <CardHeader
-                      description="Select a milestone to view its details, grade, and member contributions."
-                      title="Milestone Evaluations"
+                      description="Select a milestone to view its details and member contributions."
+                      title="Milestones"
                     />
                     <CardContent className="border-t border-border p-0">
                       <div className="divide-y divide-border">
                         {matrix.milestones.map((milestone) => {
-                          const grade = milestone.groupGrade;
-
                           return (
                             <button
                               className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-0 bg-transparent p-5 text-left transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-secondary max-[560px]:grid-cols-1"
@@ -262,12 +260,6 @@ export function StudentGradesPage({
                                   Weight: {milestone.weight}% · Max score:{" "}
                                   {milestone.maxScore}
                                 </span>
-                                {grade && (
-                                  <span className="text-sm font-bold text-brand-primary">
-                                    Group grade: {grade.score} /{" "}
-                                    {milestone.maxScore}
-                                  </span>
-                                )}
                               </div>
 
                               <div className="flex items-center gap-2 justify-self-end text-xs font-bold text-brand-primary max-[560px]:justify-self-start">
@@ -286,12 +278,12 @@ export function StudentGradesPage({
                   <Card className="border-l-4 border-l-brand-primary bg-brand-primary/5">
                     <CardHeader
                       description={`Active Project: ${group?.projectName || "No Project"}`}
-                      title="Academic Summary"
+                      title="Grading Progress"
                     />
                     <CardContent className="space-y-4 pt-0">
                       <div className="flex items-center justify-between border-b border-border/60 pb-3">
                         <span className="text-sm font-bold text-muted">
-                          Grading Progress:
+                          Status:
                         </span>
                         <Badge
                           icon={
@@ -307,37 +299,9 @@ export function StudentGradesPage({
 
                       <p className="m-0 text-xs leading-relaxed text-muted">
                         Completed when all milestones have grading and
-                        contribution data.
+                        contribution data. Scores and feedback are only visible
+                        to your group&apos;s instructor.
                       </p>
-
-                      {myMemberRow && (
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-xs font-bold tracking-wider text-muted uppercase">
-                            My Total Grade
-                          </span>
-                          <strong className="text-3xl leading-none font-extrabold text-brand-primary">
-                            {typeof myMemberRow.totalScore === "number" &&
-                            Number.isFinite(myMemberRow.totalScore)
-                              ? myMemberRow.totalScore.toFixed(1)
-                              : "Not available"}
-                          </strong>
-                          <span className="text-xs text-muted">
-                            {matrix.attendanceWeight > 0
-                              ? `Individual weighted total of graded milestones (${100 - matrix.attendanceWeight}%) and FAP class attendance (${matrix.attendanceWeight}%).`
-                              : "Individual weighted total of graded milestones."}
-                          </span>
-                          {matrix.attendanceWeight > 0 && (
-                            <span className="text-xs text-foreground">
-                              Attendance{myMemberRow.fapClassCode ? ` (${myMemberRow.fapClassCode})` : ""}:{" "}
-                              <strong>
-                                {myMemberRow.attendanceScore !== null
-                                  ? `${myMemberRow.attendanceScore}/10`
-                                  : "not graded yet"}
-                              </strong>
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </div>

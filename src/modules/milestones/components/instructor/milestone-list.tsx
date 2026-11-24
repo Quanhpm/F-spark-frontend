@@ -105,6 +105,7 @@ export function MilestoneList({
                     <Badge tone={getStatusTone(milestone.status)}>
                       {milestone.status}
                     </Badge>
+                    {milestone.locked && <Badge tone="brand">Final milestone · locked</Badge>}
                     <span className="text-xs font-medium text-muted">
                       Position {formatNumber(milestone.position)}
                     </span>
@@ -144,15 +145,17 @@ export function MilestoneList({
                   >
                     Edit
                   </Button>
-                  <Button
-                    disabled={isArchiving}
-                    icon={<Trash2 size={15} />}
-                    onClick={() => onArchive(milestone)}
-                    size="sm"
-                    variant="danger"
-                  >
-                    Archive
-                  </Button>
+                  {!milestone.locked && (
+                    <Button
+                      disabled={isArchiving}
+                      icon={<Trash2 size={15} />}
+                      onClick={() => onArchive(milestone)}
+                      size="sm"
+                      variant="danger"
+                    >
+                      Archive
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

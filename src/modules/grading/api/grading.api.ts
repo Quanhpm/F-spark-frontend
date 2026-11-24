@@ -9,6 +9,9 @@ import type {
   UpsertMilestoneGroupGradeRequest,
   UpsertContributionAgreementRequest,
   ContributionAgreementDto,
+  GradeModerationOverviewDto,
+  GradeModerationScope,
+  GradeModerationSetting,
 } from "../types";
 
 export function gradeGroup(
@@ -49,4 +52,23 @@ export function getGroupGradeMatrix(groupId: number) {
 /** Excel export: same columns as the CSV export, with column widths sized to the content. */
 export function exportGrades(query: ExportGradesQuery) {
   return apiDownload(`/api/instructor/grades/export.xlsx`, { query });
+}
+
+/** Passing a preview returns the group scores it would give, without saving it. */
+export function getGradeModeration(scope: GradeModerationScope, preview: GradeModerationSetting | null) {
+  return apiGet<ApiResponse<GradeModerationOverviewDto>>("/api/admin/grade-moderations", {
+    query: { ...scope, ...(preview ?? {}) },
+  });
+}
+
+function moderationPath(scope: GradeModerationScope) {
+  return `/api/admin/grade-moderations/${encodeURIComponent(scope.term)}/${encodeURIComponent(scope.courseCode)}`;
+}
+
+export function saveGradeModeration(scope: GradeModerationScope, payload: GradeModerationSetting) {
+  return apiPut<ApiResponse<GradeModerationOverviewDto>>(moderationPath(scope), payload);
+}
+
+export function selectModeratedMilestone(scope: GradeModerationScope, milestoneId: number) {
+  return apiPut<ApiResponse<GradeModerationOverviewDto>>(`${moderationPath(scope)}/milestone`, { milestoneId });
 }

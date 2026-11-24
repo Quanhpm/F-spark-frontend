@@ -39,15 +39,6 @@ function formatDateTime(value: string | null | undefined) {
   }).format(date);
 }
 
-function formatScore(
-  value: number | null | undefined,
-  maxScore?: number | null,
-) {
-  if (typeof value !== "number") return "Not graded";
-  if (typeof maxScore === "number") return `${value} / ${maxScore}`;
-  return String(value);
-}
-
 function getMilestoneStatusTone(status: CourseMilestoneStatus) {
   if (status === "ACTIVE") return "success";
   if (status === "CLOSED") return "warning";
@@ -131,19 +122,7 @@ export function StudentMilestoneTimeline({
                 <span className="rounded-full border border-border bg-background px-3 py-1">
                   Weight {milestone.weight ?? "N/A"}%
                 </span>
-                <span className="rounded-full border border-border bg-background px-3 py-1">
-                  Score{" "}
-                  {formatScore(
-                    submission?.score,
-                    submission?.maxScore ?? milestone.maxScore,
-                  )}
-                </span>
               </div>
-              {submission?.feedback && (
-                <p className="m-0 break-words rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 text-muted">
-                  {submission.feedback}
-                </p>
-              )}
             </div>
 
             <div className="flex items-start justify-end gap-2 max-[860px]:grid max-[860px]:grid-cols-2 max-[430px]:grid-cols-1">

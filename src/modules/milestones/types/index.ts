@@ -32,6 +32,8 @@ export type CourseMilestoneDto = {
   status: CourseMilestoneStatus;
   instructorId: EntityId | null;
   instructorName: string | null;
+  /** The course's final milestone: its title cannot change and it cannot be archived. */
+  locked: boolean;
 };
 
 export type CreateCourseMilestoneRequest = {

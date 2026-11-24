@@ -38,12 +38,6 @@ function formatDateTime(value: string | null | undefined) {
   }).format(date);
 }
 
-function formatScore(value: number | null | undefined) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value.toFixed(2)
-    : "Not available";
-}
-
 function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid min-w-0 gap-1 rounded-xl border border-border bg-background p-3">
@@ -72,7 +66,6 @@ export function StudentMilestoneDetailsDialog({
   term,
   studentReadOnly = false,
 }: StudentMilestoneDetailsDialogProps) {
-  const grade = milestone.groupGrade;
   const currentStudent = members.find(
     (member) => member.studentId === currentStudentId,
   );
@@ -102,7 +95,7 @@ export function StudentMilestoneDetailsDialog({
               {milestone.graded ? "Graded" : "Not graded"}
             </Badge>
             <Badge tone={milestone.gradeComplete ? "success" : "warning"}>
-              {milestone.gradeComplete ? "Grade complete" : "In progress"}
+              {milestone.gradeComplete ? "Grading complete" : "In progress"}
             </Badge>
             {milestoneDetails?.status && (
               <Badge tone="neutral">{milestoneDetails.status}</Badge>
@@ -115,7 +108,7 @@ export function StudentMilestoneDetailsDialog({
             <>
               {isMilestoneDetailsError && (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Additional milestone details are unavailable. Grade information
+                  Additional milestone details are unavailable. Your contribution
                   is still shown below.
                 </div>
               )}
@@ -165,48 +158,22 @@ export function StudentMilestoneDetailsDialog({
 
           <div className="grid gap-3 rounded-2xl border border-border bg-surface p-4">
             <h3 className="m-0 text-sm font-bold text-foreground">
-              Grade information
+              Contribution and grading
             </h3>
-            {grade ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-                  <DetailItem
-                    label="Group grade"
-                    value={`${grade.score} / ${grade.maxScoreSnapshot}`}
-                  />
-                  <DetailItem
-                    label="Graded at"
-                    value={formatDateTime(grade.gradedAt)}
-                  />
-                  <DetailItem
-                    label="My contribution"
-                    value={
-                      typeof currentStudentScore?.contributionPercent ===
-                        "number" &&
-                      Number.isFinite(currentStudentScore.contributionPercent)
-                        ? `${currentStudentScore.contributionPercent}%`
-                        : "Not available"
-                    }
-                  />
-                  <DetailItem
-                    label="My milestone score"
-                    value={formatScore(currentStudentScore?.calculatedScore)}
-                  />
-                </div>
-                <div className="grid gap-1 rounded-xl border border-border bg-background p-3">
-                  <span className="text-xs font-bold tracking-[0.04em] text-muted uppercase">
-                    Instructor feedback
-                  </span>
-                  <p className="m-0 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
-                    {grade.feedback || "No feedback provided."}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <p className="m-0 text-sm text-muted">
-                This milestone has not been graded yet.
-              </p>
-            )}
+            <DetailItem
+              label="My contribution"
+              value={
+                typeof currentStudentScore?.contributionPercent === "number" &&
+                Number.isFinite(currentStudentScore.contributionPercent)
+                  ? `${currentStudentScore.contributionPercent}%`
+                  : "Not available"
+              }
+            />
+            <p className="m-0 text-sm text-muted">
+              {milestone.graded
+                ? "Your instructor has graded this milestone. Scores and feedback are only visible to your group's instructor."
+                : "This milestone has not been graded yet."}
+            </p>
           </div>
         </section>
 

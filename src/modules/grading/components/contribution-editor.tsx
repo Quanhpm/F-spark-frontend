@@ -25,12 +25,6 @@ type ContributionEditorProps = {
   readOnly?: boolean;
 };
 
-function formatScore(value: number | null | undefined) {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value.toFixed(2)
-    : "Not available";
-}
-
 function parsePercent(value: string) {
   if (!value.trim()) return null;
   const parsed = Number(value);
@@ -157,12 +151,6 @@ export function ContributionEditor({
                 </div>
                 <p className="m-0 mt-0.5 text-xs text-muted">
                   {member.studentCode}
-                  {memberScore && (
-                    <span>
-                      {" "}
-                      · Individual milestone score {formatScore(memberScore.calculatedScore)}
-                    </span>
-                  )}
                 </p>
                 <Badge size="sm" tone={memberScore?.agreementDecision === "AGREE" ? "success" : memberScore?.agreementDecision === "REQUEST_CHANGES" ? "danger" : "neutral"}>
                   {memberScore?.agreementDecision === "AGREE" ? "Agreed" : memberScore?.agreementDecision === "REQUEST_CHANGES" ? "Changes requested" : "Pending agreement"}

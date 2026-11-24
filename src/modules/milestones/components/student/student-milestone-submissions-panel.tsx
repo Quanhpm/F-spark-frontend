@@ -4,7 +4,6 @@ import { useEffect, useMemo } from "react";
 import { CalendarClock } from "lucide-react";
 
 import {
-  Badge,
   Card,
   CardContent,
   CardHeader,
@@ -15,7 +14,6 @@ import type { EntityId } from "@/shared/types";
 import { resolveActiveGroup, useActiveGroupStore } from "@/modules/groups";
 
 import {
-  useAverageGrade,
   useGroupMilestoneSubmissions,
   useGroupMilestones,
 } from "../../hooks";
@@ -37,13 +35,6 @@ type StudentMilestoneSubmissionsPanelProps = {
   groups: StudentMilestoneGroupOption[];
   initialGroupId?: EntityId | null;
 };
-
-function getAverageValue(
-  value: { averageGrade: number | null; average: number | null } | undefined,
-) {
-  if (!value) return null;
-  return value.averageGrade ?? value.average ?? null;
-}
 
 function getLatestSubmissionByMilestone(submissions: MilestoneSubmissionDto[]) {
   const latestByMilestone = new Map<EntityId, MilestoneSubmissionDto>();
@@ -104,7 +95,6 @@ export function StudentMilestoneSubmissionsPanel({
 
   const milestonesQuery = useGroupMilestones(effectiveGroupId);
   const submissionsQuery = useGroupMilestoneSubmissions(effectiveGroupId);
-  const averageGradeQuery = useAverageGrade(effectiveGroupId);
   const milestones = useMemo(
     () =>
       [...(milestonesQuery.data?.data ?? [])].sort((left, right) => {
@@ -118,7 +108,6 @@ export function StudentMilestoneSubmissionsPanel({
     () => getLatestSubmissionByMilestone(submissionsQuery.data?.data ?? []),
     [submissionsQuery.data?.data],
   );
-  const averageGrade = getAverageValue(averageGradeQuery.data?.data);
 
   if (groups.length === 0) {
     return (
@@ -134,21 +123,12 @@ export function StudentMilestoneSubmissionsPanel({
     <div className="grid min-w-0 gap-6">
       {activeGroup?.studentReadOnly && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-          Term {activeGroup.term} has ended — read-only. Submissions and grades remain available for review.
+          Term {activeGroup.term} has ended — read-only. Submissions remain available for review.
         </div>
       )}
       <Card>
         <CardHeader
-          actions={
-            <Badge tone={averageGrade === null ? "neutral" : "brand"}>
-              {averageGradeQuery.isLoading
-                ? "Loading average"
-                : averageGrade === null
-                  ? "No grade"
-                  : `Average ${averageGrade.toFixed(2)}`}
-            </Badge>
-          }
-          description="Review deliverables, grades, and instructor feedback for your group's milestones."
+          description="Review your group's milestones and deliverables."
           title="Milestone progress"
         />
         <CardContent className="grid gap-5">

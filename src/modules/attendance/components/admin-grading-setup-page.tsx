@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAcademicTerms } from "@/modules/feedback";
+import { GradeModerationCard } from "@/modules/grading";
 import {
   Badge,
   Button,
@@ -36,6 +37,9 @@ import type {
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
 }
+
+/** Courses whose final milestone (Checkpoint 4 / Outcome 3) is moderated. */
+const MODERATED_COURSES = ["EXE101", "EXE201"] as const;
 
 const inputClassName =
   "h-10 rounded-lg border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-brand-secondary";
@@ -288,7 +292,7 @@ export function AdminGradingSetupPage() {
   return (
     <div className="grid min-w-0 gap-6">
       <PageHeader
-        description="Set how much of each course's final score comes from FAP class attendance, create the standard milestones, and check that every student has a FAP class lecturer."
+        description="Set how much of each course's final score comes from FAP class attendance, create the standard milestones, moderate the final milestone, and check that every student has a FAP class lecturer."
         eyebrow="Admin"
         title="Grading setup"
       />
@@ -371,6 +375,10 @@ export function AdminGradingSetupPage() {
               </CardContent>
             )}
           </Card>
+
+          {MODERATED_COURSES.map((course) => (
+            <GradeModerationCard courseCode={course} key={`moderation-${term}-${course}`} term={term} />
+          ))}
 
           {attendanceCourses.map((policy) => (
             <FapClassesCard

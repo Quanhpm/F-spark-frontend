@@ -189,6 +189,8 @@ export type DashboardMilestoneStatusDto = {
   graded: boolean;
   score: number | null;
   maxScoreSnapshot: number | null;
+  /** Group score after the admin's moderation; null when not moderated or not graded. */
+  moderatedScore: number | null;
   contributionsComplete: boolean;
   gradeComplete: boolean;
 };

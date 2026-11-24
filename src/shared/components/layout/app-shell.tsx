@@ -140,7 +140,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { href: "/student/groups", icon: Users, label: "Groups" },
     { href: "/student/chat", icon: MessagesSquare, label: "Chat" },
     { href: "/student/tasks", icon: ClipboardList, label: "Tasks" },
-    { href: "/student/grades", icon: Award, label: "Grades" },
+    { href: "/student/grades", icon: Award, label: "Contributions" },
     { href: "/student/problems", icon: BookOpen, label: "Problems" },
     { href: "/student/feedback", icon: MessageSquare, label: "Feedback" },
     { href: "/student/notifications", icon: Bell, label: "Notifications" },

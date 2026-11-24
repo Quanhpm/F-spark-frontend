@@ -310,6 +310,8 @@ function MilestoneForm({
           )}
 
           <TextInput
+            disabled={milestone?.locked}
+            hint={milestone?.locked ? "The final milestone has a fixed title" : undefined}
             label="Title"
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Prototype review"
@@ -364,7 +366,9 @@ function MilestoneForm({
                 }
                 value={status}
               >
-                {milestoneStatuses.map((item) => (
+                {milestoneStatuses
+                  .filter((item) => !milestone?.locked || item === "ACTIVE" || item === "CLOSED")
+                  .map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>

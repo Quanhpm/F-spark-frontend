@@ -17,6 +17,7 @@ import {
 } from "@/shared/components";
 import { Download, Edit3, CheckCircle, AlertCircle, FileText } from "lucide-react";
 import { useExportGrades, useGradeGroup, useGroupGradeMatrix } from "../hooks";
+import { formatModeration } from "./grade-moderation-card";
 import { useInstructorMilestoneDashboard } from "@/modules/dashboards";
 import type { DashboardMilestoneStatusDto } from "@/modules/dashboards";
 import { useInstructorGroups } from "@/modules/groups";
@@ -46,6 +47,7 @@ function GradeModal({
   const isContributionsComplete = column?.contributionsComplete ?? false;
   const contributionsAgreed = column?.contributionAgreementStatus === "AGREED";
   const canGrade = isContributionsComplete && contributionsAgreed;
+  const isModerated = Boolean(matrix?.moderation) && column?.moderated === true;
   
   const [score, setScore] = useState<string>(() =>
     column?.groupGrade ? String(column.groupGrade.score) : "",
@@ -152,6 +154,12 @@ function GradeModal({
                             {member.attendanceScore !== null ? `${member.attendanceScore}/10` : "not graded yet"}
                           </span>
                         )}
+                        {typeof mScore?.moderatedScore === "number" && (
+                          <span className="block text-xs text-muted">
+                            Before moderation {formatMatrixScore(mScore.calculatedScore)} · after{" "}
+                            <strong className="text-foreground">{formatMatrixScore(mScore.moderatedScore)}</strong>
+                          </span>
+                        )}
                       </div>
                       <Badge tone={hasContribution ? "brand" : "neutral"} size="sm">
                         {hasContribution
@@ -181,7 +189,7 @@ function GradeModal({
 
             <div className="space-y-4">
               <TextInput
-                label={`Score (0 - ${maxScore})`}
+                label={`Score${isModerated ? " before moderation" : ""} (0 - ${maxScore})`}
                 error={canGrade ? scoreError : undefined}
                 type="number"
                 min={0}
@@ -192,6 +200,23 @@ function GradeModal({
                 onChange={(e) => setScore(e.target.value)}
                 disabled={!canGrade}
               />
+
+              {isModerated && matrix?.moderation && (
+                <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
+                  The admin moderates this milestone ({formatModeration(matrix.moderation)}).{" "}
+                  {typeof column?.moderatedGroupScore === "number" ? (
+                    <>
+                      Saved group score: before {formatMatrixScore(column.groupGrade?.score)} / {maxScore}, after{" "}
+                      <strong>
+                        {formatMatrixScore(column.moderatedGroupScore)} / {maxScore}
+                      </strong>
+                      .
+                    </>
+                  ) : (
+                    "It is applied to the score you enter here."
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted">
@@ -233,7 +258,7 @@ function formatMatrixScore(value: number | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
 
   return new Intl.NumberFormat("en", {
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 4,
     minimumFractionDigits: 0,
   }).format(value);
 }
@@ -544,7 +569,17 @@ export function InstructorGradingPage({
                                 className="shrink-0 rounded-lg border border-green-200 bg-green-50 px-2.5 py-1 text-sm font-extrabold text-green-900"
                                 title="Group score"
                               >
-                                {scoreLabel}
+                                {typeof status.moderatedScore !== "number" ? (
+                                  scoreLabel
+                                ) : (
+                                  <span className="grid gap-0.5 text-xs">
+                                    <span className="font-semibold">Before {scoreLabel}</span>
+                                    <span>
+                                      After {formatMatrixScore(status.moderatedScore)}
+                                      {status.maxScoreSnapshot !== null && `/${formatMatrixScore(status.maxScoreSnapshot)}`}
+                                    </span>
+                                  </span>
+                                )}
                               </div>
                             )}
 
