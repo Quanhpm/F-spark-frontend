@@ -17,7 +17,7 @@ import {
 } from "@/shared/components";
 import { cn } from "@/shared/lib";
 import { Download, Edit3, Eye, CheckCircle, AlertCircle, FileText } from "lucide-react";
-import { useArchivedGradeTerms, useExportGrades, useGradeGroup, useGroupGradeMatrix } from "../hooks";
+import { useArchivedGradeTerms, useExportGrades, useGradeGroup, useGroupGradeMatrix, useReopenContributions } from "../hooks";
 import { formatModeration } from "./grade-moderation-card";
 import { useInstructorMilestoneDashboard } from "@/modules/dashboards";
 import type { DashboardMilestoneStatusDto } from "@/modules/dashboards";
@@ -71,6 +71,27 @@ function GradeModal({
   }, [column]);
 
   const gradeMutation = useGradeGroup(milestoneId, groupId);
+  const reopenMutation = useReopenContributions(milestoneId, groupId);
+  const [reopening, setReopening] = useState(false);
+  const [reopenReason, setReopenReason] = useState("");
+  const lastReopen = column?.lastReopen ?? null;
+
+  const handleReopen = () => {
+    const reason = reopenReason.trim();
+    if (!reason) {
+      toast.error("Enter a reason for reopening.");
+      return;
+    }
+    reopenMutation.mutate(reason, {
+      onSuccess: () => {
+        toast.success("Contributions reopened. The group must agree again before you regrade.");
+        onClose();
+      },
+      onError: (err) => {
+        toast.error(`Failed to reopen contributions: ${err.message}`);
+      },
+    });
+  };
   const parsedScore = score.trim() ? Number(score) : null;
   const scoreError =
     parsedScore === null
@@ -181,6 +202,17 @@ function GradeModal({
               </div>
             </div>
 
+            {!readOnly && column && !column.graded && lastReopen && (
+              <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
+                Reopened {new Date(lastReopen.reopenedAt).toLocaleString()}: {lastReopen.reason}
+                {typeof lastReopen.previousScore === "number" && (
+                  <span className="block text-xs text-muted">
+                    Score before reopening: {formatMatrixScore(lastReopen.previousScore)} / {maxScore}
+                  </span>
+                )}
+              </div>
+            )}
+
             {readOnly && (
               <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground">
                 This term is closed. Grades can be viewed and exported, but not changed.
@@ -242,6 +274,60 @@ function GradeModal({
                   disabled={!canGrade}
                 />
               </div>
+
+              {!readOnly && column?.graded && (
+                <div className="grid gap-3 rounded-xl border border-border bg-background p-4">
+                  <div>
+                    <h5 className="m-0 text-sm font-bold text-foreground">Reopen contributions</h5>
+                    <p className="mt-1 mb-0 text-xs text-muted">
+                      Removes this grade so the group can change its contribution split. Every member must agree
+                      again before you regrade. The current grade is kept in the history.
+                    </p>
+                  </div>
+                  {reopening ? (
+                    <>
+                      <textarea
+                        aria-label="Reason for reopening"
+                        className="min-h-[80px] w-full rounded-xl border border-border bg-surface p-3 text-base text-foreground outline-none focus:border-brand-secondary min-[761px]:text-sm"
+                        maxLength={500}
+                        onChange={(e) => setReopenReason(e.target.value)}
+                        placeholder="Why the split needs to change (shown to the group)"
+                        value={reopenReason}
+                      />
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          disabled={reopenMutation.isPending}
+                          onClick={() => setReopening(false)}
+                          size="sm"
+                          type="button"
+                          variant="secondary"
+                        >
+                          Keep the grade
+                        </Button>
+                        <Button
+                          disabled={reopenMutation.isPending || !reopenReason.trim()}
+                          onClick={handleReopen}
+                          size="sm"
+                          type="button"
+                          variant="danger"
+                        >
+                          {reopenMutation.isPending ? "Reopening..." : "Remove grade and reopen"}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      className="justify-self-start"
+                      onClick={() => setReopening(true)}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      Reopen contributions
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </form>
         )}

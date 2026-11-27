@@ -169,6 +169,13 @@ export function StudentMilestoneDetailsDialog({
                   : "Not available"
               }
             />
+            {!milestone.graded && milestone.lastReopen && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                Your instructor reopened the contributions on{" "}
+                {formatDateTime(milestone.lastReopen.reopenedAt)}: {milestone.lastReopen.reason}. Review the split
+                and agree again.
+              </div>
+            )}
             <p className="m-0 text-sm text-muted">
               {milestone.graded
                 ? "Your instructor has graded this milestone. Scores and feedback are only visible to your group's instructor."

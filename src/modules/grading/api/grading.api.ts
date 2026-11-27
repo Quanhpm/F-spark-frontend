@@ -1,4 +1,4 @@
-import { apiGet, apiPut, apiDownload } from "@/shared/lib";
+import { apiDownload, apiGet, apiPost, apiPut } from "@/shared/lib";
 import type { ApiResponse } from "@/shared/types";
 import type {
   ExportGradesQuery,
@@ -22,6 +22,14 @@ export function gradeGroup(
   return apiPut<ApiResponse<MilestoneGroupGradeDto>>(
     `/api/instructor/milestones/${milestoneId}/groups/${groupId}/grade`,
     payload,
+  );
+}
+
+/** Removes the grade so the group can change its contribution split; the old grade is kept in history. */
+export function reopenContributions(milestoneId: number, groupId: number, reason: string) {
+  return apiPost<ApiResponse<GroupGradeMatrixDto>>(
+    `/api/instructor/milestones/${milestoneId}/groups/${groupId}/reopen-contributions`,
+    { reason },
   );
 }
 

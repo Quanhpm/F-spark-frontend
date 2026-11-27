@@ -32,6 +32,16 @@ export type MilestoneColumn = {
   moderated: boolean;
   /** Group score after the admin's moderation; null when not moderated, not graded, or for students. */
   moderatedGroupScore: number | null;
+  /** The latest time the instructor reopened this milestone's contributions. */
+  lastReopen: ReopenInfo | null;
+};
+
+export type ReopenInfo = {
+  reopenedAt: ISODateTimeString;
+  reopenedByEmail: string;
+  reason: string;
+  /** The removed group score; null for students. */
+  previousScore: number | null;
 };
 
 export type MemberMilestoneScore = {

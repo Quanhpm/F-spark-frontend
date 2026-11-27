@@ -6,6 +6,7 @@ import {
   getGroupGradeMatrix,
   gradeGroup,
   listArchivedGradeTerms,
+  reopenContributions,
   updateContributions,
   respondToContributions,
   saveGradeModeration,
@@ -55,6 +56,17 @@ export function useGradeGroup(milestoneId: number, groupId: number) {
       queryClient.invalidateQueries({
         queryKey: [...queryKeys.dashboard.all, "instructor", "milestones"],
       });
+    },
+  });
+}
+
+export function useReopenContributions(milestoneId: number, groupId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reason: string) => reopenContributions(milestoneId, groupId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.grading.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
     },
   });
 }

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InstructorGradingPage } from "./instructor-grading-page";
 
-const mocks = vi.hoisted(() => ({ closed: false, dashboardQueries: [] as unknown[], exported: [] as unknown[] }));
+const mocks = vi.hoisted(() => ({ reopened: [] as string[], closed: false, dashboardQueries: [] as unknown[], exported: [] as unknown[] }));
 
 function status(archived: boolean, term: string) {
   return {
@@ -33,6 +33,7 @@ vi.mock("../hooks", () => ({
   useArchivedGradeTerms: () => ({ data: { data: ["SU26"] } }),
   useExportGrades: () => ({ isPending: false, mutate: (query: unknown) => mocks.exported.push(query) }),
   useGradeGroup: () => ({ isPending: false, mutate: vi.fn() }),
+  useReopenContributions: () => ({ isPending: false, mutate: (reason: string) => mocks.reopened.push(reason) }),
   useGroupGradeMatrix: () => ({
     data: {
       data: {
@@ -56,6 +57,8 @@ vi.mock("../hooks", () => ({
             contributionsComplete: true,
             groupGrade: { feedback: null, score: 10 },
             maxScore: 10,
+            graded: true,
+            lastReopen: null,
             milestoneId: 10,
             moderated: false,
             moderatedGroupScore: null,
@@ -86,6 +89,7 @@ vi.mock("@/modules/groups", () => ({
 describe("InstructorGradingPage", () => {
   beforeEach(() => {
     mocks.closed = false;
+    mocks.reopened = [];
     mocks.exported = [];
   });
 
@@ -96,6 +100,17 @@ describe("InstructorGradingPage", () => {
     expect(screen.getByRole("button", { name: "Save Grade" })).toBeEnabled();
   });
 
+  it("reopens contributions only with a reason", () => {
+    render(<InstructorGradingPage />);
+    fireEvent.click(screen.getByRole("button", { name: "Grade" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reopen contributions" }));
+    const confirm = screen.getByRole("button", { name: "Remove grade and reopen" });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Reason for reopening"), { target: { value: "Split was wrong" } });
+    fireEvent.click(confirm);
+    expect(mocks.reopened).toEqual(["Split was wrong"]);
+  });
+
   it("locks grading once the term is closed, before it is archived", () => {
     mocks.closed = true;
     render(<InstructorGradingPage />);
@@ -103,6 +118,7 @@ describe("InstructorGradingPage", () => {
     expect(screen.queryByRole("button", { name: "Grade" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "View" }));
     expect(screen.queryByRole("button", { name: "Save Grade" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reopen contributions" })).not.toBeInTheDocument();
   });
 
   it("shows an archived term read-only and exports it", () => {

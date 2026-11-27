@@ -60,6 +60,12 @@ const matrix: GroupGradeMatrixDto = {
       milestoneId: 1,
       moderated: true,
       moderatedGroupScore: 4.44,
+      lastReopen: {
+        previousScore: 3.33,
+        reason: "Split corrected",
+        reopenedAt: "2026-11-20T00:00:00Z",
+        reopenedByEmail: "gv@fpt.edu.vn",
+      },
       requiredCount: 1,
       title: "Checkpoint 1",
       weight: 10,
@@ -114,7 +120,7 @@ vi.mock("@/modules/projects/hooks", () => ({
 
 function expectNoScores() {
   const text = document.body.textContent ?? "";
-  for (const hidden of ["9.99", "8.88", "8.9", "7.77", "6.66", "5.55", "4.44", "33.33", "Secret feedback", "My Total Grade", "Group grade"]) {
+  for (const hidden of ["9.99", "8.88", "8.9", "7.77", "6.66", "5.55", "4.44", "33.33", "3.33", "Secret feedback", "My Total Grade", "Group grade"]) {
     expect(text).not.toContain(hidden);
   }
 }
